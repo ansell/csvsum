@@ -47,6 +47,10 @@ public class CSVSummariser {
 		if (!Files.exists(inputPath)) {
 			throw new FileNotFoundException("Could not find input CSV file: " + inputPath.toString());
 		}
+
+		CSVUtil.streamCSV(Files.newBufferedReader(inputPath), h -> {
+		} , (h, l) -> l, l -> {
+		});
 	}
 
 }
