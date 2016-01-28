@@ -58,6 +58,9 @@ public class CSVSummariser {
 		JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<String, AtomicInteger>(
 				k -> new AtomicInteger());
 
+		JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts = new JDefaultDict<String, JDefaultDict<String, AtomicInteger>>(
+				k -> new JDefaultDict<>(l -> new AtomicInteger()));
+
 		List<String> headers = new ArrayList<String>();
 
 		CSVUtil.streamCSV(Files.newBufferedReader(inputPath), h -> headers.addAll(h), (h, l) -> {
@@ -66,14 +69,19 @@ public class CSVSummariser {
 					emptyCounts.get(h.get(i)).incrementAndGet();
 				} else {
 					nonEmptyCounts.get(h.get(i)).incrementAndGet();
+					valueCounts.get(h.get(i)).get(l.get(i)).incrementAndGet();
 				}
 			}
 			return l;
 		} , l -> {
 		});
 
-		headers.forEach(h -> System.out
-				.println(h + " : s\tempty=\t" + emptyCounts.get(h).get() + " \tnon-empty=\t" + nonEmptyCounts.get(h).get()));
+		System.out.println("Empty/non-empty counts");
+		headers.forEach(h -> System.out.println(
+				h + " : \tempty=\t" + emptyCounts.get(h).get() + " \tnon-empty=\t" + nonEmptyCounts.get(h).get()));
+
+		System.out.println("Unique value counts");
+		headers.forEach(h -> System.out.println(h + " : \tunique values=\t" + valueCounts.get(h).keySet().size()));
 	}
 
 }
