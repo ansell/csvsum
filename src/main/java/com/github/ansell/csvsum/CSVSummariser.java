@@ -81,7 +81,14 @@ public class CSVSummariser {
 				h + " : \tempty=\t" + emptyCounts.get(h).get() + " \tnon-empty=\t" + nonEmptyCounts.get(h).get()));
 
 		System.out.println("Unique value counts");
-		headers.forEach(h -> System.out.println(h + " : \tunique values=\t" + valueCounts.get(h).keySet().size()));
+		headers.forEach(h -> {
+			int valueCount = valueCounts.get(h).keySet().size();
+			System.out.println(h + " : \tunique values=\t" + valueCount);
+			valueCounts.get(h).keySet().stream().limit(10).forEach(System.out::println);
+			if (valueCount > 10) {
+				System.out.println("...");
+			}
+		});
 	}
 
 }
