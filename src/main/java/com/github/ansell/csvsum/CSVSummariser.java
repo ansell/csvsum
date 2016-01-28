@@ -83,11 +83,13 @@ public class CSVSummariser {
 		System.out.println("Unique value counts");
 		headers.forEach(h -> {
 			int valueCount = valueCounts.get(h).keySet().size();
+			System.out.println("");
 			System.out.println(h + " : \tunique values=\t" + valueCount);
-			valueCounts.get(h).keySet().stream().limit(10).forEach(System.out::println);
+			valueCounts.get(h).keySet().stream().limit(10).forEach(s -> System.out.print(s + ", "));
 			if (valueCount > 10) {
-				System.out.println("...");
+				System.out.print("...");
 			}
+			System.out.println("");
 		});
 	}
 
