@@ -7,6 +7,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import com.github.ansell.jdefaultdict.JDefaultDict;
 
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
@@ -48,9 +53,27 @@ public class CSVSummariser {
 			throw new FileNotFoundException("Could not find input CSV file: " + inputPath.toString());
 		}
 
-		CSVUtil.streamCSV(Files.newBufferedReader(inputPath), h -> {
-		} , (h, l) -> l, l -> {
+		JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<String, AtomicInteger>(
+				k -> new AtomicInteger());
+		JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<String, AtomicInteger>(
+				k -> new AtomicInteger());
+
+		List<String> headers = new ArrayList<String>();
+
+		CSVUtil.streamCSV(Files.newBufferedReader(inputPath), h -> headers.addAll(h), (h, l) -> {
+			for (int i = 0; i < h.size(); i++) {
+				if (l.get(i).trim().isEmpty()) {
+					emptyCounts.get(h.get(i)).incrementAndGet();
+				} else {
+					nonEmptyCounts.get(h.get(i)).incrementAndGet();
+				}
+			}
+			return l;
+		} , l -> {
 		});
+
+		headers.forEach(h -> System.out
+				.println(h + " : empty=" + emptyCounts.get(h).get() + " non-empty=" + nonEmptyCounts.get(h).get()));
 	}
 
 }
