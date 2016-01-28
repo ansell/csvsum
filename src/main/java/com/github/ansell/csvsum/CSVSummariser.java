@@ -73,7 +73,7 @@ public class CSVSummariser {
 		});
 
 		headers.forEach(h -> System.out
-				.println(h + " : empty=" + emptyCounts.get(h).get() + " non-empty=" + nonEmptyCounts.get(h).get()));
+				.println(h + " : s\tempty=\t" + emptyCounts.get(h).get() + " \tnon-empty=\t" + nonEmptyCounts.get(h).get()));
 	}
 
 }
