@@ -85,8 +85,8 @@ public class CSVSummariser {
 			int valueCount = valueCounts.get(h).keySet().size();
 			System.out.println("");
 			System.out.println(h + " : \tunique values=\t" + valueCount);
-			valueCounts.get(h).keySet().stream().limit(10).forEach(s -> System.out.print(s + ", "));
-			if (valueCount > 10) {
+			valueCounts.get(h).keySet().stream().limit(20).forEach(s -> System.out.print(s + ", "));
+			if (valueCount > 20) {
 				System.out.print("...");
 			}
 			System.out.println("");
