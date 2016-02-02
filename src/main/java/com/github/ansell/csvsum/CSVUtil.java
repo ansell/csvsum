@@ -12,6 +12,11 @@ import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
 
+/**
+ * Utilities used by CSV processors.
+ * 
+ * @author Peter Ansell p_ansell@yahoo.com
+ */
 public class CSVUtil {
 
 	/**
