@@ -30,13 +30,28 @@ public class CSVUtilTest {
 	 * .
 	 */
 	@Test
+	public final void testStreamCSVIllegalHeader() throws Exception {
+		thrown.expect(RuntimeException.class);
+		thrown.expectMessage("Could not verify headers for csv file");
+		CSVUtil.streamCSV(new StringReader("Header1"), h -> {
+			throw new IllegalArgumentException("Did not find header: Header2");
+		} , (h, l) -> l, l -> {
+		});
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * .
+	 */
+	@Test
 	public final void testStreamCSVEmpty() throws Exception {
 		List<String> headers = new ArrayList<>();
-		List<List<String>> lines = new ArrayList<>();
 
 		thrown.expect(RuntimeException.class);
 		thrown.expectMessage("CSV file did not contain a valid header line");
-		CSVUtil.streamCSV(new StringReader(""), h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+		CSVUtil.streamCSV(new StringReader(""), h -> headers.addAll(h), (h, l) -> l, l -> {
+		});
 	}
 
 	/**
