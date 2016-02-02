@@ -33,4 +33,13 @@ public class CSVSummariserTest {
 		CSVSummariser.main();
 	}
 
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainHelp() throws Exception {
+		CSVSummariser.main("--help");
+	}
+
 }
