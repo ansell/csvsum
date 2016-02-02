@@ -24,8 +24,14 @@ import joptsimple.OptionSpec;
  * 
  * @author Peter Ansell p_ansell@yahoo.com
  */
-public class CSVSummariser {
+public final class CSVSummariser {
 
+	/**
+	 * Private constructor for static only class
+	 */
+	private CSVSummariser() {
+	}
+	
 	public static void main(String... args) throws Exception {
 		final OptionParser parser = new OptionParser();
 
