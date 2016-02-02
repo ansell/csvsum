@@ -5,11 +5,16 @@ package com.github.ansell.csvsum;
 
 import static org.junit.Assert.*;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 
 import joptsimple.OptionException;
 
@@ -22,6 +27,9 @@ public class CSVSummariserTest {
 
 	@Rule
 	public ExpectedException thrown = ExpectedException.none();
+
+	@Rule
+	public TemporaryFolder tempDir = new TemporaryFolder();
 
 	/**
 	 * Test method for
@@ -40,6 +48,21 @@ public class CSVSummariserTest {
 	@Test
 	public final void testMainHelp() throws Exception {
 		CSVSummariser.main("--help");
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainEmpty() throws Exception {
+		Path testFile = tempDir.newFile("test-empty.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-empty.csv"), testFile,
+				StandardCopyOption.REPLACE_EXISTING);
+
+		thrown.expect(RuntimeException.class);
+		thrown.expectMessage("CSV file did not contain a valid header line");
+		CSVSummariser.main("--input", testFile.toAbsolutePath().toString());
 	}
 
 }
