@@ -17,8 +17,14 @@ import com.fasterxml.jackson.dataformat.csv.CsvParser;
  * 
  * @author Peter Ansell p_ansell@yahoo.com
  */
-public class CSVUtil {
+public final class CSVUtil {
 
+	/**
+	 * Private constructor for static only class
+	 */
+	private CSVUtil() {
+	}
+	
 	/**
 	 * Stream a CSV file from the given Reader through the header validator,
 	 * line checker, and if the line checker succeeds, send the
