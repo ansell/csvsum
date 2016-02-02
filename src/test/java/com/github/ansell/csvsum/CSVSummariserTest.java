@@ -5,6 +5,7 @@ package com.github.ansell.csvsum;
 
 import static org.junit.Assert.*;
 
+import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -55,6 +56,18 @@ public class CSVSummariserTest {
 	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
+	public final void testMainFileDoesNotExist() throws Exception {
+		Path testDirectory = tempDir.newFolder("test-does-not-exist").toPath();
+
+		thrown.expect(FileNotFoundException.class);
+		CSVSummariser.main("--input", testDirectory.resolve("test-does-not-exist.csv").toString());
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
 	public final void testMainEmpty() throws Exception {
 		Path testFile = tempDir.newFile("test-empty.csv").toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-empty.csv"), testFile,
@@ -85,8 +98,8 @@ public class CSVSummariserTest {
 	@Test
 	public final void testMainSingleHeaderOneLine() throws Exception {
 		Path testFile = tempDir.newFile("test-single-header-one-line.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-one-line.csv"), testFile,
-				StandardCopyOption.REPLACE_EXISTING);
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-one-line.csv"),
+				testFile, StandardCopyOption.REPLACE_EXISTING);
 
 		CSVSummariser.main("--input", testFile.toAbsolutePath().toString());
 	}
@@ -98,8 +111,10 @@ public class CSVSummariserTest {
 	@Test
 	public final void testMainSingleHeaderOneLineEmptyValue() throws Exception {
 		Path testFile = tempDir.newFile("test-single-header-one-line-empty-value.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-one-line-empty-value.csv"), testFile,
-				StandardCopyOption.REPLACE_EXISTING);
+		Files.copy(
+				this.getClass()
+						.getResourceAsStream("/com/github/ansell/csvsum/test-single-header-one-line-empty-value.csv"),
+				testFile, StandardCopyOption.REPLACE_EXISTING);
 
 		CSVSummariser.main("--input", testFile.toAbsolutePath().toString());
 	}
@@ -111,8 +126,23 @@ public class CSVSummariserTest {
 	@Test
 	public final void testMainSingleHeaderMultipleLinesWithEmptyValues() throws Exception {
 		Path testFile = tempDir.newFile("test-single-header-multiple-lines-empty-value.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-multiple-lines-empty-value.csv"), testFile,
-				StandardCopyOption.REPLACE_EXISTING);
+		Files.copy(
+				this.getClass().getResourceAsStream(
+						"/com/github/ansell/csvsum/test-single-header-multiple-lines-empty-value.csv"),
+				testFile, StandardCopyOption.REPLACE_EXISTING);
+
+		CSVSummariser.main("--input", testFile.toAbsolutePath().toString());
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainSingleHeaderTwentyOneLines() throws Exception {
+		Path testFile = tempDir.newFile("test-single-header-twenty-one-lines.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-twenty-one-lines.csv"),
+				testFile, StandardCopyOption.REPLACE_EXISTING);
 
 		CSVSummariser.main("--input", testFile.toAbsolutePath().toString());
 	}
