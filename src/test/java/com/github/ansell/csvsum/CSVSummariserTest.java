@@ -65,4 +65,56 @@ public class CSVSummariserTest {
 		CSVSummariser.main("--input", testFile.toAbsolutePath().toString());
 	}
 
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainSingleHeaderNoLines() throws Exception {
+		Path testFile = tempDir.newFile("test-single-header.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header.csv"), testFile,
+				StandardCopyOption.REPLACE_EXISTING);
+
+		CSVSummariser.main("--input", testFile.toAbsolutePath().toString());
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainSingleHeaderOneLine() throws Exception {
+		Path testFile = tempDir.newFile("test-single-header-one-line.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-one-line.csv"), testFile,
+				StandardCopyOption.REPLACE_EXISTING);
+
+		CSVSummariser.main("--input", testFile.toAbsolutePath().toString());
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainSingleHeaderOneLineEmptyValue() throws Exception {
+		Path testFile = tempDir.newFile("test-single-header-one-line-empty-value.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-one-line-empty-value.csv"), testFile,
+				StandardCopyOption.REPLACE_EXISTING);
+
+		CSVSummariser.main("--input", testFile.toAbsolutePath().toString());
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainSingleHeaderMultipleLinesWithEmptyValues() throws Exception {
+		Path testFile = tempDir.newFile("test-single-header-multiple-lines-empty-value.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-multiple-lines-empty-value.csv"), testFile,
+				StandardCopyOption.REPLACE_EXISTING);
+
+		CSVSummariser.main("--input", testFile.toAbsolutePath().toString());
+	}
+
 }
