@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -52,6 +54,36 @@ public class CSVUtilTest {
 		thrown.expectMessage("CSV file did not contain a valid header line");
 		CSVUtil.streamCSV(new StringReader(""), h -> headers.addAll(h), (h, l) -> l, l -> {
 		});
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * .
+	 */
+	@Test
+	public final void testStreamCSVSingleColumnMoreOnRow() throws Exception {
+		List<String> headers = new ArrayList<>();
+
+		thrown.expect(RuntimeException.class);
+		CSVUtil.streamCSV(new StringReader("Test1\nAnswer1,Answer2,Answer3"), h -> headers.addAll(h), (h, l) -> l,
+				l -> {
+				});
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * .
+	 */
+	@Test
+	public final void testStreamCSVMultipleColumnsLessOnRow() throws Exception {
+		List<String> headers = new ArrayList<>();
+
+		thrown.expect(RuntimeException.class);
+		CSVUtil.streamCSV(new StringReader("Test1, Another2, Else3\nAnswer1"), h -> headers.addAll(h), (h, l) -> l,
+				l -> {
+				});
 	}
 
 	/**
