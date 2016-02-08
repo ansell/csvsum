@@ -3,14 +3,23 @@
  */
 package com.github.ansell.csvsum;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.SequenceWriter;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.jdefaultdict.JDefaultDict;
 
 import joptsimple.OptionException;
@@ -31,13 +40,15 @@ public final class CSVSummariser {
 	 */
 	private CSVSummariser() {
 	}
-	
+
 	public static void main(String... args) throws Exception {
 		final OptionParser parser = new OptionParser();
 
 		final OptionSpec<Void> help = parser.accepts("help").forHelp();
 		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
 				.describedAs("The input CSV file to be summarised.");
+		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
+				.describedAs("The output file, or the console if not specified.");
 
 		OptionSet options = null;
 
@@ -57,6 +68,13 @@ public final class CSVSummariser {
 		final Path inputPath = input.value(options).toPath();
 		if (!Files.exists(inputPath)) {
 			throw new FileNotFoundException("Could not find input CSV file: " + inputPath.toString());
+		}
+
+		final Writer writer;
+		if (options.has(output)) {
+			writer = Files.newBufferedWriter(output.value(options).toPath());
+		} else {
+			writer = new BufferedWriter(new OutputStreamWriter(System.out));
 		}
 
 		JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<String, AtomicInteger>(
@@ -82,20 +100,38 @@ public final class CSVSummariser {
 		} , l -> {
 		});
 
-		System.out.println("Empty/non-empty counts");
-		headers.forEach(h -> System.out.println(
-				h + " : \tempty=\t" + emptyCounts.get(h).get() + " \tnon-empty=\t" + nonEmptyCounts.get(h).get()));
+		CsvSchema schema = CsvSchema.builder().addColumn("fieldName")
+				.addColumn("emptyCount", CsvSchema.ColumnType.NUMBER)
+				.addColumn("nonEmptyCount", CsvSchema.ColumnType.NUMBER)
+				.addColumn("uniqueValueCount", CsvSchema.ColumnType.NUMBER).addColumn("sampleValues").setUseHeader(true)
+				.build();
 
-		System.out.println("Unique value counts");
+		SequenceWriter csvWriter = CSVUtil.newCSVWriter(writer, schema);
+
 		headers.forEach(h -> {
+			int emptyCount = emptyCounts.get(h).get();
+			int nonEmptyCount = nonEmptyCounts.get(h).get();
+			// System.out.println(h + " : \tempty=\t" + emptyCount + "
+			// \tnon-empty=\t" + nonEmptyCount);
+
 			int valueCount = valueCounts.get(h).keySet().size();
-			System.out.println("");
-			System.out.println(h + " : \tunique values=\t" + valueCount);
-			valueCounts.get(h).keySet().stream().limit(20).forEach(s -> System.out.print(s + ", "));
+			// System.out.println("");
+			// System.out.println(h + " : \tunique values=\t" + valueCount);
+			List<String> list = valueCounts.get(h).keySet().stream().limit(20).collect(Collectors.toList());
+			StringBuilder sampleValue = new StringBuilder();
+			list.forEach(s -> {
+				sampleValue.append(s + ", ");
+			});
 			if (valueCount > 20) {
-				System.out.print("...");
+				sampleValue.append("...");
 			}
-			System.out.println("");
+			// System.out.println(sampleValue.toString());
+
+			try {
+				csvWriter.write(Arrays.asList(h, emptyCount, nonEmptyCount, valueCount, sampleValue));
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
 		});
 	}
 

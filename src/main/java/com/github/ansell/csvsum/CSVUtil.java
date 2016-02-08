@@ -2,6 +2,7 @@ package com.github.ansell.csvsum;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.io.Writer;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -9,8 +10,11 @@ import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 
 /**
  * Utilities used by CSV processors.
@@ -24,7 +28,7 @@ public final class CSVUtil {
 	 */
 	private CSVUtil() {
 	}
-	
+
 	/**
 	 * Stream a CSV file from the given Reader through the header validator,
 	 * line checker, and if the line checker succeeds, send the
@@ -80,6 +84,13 @@ public final class CSVUtil {
 		if (headers == null) {
 			throw new RuntimeException("CSV file did not contain a valid header line");
 		}
+	}
+
+	public static SequenceWriter newCSVWriter(final Writer writer, CsvSchema schema) throws IOException {
+		final CsvMapper mapper = new CsvMapper();
+		SequenceWriter csvWriter = mapper.writerWithDefaultPrettyPrinter().with(schema).forType(List.class)
+				.writeValues(writer);
+		return csvWriter;
 	}
 
 }
