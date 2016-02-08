@@ -122,7 +122,8 @@ public final class CSVSummariser {
 			int valueCount = valueCounts.get(h).keySet().size();
 			// System.out.println("");
 			// System.out.println(h + " : \tunique values=\t" + valueCount);
-			List<String> list = valueCounts.get(h).keySet().stream().limit(maxSampleCount).collect(Collectors.toList());
+			List<String> list = valueCounts.get(h).keySet().stream().limit(maxSampleCount).sorted()
+					.collect(Collectors.toList());
 			StringBuilder sampleValue = new StringBuilder();
 			for (int i = 0; i < list.size(); i++) {
 				if (i > 0) {
