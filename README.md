@@ -33,6 +33,7 @@ Run csvsum with a sample csv file:
 
 ## 2015-02-08
 
+* Release 0.0.2
 * Add --output to output to a CSV file
 * Output summary to CSV file
 * Add --samples to specify the number of sample values to include for each field
