@@ -126,6 +126,23 @@ public class CSVSummariserTest {
 	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
+	public final void testMainSingleHeaderOneLineFileOutputFewSamples() throws Exception {
+		Path testFile = tempDir.newFile("test-single-header-one-line.csv").toPath();
+		Path testOutput = tempDir.newFile("test-single-header-one-line-output.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-one-line.csv"),
+				testFile, StandardCopyOption.REPLACE_EXISTING);
+
+		CSVSummariser.main("--input", testFile.toAbsolutePath().toString(), "--output",
+				testOutput.toAbsolutePath().toString(), "--samples", "2");
+
+		assertEquals("Did not find enough lines in the output", 2, Files.readAllLines(testOutput).size());
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
 	public final void testMainSingleHeaderOneLineEmptyValue() throws Exception {
 		Path testFile = tempDir.newFile("test-single-header-one-line-empty-value.csv").toPath();
 		Files.copy(

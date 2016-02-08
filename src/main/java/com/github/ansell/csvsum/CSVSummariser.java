@@ -49,6 +49,9 @@ public final class CSVSummariser {
 				.describedAs("The input CSV file to be summarised.");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
 				.describedAs("The output file, or the console if not specified.");
+		final OptionSpec<Integer> samplesToShow = parser.accepts("samples").withRequiredArg().ofType(Integer.class)
+				.defaultsTo(20)
+				.describedAs("The maximum number of sample values for each field to include in the output.");
 
 		OptionSet options = null;
 
@@ -76,6 +79,8 @@ public final class CSVSummariser {
 		} else {
 			writer = new BufferedWriter(new OutputStreamWriter(System.out));
 		}
+
+		int maxSampleCount = samplesToShow.value(options);
 
 		JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<String, AtomicInteger>(
 				k -> new AtomicInteger());
@@ -117,12 +122,12 @@ public final class CSVSummariser {
 			int valueCount = valueCounts.get(h).keySet().size();
 			// System.out.println("");
 			// System.out.println(h + " : \tunique values=\t" + valueCount);
-			List<String> list = valueCounts.get(h).keySet().stream().limit(20).collect(Collectors.toList());
+			List<String> list = valueCounts.get(h).keySet().stream().limit(maxSampleCount).collect(Collectors.toList());
 			StringBuilder sampleValue = new StringBuilder();
 			list.forEach(s -> {
 				sampleValue.append(s + ", ");
 			});
-			if (valueCount > 20) {
+			if (valueCount > maxSampleCount) {
 				sampleValue.append("...");
 			}
 			// System.out.println(sampleValue.toString());
