@@ -31,7 +31,11 @@ Run csvsum with a sample csv file:
 
 # Changelog
 
-## 2015-02-08
+## 2016-02-10
+* Add possiblePrimaryKey to output based on if there are unique values found for each row for a field
+* Add possibleInteger and possibleFloatingPoint checks for fields which have values and that look like integers or floating point values
+
+## 2016-02-08
 
 * Release 0.0.2
 * Add --output to output to a CSV file
