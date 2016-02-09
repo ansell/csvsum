@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -82,10 +83,10 @@ public final class CSVSummariser {
 
 		int maxSampleCount = samplesToShow.value(options);
 
-		JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<String, AtomicInteger>(
-				k -> new AtomicInteger());
-		JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<String, AtomicInteger>(
-				k -> new AtomicInteger());
+		JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
+		JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
+		JDefaultDict<String, AtomicBoolean> possibleIntegerFields = new JDefaultDict<>(k -> new AtomicBoolean(true));
+		JDefaultDict<String, AtomicBoolean> possibleDoubleFields = new JDefaultDict<>(k -> new AtomicBoolean(true));
 
 		JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts = new JDefaultDict<String, JDefaultDict<String, AtomicInteger>>(
 				k -> new JDefaultDict<>(l -> new AtomicInteger()));
@@ -99,6 +100,16 @@ public final class CSVSummariser {
 				} else {
 					nonEmptyCounts.get(h.get(i)).incrementAndGet();
 					valueCounts.get(h.get(i)).get(l.get(i)).incrementAndGet();
+					try {
+						Integer.parseInt(l.get(i));
+					} catch (NumberFormatException nfe) {
+						possibleIntegerFields.get(h.get(i)).set(false);
+					}
+					try {
+						Double.parseDouble(l.get(i));
+					} catch (NumberFormatException nfe) {
+						possibleDoubleFields.get(h.get(i)).set(false);
+					}
 				}
 			}
 			return l;
@@ -108,14 +119,18 @@ public final class CSVSummariser {
 		CsvSchema schema = CsvSchema.builder().addColumn("fieldName")
 				.addColumn("emptyCount", CsvSchema.ColumnType.NUMBER)
 				.addColumn("nonEmptyCount", CsvSchema.ColumnType.NUMBER)
-				.addColumn("uniqueValueCount", CsvSchema.ColumnType.NUMBER).addColumn("sampleValues").setUseHeader(true)
-				.build();
+				.addColumn("uniqueValueCount", CsvSchema.ColumnType.NUMBER)
+				.addColumn("possiblyInteger", CsvSchema.ColumnType.BOOLEAN)
+				.addColumn("possiblyFloatingPoint", CsvSchema.ColumnType.BOOLEAN).addColumn("sampleValues")
+				.setUseHeader(true).build();
 
 		SequenceWriter csvWriter = CSVUtil.newCSVWriter(writer, schema);
 
 		headers.forEach(h -> {
 			int emptyCount = emptyCounts.get(h).get();
 			int nonEmptyCount = nonEmptyCounts.get(h).get();
+			boolean possiblyInteger = possibleIntegerFields.get(h).get();
+			boolean possiblyDouble = possibleDoubleFields.get(h).get();
 			// System.out.println(h + " : \tempty=\t" + emptyCount + "
 			// \tnon-empty=\t" + nonEmptyCount);
 
@@ -137,7 +152,8 @@ public final class CSVSummariser {
 			// System.out.println(sampleValue.toString());
 
 			try {
-				csvWriter.write(Arrays.asList(h, emptyCount, nonEmptyCount, valueCount, sampleValue));
+				csvWriter.write(Arrays.asList(h, emptyCount, nonEmptyCount, valueCount, possiblyInteger, possiblyDouble,
+						sampleValue));
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
