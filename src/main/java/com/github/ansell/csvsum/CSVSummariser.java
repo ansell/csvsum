@@ -129,16 +129,19 @@ public final class CSVSummariser {
 		headers.forEach(h -> {
 			int emptyCount = emptyCounts.get(h).get();
 			int nonEmptyCount = nonEmptyCounts.get(h).get();
-			boolean possiblyInteger = possibleIntegerFields.get(h).get();
-			boolean possiblyDouble = possibleDoubleFields.get(h).get();
-			// System.out.println(h + " : \tempty=\t" + emptyCount + "
-			// \tnon-empty=\t" + nonEmptyCount);
+			boolean possiblyInteger = false;
+			boolean possiblyDouble = false;
+
+			// Only expose our guess if there were non-empty values found
+			if (nonEmptyCount > 0) {
+				possiblyInteger = possibleIntegerFields.get(h).get();
+				possiblyDouble = possibleDoubleFields.get(h).get();
+			}
 
 			int valueCount = valueCounts.get(h).keySet().size();
-			// System.out.println("");
-			// System.out.println(h + " : \tunique values=\t" + valueCount);
 			List<String> list = valueCounts.get(h).keySet().stream().limit(maxSampleCount).sorted()
 					.collect(Collectors.toList());
+
 			StringBuilder sampleValue = new StringBuilder();
 			for (int i = 0; i < list.size(); i++) {
 				if (i > 0) {
