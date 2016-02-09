@@ -9,7 +9,7 @@
 	<description>CSV Summariser</description>
 	<packaging>jar</packaging>
 
-	<url>http://github.com/ansell/csvsum/</url>
+	<url>https://github.com/ansell/csvsum/</url>
 	<licenses>
 		<license>
 			<name>Revised BSD License</name>
