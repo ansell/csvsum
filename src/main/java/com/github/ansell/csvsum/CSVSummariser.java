@@ -93,7 +93,10 @@ public final class CSVSummariser {
 
 		List<String> headers = new ArrayList<String>();
 
+		final AtomicInteger rowCount = new AtomicInteger();
+
 		CSVUtil.streamCSV(Files.newBufferedReader(inputPath), h -> headers.addAll(h), (h, l) -> {
+			rowCount.incrementAndGet();
 			for (int i = 0; i < h.size(); i++) {
 				if (l.get(i).trim().isEmpty()) {
 					emptyCounts.get(h.get(i)).incrementAndGet();
@@ -119,7 +122,7 @@ public final class CSVSummariser {
 		CsvSchema schema = CsvSchema.builder().addColumn("fieldName")
 				.addColumn("emptyCount", CsvSchema.ColumnType.NUMBER)
 				.addColumn("nonEmptyCount", CsvSchema.ColumnType.NUMBER)
-				.addColumn("uniqueValueCount", CsvSchema.ColumnType.NUMBER)
+				.addColumn("uniqueValueCount", CsvSchema.ColumnType.NUMBER).addColumn("possiblePrimaryKey")
 				.addColumn("possiblyInteger", CsvSchema.ColumnType.BOOLEAN)
 				.addColumn("possiblyFloatingPoint", CsvSchema.ColumnType.BOOLEAN).addColumn("sampleValues")
 				.setUseHeader(true).build();
@@ -139,6 +142,7 @@ public final class CSVSummariser {
 			}
 
 			int valueCount = valueCounts.get(h).keySet().size();
+			boolean possiblePrimaryKey = valueCount == nonEmptyCount && valueCount == rowCount.get();
 			List<String> list = valueCounts.get(h).keySet().stream().limit(maxSampleCount).sorted()
 					.collect(Collectors.toList());
 
@@ -155,8 +159,8 @@ public final class CSVSummariser {
 			// System.out.println(sampleValue.toString());
 
 			try {
-				csvWriter.write(Arrays.asList(h, emptyCount, nonEmptyCount, valueCount, possiblyInteger, possiblyDouble,
-						sampleValue));
+				csvWriter.write(Arrays.asList(h, emptyCount, nonEmptyCount, valueCount, possiblePrimaryKey,
+						possiblyInteger, possiblyDouble, sampleValue));
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
