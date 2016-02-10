@@ -71,14 +71,14 @@ class CSVMapping {
 	}
 
 	private void init() {
-		if (this.language != CSVMappingLanguage.JAVASCRIPT) {
-			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
-		}
-
 		// Short circuit if the mapping is the default mapping and avoid
 		// creating an instance of nashorn for this mapping
 		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING)) {
 			return;
+		}
+
+		if (this.language != CSVMappingLanguage.JAVASCRIPT) {
+			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
 		}
 
 		// evaluate JavaScript code and access the variable that results from
