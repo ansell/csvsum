@@ -143,6 +143,10 @@ class CSVMapping {
 			return nextInputValue;
 		}
 
+		if (this.language != CSVMappingLanguage.JAVASCRIPT) {
+			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
+		}
+
 		// evaluate JavaScript code and access the variable that results from
 		// the mapping
 		try {
