@@ -77,7 +77,7 @@ class CSVMapping {
 		Map<String, String> outputValues = new HashMap<>();
 		List<String> result = new ArrayList<>();
 
-		System.out.println("Input headers: " + inputHeaders);
+		//System.out.println("Input headers: " + inputHeaders);
 
 		for (int i = 0; i < inputHeaders.size(); i++) {
 			String originalHeader = inputHeaders.get(i);
@@ -92,7 +92,7 @@ class CSVMapping {
 			}
 		}
 
-		System.out.println("Output headers: " + outputHeaders);
+		//System.out.println("Output headers: " + outputHeaders);
 
 		// Then order them consistenty with the list of output headers
 		for (String nextOutputHeader : outputHeaders) {
