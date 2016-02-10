@@ -1,8 +1,8 @@
 #!/bin/bash
-# This script runs the CSV Summariser retrieval code.
+# This script runs the CSV Mapper retrieval code.
 # Before running this script for the first time 
 # you may need to run:
-#     chmod +x csvsum
+#     chmod +x csvmap
 #
 
 if [ ! -d "target/appassembler/bin" ]; then
@@ -10,4 +10,4 @@ if [ ! -d "target/appassembler/bin" ]; then
 fi
 
 chmod u+x target/appassembler/bin/*
-target/appassembler/bin/csvsum "$@"
+target/appassembler/bin/csvmap "$@"
