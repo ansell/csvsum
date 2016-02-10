@@ -188,21 +188,20 @@ public final class CSVSummariser {
 		};
 
 		headers.forEach(h -> {
-			int emptyCount = emptyCounts.get(h).get();
-			int nonEmptyCount = nonEmptyCounts.get(h).get();
+			final int emptyCount = emptyCounts.get(h).get();
+			final int nonEmptyCount = nonEmptyCounts.get(h).get();
+			final int valueCount = valueCounts.get(h).keySet().size();
+			final boolean possiblePrimaryKey = valueCount == nonEmptyCount && valueCount == rowCount.get();
+			
 			boolean possiblyInteger = false;
 			boolean possiblyDouble = false;
-
-			// Only expose our guess if there were non-empty values found
+			// Only expose our numeric type guess if non-empty values found
 			if (nonEmptyCount > 0) {
 				possiblyInteger = possibleIntegerFields.get(h).get();
 				possiblyDouble = possibleDoubleFields.get(h).get();
 			}
 
-			int valueCount = valueCounts.get(h).keySet().size();
-			boolean possiblePrimaryKey = valueCount == nonEmptyCount && valueCount == rowCount.get();
-			Stream<String> stream = valueCounts.get(h).keySet().stream();
-
+			final Stream<String> stream = valueCounts.get(h).keySet().stream();
 			if (maxSampleCount >= 0) {
 				stream.limit(maxSampleCount).sorted().forEach(sampleHandler);
 				if (valueCount > maxSampleCount) {
