@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
+import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -18,7 +19,7 @@ import javax.script.ScriptException;
  * 
  * @author Peter Ansell p_ansell@yahoo.com
  */
-class CSVMapping implements Function<String, String> {
+class CSVMapping {
 
 	enum CSVMappingLanguage {
 		JAVASCRIPT
@@ -79,7 +80,8 @@ class CSVMapping implements Function<String, String> {
 			List<CSVMapping> nextMap = map.get(originalHeader);
 
 			for (CSVMapping nextMapping : nextMap) {
-				outputValues.put(nextMapping.getOutputField(), nextMapping.apply(originalValue));
+				outputValues.put(nextMapping.getOutputField(), nextMapping.apply(inputHeaders, outputHeaders,
+						originalHeader, originalValue, nextMapping.getOutputField()));
 			}
 		}
 
@@ -95,8 +97,8 @@ class CSVMapping implements Function<String, String> {
 		return result;
 	}
 
-	@Override
-	public String apply(String input) {
+	public String apply(List<String> inputHeaders, List<String> outputHeaders, String nextInputHeader,
+			String nextInputValue, String nextOutputHeader) {
 
 		if (this.language != CSVMappingLanguage.JAVASCRIPT) {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
@@ -108,11 +110,16 @@ class CSVMapping implements Function<String, String> {
 			ScriptEngineManager manager = new ScriptEngineManager();
 			ScriptEngine engine = manager.getEngineByName("nashorn");
 
-			engine.put("input", input);
+			engine.eval(
+					"var mapFunction = function(inputHeaders, outputHeaders, nextInputHeader, input, nextOutputHeader) { return "
+							+ this.mapping + "; };");
 
-			return (String) engine.eval("return " + this.mapping + ";");
+			Invocable invocable = (Invocable) engine;
+
+			return (String) invocable.invokeFunction("mapFunction", inputHeaders, outputHeaders, nextInputHeader,
+					nextInputValue, nextOutputHeader);
 			// return (String) engine.get("output");
-		} catch (ScriptException e) {
+		} catch (ScriptException | NoSuchMethodException e) {
 			throw new RuntimeException(e);
 		}
 	}
