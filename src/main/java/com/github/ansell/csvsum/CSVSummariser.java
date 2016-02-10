@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
@@ -39,6 +40,12 @@ import joptsimple.OptionSpec;
 public final class CSVSummariser {
 
 	/**
+	 * The default number of samples to include for each field in the summarised
+	 * CSV.
+	 */
+	private static final int DEFAULT_SAMPLE_COUNT = 20;
+
+	/**
 	 * Private constructor for static only class
 	 */
 	private CSVSummariser() {
@@ -53,7 +60,7 @@ public final class CSVSummariser {
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
 				.describedAs("The output file, or the console if not specified.");
 		final OptionSpec<Integer> samplesToShow = parser.accepts("samples").withRequiredArg().ofType(Integer.class)
-				.defaultsTo(20)
+				.defaultsTo(DEFAULT_SAMPLE_COUNT)
 				.describedAs("The maximum number of sample values for each field to include in the output.");
 
 		OptionSet options = null;
@@ -86,6 +93,37 @@ public final class CSVSummariser {
 		runSummarise(Files.newBufferedReader(inputPath), writer, samplesToShow.value(options));
 	}
 
+	/**
+	 * Summarise the CSV file from the input {@link Reader} and emit the summary
+	 * CSV file to the output {@link Writer}, including the default maximum
+	 * number of sample values in the summary for each field.
+	 * 
+	 * @param input
+	 *            The input CSV file, as a {@link Reader}.
+	 * @param output
+	 *            The output CSV file as a {@link Writer}.
+	 * @throws IOException
+	 *             If there is an error reading or writing.
+	 */
+	public static void runSummarise(Reader input, Writer output) throws IOException {
+		runSummarise(input, output, DEFAULT_SAMPLE_COUNT);
+	}
+
+	/**
+	 * Summarise the CSV file from the input {@link Reader} and emit the summary
+	 * CSV file to the output {@link Writer}, including the given maximum number
+	 * of sample values in the summary for each field.
+	 * 
+	 * @param input
+	 *            The input CSV file, as a {@link Reader}.
+	 * @param output
+	 *            The output CSV file as a {@link Writer}.
+	 * @param maxSampleCount
+	 *            THe maximum number of sample values in the summary for each
+	 *            field. Set to -1 to include all unique values for each field.
+	 * @throws IOException
+	 *             If there is an error reading or writing.
+	 */
 	public static void runSummarise(Reader input, Writer output, int maxSampleCount) throws IOException {
 
 		JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
@@ -152,8 +190,14 @@ public final class CSVSummariser {
 
 			int valueCount = valueCounts.get(h).keySet().size();
 			boolean possiblePrimaryKey = valueCount == nonEmptyCount && valueCount == rowCount.get();
-			List<String> list = valueCounts.get(h).keySet().stream().limit(maxSampleCount).sorted()
-					.collect(Collectors.toList());
+			Stream<String> stream = valueCounts.get(h).keySet().stream();
+			List<String> list;
+
+			if (maxSampleCount >= 0) {
+				list = stream.limit(maxSampleCount).sorted().collect(Collectors.toList());
+			} else {
+				list = stream.sorted().collect(Collectors.toList());
+			}
 
 			StringBuilder sampleValue = new StringBuilder();
 			list.forEach(s -> {

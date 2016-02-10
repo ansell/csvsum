@@ -6,6 +6,9 @@ package com.github.ansell.csvsum;
 import static org.junit.Assert.*;
 
 import java.io.FileNotFoundException;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -183,4 +186,33 @@ public class CSVSummariserTest {
 		CSVSummariser.main("--input", testFile.toAbsolutePath().toString());
 	}
 
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testSummariseInteger() throws Exception {
+		StringWriter output = new StringWriter();
+		CSVSummariser.runSummarise(new StringReader("Test\n1"), output);
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testSummariseDouble() throws Exception {
+		StringWriter output = new StringWriter();
+		CSVSummariser.runSummarise(new StringReader("Test\n1.0"), output);
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testSummariseAllSampleValues() throws Exception {
+		StringWriter output = new StringWriter();
+		CSVSummariser.runSummarise(new StringReader("Test\n1.0"), output, -1);
+	}
 }
