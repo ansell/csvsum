@@ -177,6 +177,14 @@ public final class CSVSummariser {
 
 		SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);
 
+		final StringBuilder sampleValue = new StringBuilder();
+		Consumer<? super String> sampleHandler = s -> {
+			if (sampleValue.length() > 0) {
+				sampleValue.append(", ");
+			}
+			sampleValue.append(s);
+		};
+
 		headers.forEach(h -> {
 			int emptyCount = emptyCounts.get(h).get();
 			int nonEmptyCount = nonEmptyCounts.get(h).get();
@@ -193,14 +201,6 @@ public final class CSVSummariser {
 			boolean possiblePrimaryKey = valueCount == nonEmptyCount && valueCount == rowCount.get();
 			Stream<String> stream = valueCounts.get(h).keySet().stream();
 
-			final StringBuilder sampleValue = new StringBuilder();
-			Consumer<? super String> sampleHandler = s -> {
-				if (sampleValue.length() > 0) {
-					sampleValue.append(", ");
-				}
-				sampleValue.append(s);
-			};
-
 			if (maxSampleCount >= 0) {
 				stream.limit(maxSampleCount).sorted().forEach(sampleHandler);
 				if (valueCount > maxSampleCount) {
@@ -215,6 +215,8 @@ public final class CSVSummariser {
 						possiblyInteger, possiblyDouble, sampleValue));
 			} catch (Exception e) {
 				throw new RuntimeException(e);
+			} finally {
+				sampleValue.setLength(0);
 			}
 		});
 	}
