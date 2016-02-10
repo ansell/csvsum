@@ -34,6 +34,8 @@ Run csvsum with a sample csv file:
 ## 2016-02-10
 * Add possiblePrimaryKey to output based on if there are unique values found for each row for a field
 * Add possibleInteger and possibleFloatingPoint checks for fields which have values and that look like integers or floating point values
+* Add --samples=-1 to emit all values
+* Improve memory efficiency for large sample value dumps using shared StringBuilder and lamda
 
 ## 2016-02-08
 

@@ -61,8 +61,8 @@ public final class CSVSummariser {
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
 				.describedAs("The output file, or the console if not specified.");
 		final OptionSpec<Integer> samplesToShow = parser.accepts("samples").withRequiredArg().ofType(Integer.class)
-				.defaultsTo(DEFAULT_SAMPLE_COUNT)
-				.describedAs("The maximum number of sample values for each field to include in the output.");
+				.defaultsTo(DEFAULT_SAMPLE_COUNT).describedAs(
+						"The maximum number of sample values for each field to include in the output, or -1 to dump all sample values for each field.");
 
 		OptionSet options = null;
 
