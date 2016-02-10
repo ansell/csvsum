@@ -156,12 +156,12 @@ public final class CSVSummariser {
 					.collect(Collectors.toList());
 
 			StringBuilder sampleValue = new StringBuilder();
-			for (int i = 0; i < list.size(); i++) {
-				if (i > 0) {
+			list.forEach(s -> {
+				if (sampleValue.length() > 0) {
 					sampleValue.append(", ");
 				}
-				sampleValue.append(list.get(i));
-			}
+				sampleValue.append(s);
+			});
 			if (valueCount > maxSampleCount) {
 				sampleValue.append(", ...");
 			}
