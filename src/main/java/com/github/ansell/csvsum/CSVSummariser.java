@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -191,25 +192,23 @@ public final class CSVSummariser {
 			int valueCount = valueCounts.get(h).keySet().size();
 			boolean possiblePrimaryKey = valueCount == nonEmptyCount && valueCount == rowCount.get();
 			Stream<String> stream = valueCounts.get(h).keySet().stream();
-			List<String> list;
 
-			if (maxSampleCount >= 0) {
-				list = stream.limit(maxSampleCount).sorted().collect(Collectors.toList());
-			} else {
-				list = stream.sorted().collect(Collectors.toList());
-			}
-
-			StringBuilder sampleValue = new StringBuilder();
-			list.forEach(s -> {
+			final StringBuilder sampleValue = new StringBuilder();
+			Consumer<? super String> sampleHandler = s -> {
 				if (sampleValue.length() > 0) {
 					sampleValue.append(", ");
 				}
 				sampleValue.append(s);
-			});
-			if (valueCount > maxSampleCount) {
-				sampleValue.append(", ...");
+			};
+
+			if (maxSampleCount >= 0) {
+				stream.limit(maxSampleCount).sorted().forEach(sampleHandler);
+				if (valueCount > maxSampleCount) {
+					sampleValue.append(", ...");
+				}
+			} else {
+				stream.sorted().forEach(sampleHandler);
 			}
-			// System.out.println(sampleValue.toString());
 
 			try {
 				csvWriter.write(Arrays.asList(h, emptyCount, nonEmptyCount, valueCount, possiblePrimaryKey,
