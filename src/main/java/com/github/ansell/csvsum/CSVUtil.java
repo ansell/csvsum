@@ -85,6 +85,22 @@ public final class CSVUtil {
 		}
 	}
 
+	/**
+	 * Returns a Jackson {@link SequenceWriter} which will write CSV lines to
+	 * the given {@link Writer} using the {@link CsvSchema}.
+	 * 
+	 * @param writer
+	 *            The writer which will receive the CSV file.
+	 * @param schema
+	 *            The {@link CsvSchema} that will be used by the returned
+	 *            Jackson {@link SequenceWriter}.
+	 * @return A Jackson {@link SequenceWriter} that can have
+	 *         {@link SequenceWriter#write(Object)} called on it to emit CSV
+	 *         lines to the given {@link Writer}.
+	 * @throws IOException
+	 *             If there is a problem writing the CSV header line to the
+	 *             {@link Writer}.
+	 */
 	public static SequenceWriter newCSVWriter(final Writer writer, CsvSchema schema) throws IOException {
 		final CsvMapper mapper = new CsvMapper();
 		SequenceWriter csvWriter = mapper.writerWithDefaultPrettyPrinter().with(schema).forType(List.class)
