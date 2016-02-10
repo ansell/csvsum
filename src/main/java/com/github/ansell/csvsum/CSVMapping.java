@@ -44,16 +44,15 @@ class CSVMapping {
 
 	// Uncomment the following to debug which script engines are available on
 	// the classpath
-	// static {
-	// List<ScriptEngineFactory> factories =
-	// SCRIPT_MANAGER.getEngineFactories();
-	//
-	// System.out.println("Installed script engines:");
-	//
-	// for (ScriptEngineFactory nextFactory : factories) {
-	// System.out.println(nextFactory.getEngineName());
-	// }
-	// }
+	static {
+		List<ScriptEngineFactory> factories = SCRIPT_MANAGER.getEngineFactories();
+
+		System.out.println("Installed script engines:");
+
+		for (ScriptEngineFactory nextFactory : factories) {
+			System.out.println(nextFactory.getEngineName());
+		}
+	}
 
 	private ScriptEngine nashornEngine;
 
