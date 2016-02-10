@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
@@ -113,9 +114,16 @@ class CSVMapping {
 	public static List<String> mapLine(List<String> inputHeaders, List<String> outputHeaders, List<String> line,
 			List<CSVMapping> map) {
 
-		Map<String, String> outputValues = new HashMap<>();
+		if (outputHeaders.size() != map.size()) {
+			throw new IllegalArgumentException("The number of mappings must match the number of output headers");
+		}
+
+		Map<String, String> outputValues = new ConcurrentHashMap<>();
 		List<String> result = new ArrayList<>();
 
+		// Note, empirically, it seems about 50% faster with a limited number of
+		// cores to do a serial mapping, not a parallel mapping
+		// map.parallelStream().forEach(nextMapping -> {
 		for (CSVMapping nextMapping : map) {
 			outputValues.put(nextMapping.getOutputField(), nextMapping.apply(inputHeaders, line));
 		}
