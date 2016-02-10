@@ -213,6 +213,8 @@ public final class CSVSummariser {
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				} finally {
+					// Very important to reset this shared StringBuilder after
+					// each row is written
 					sampleValue.setLength(0);
 				}
 			});
