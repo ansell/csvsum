@@ -123,7 +123,6 @@ public final class CSVSummariser {
 	 *             If there is an error reading or writing.
 	 */
 	public static void runSummarise(Reader input, Writer output, int maxSampleCount) throws IOException {
-
 		final JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		final JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		final JDefaultDict<String, AtomicBoolean> possibleIntegerFields = new JDefaultDict<>(
