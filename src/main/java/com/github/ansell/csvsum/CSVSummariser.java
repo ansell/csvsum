@@ -130,7 +130,8 @@ public final class CSVSummariser {
 		CsvSchema schema = CsvSchema.builder().addColumn("fieldName")
 				.addColumn("emptyCount", CsvSchema.ColumnType.NUMBER)
 				.addColumn("nonEmptyCount", CsvSchema.ColumnType.NUMBER)
-				.addColumn("uniqueValueCount", CsvSchema.ColumnType.NUMBER).addColumn("possiblePrimaryKey")
+				.addColumn("uniqueValueCount", CsvSchema.ColumnType.NUMBER)
+				.addColumn("possiblePrimaryKey", CsvSchema.ColumnType.BOOLEAN)
 				.addColumn("possiblyInteger", CsvSchema.ColumnType.BOOLEAN)
 				.addColumn("possiblyFloatingPoint", CsvSchema.ColumnType.BOOLEAN).addColumn("sampleValues")
 				.setUseHeader(true).build();
