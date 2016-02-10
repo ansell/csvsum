@@ -38,6 +38,9 @@ class CSVMapping {
 	protected static final String NEW_FIELD = "NewField";
 	protected static final String MAPPING = "Mapping";
 
+	private static final ScriptEngineManager SCRIPT_MANAGER = new ScriptEngineManager();
+	
+	
 	static final CSVMapping getMapping(String language, String input, String output, String mapping) {
 		CSVMapping result = new CSVMapping();
 
@@ -104,8 +107,7 @@ class CSVMapping {
 		// evaluate JavaScript code and access the variable that results from
 		// the mapping
 		try {
-			ScriptEngineManager manager = new ScriptEngineManager();
-			ScriptEngine engine = manager.getEngineByName("nashorn");
+			ScriptEngine engine = SCRIPT_MANAGER.getEngineByName("nashorn");
 
 			engine.eval(
 					"var mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) { return "
