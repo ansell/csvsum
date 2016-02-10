@@ -146,6 +146,10 @@
 							<mainClass>com.github.ansell.csvsum.CSVSummariser</mainClass>
 							<id>csvsum</id>
 						</program>
+						<program>
+							<mainClass>com.github.ansell.csvsum.CSVMapper</mainClass>
+							<id>csvmap</id>
+						</program>
 					</programs>
 				</configuration>
 			</plugin>
