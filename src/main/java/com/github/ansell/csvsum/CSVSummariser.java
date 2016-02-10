@@ -127,15 +127,17 @@ public final class CSVSummariser {
 	 */
 	public static void runSummarise(Reader input, Writer output, int maxSampleCount) throws IOException {
 
-		JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
-		JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
-		JDefaultDict<String, AtomicBoolean> possibleIntegerFields = new JDefaultDict<>(k -> new AtomicBoolean(true));
-		JDefaultDict<String, AtomicBoolean> possibleDoubleFields = new JDefaultDict<>(k -> new AtomicBoolean(true));
+		final JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
+		final JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
+		final JDefaultDict<String, AtomicBoolean> possibleIntegerFields = new JDefaultDict<>(
+				k -> new AtomicBoolean(true));
+		final JDefaultDict<String, AtomicBoolean> possibleDoubleFields = new JDefaultDict<>(
+				k -> new AtomicBoolean(true));
 
-		JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts = new JDefaultDict<String, JDefaultDict<String, AtomicInteger>>(
+		final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts = new JDefaultDict<String, JDefaultDict<String, AtomicInteger>>(
 				k -> new JDefaultDict<>(l -> new AtomicInteger()));
 
-		List<String> headers = new ArrayList<String>();
+		final List<String> headers = new ArrayList<String>();
 
 		final AtomicInteger rowCount = new AtomicInteger();
 
@@ -166,7 +168,7 @@ public final class CSVSummariser {
 			// uniqueness summaries
 		});
 
-		CsvSchema schema = CsvSchema.builder().addColumn("fieldName")
+		final CsvSchema schema = CsvSchema.builder().addColumn("fieldName")
 				.addColumn("emptyCount", CsvSchema.ColumnType.NUMBER)
 				.addColumn("nonEmptyCount", CsvSchema.ColumnType.NUMBER)
 				.addColumn("uniqueValueCount", CsvSchema.ColumnType.NUMBER)
@@ -175,10 +177,10 @@ public final class CSVSummariser {
 				.addColumn("possiblyFloatingPoint", CsvSchema.ColumnType.BOOLEAN).addColumn("sampleValues")
 				.setUseHeader(true).build();
 
-		SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);
+		final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);
 
 		final StringBuilder sampleValue = new StringBuilder();
-		Consumer<? super String> sampleHandler = s -> {
+		final Consumer<? super String> sampleHandler = s -> {
 			if (sampleValue.length() > 0) {
 				sampleValue.append(", ");
 			}
