@@ -88,25 +88,18 @@ public final class CSVMapper {
 			writer = new BufferedWriter(new OutputStreamWriter(System.out));
 		}
 
-		JDefaultDict<String, List<CSVMapping>> map = extractMappings(Files.newBufferedReader(mappingPath));
+		List<CSVMapping> map = extractMappings(Files.newBufferedReader(mappingPath));
 
 		runMapper(Files.newBufferedReader(inputPath), map, writer);
 
 	}
 
-	private static void runMapper(Reader input, Map<String, List<CSVMapping>> map, Writer output)
+	private static void runMapper(Reader input, List<CSVMapping> map, Writer output)
 			throws ScriptException, IOException {
 
-		Function<List<CSVMapping>, List<String>> outputFields = k -> k.stream().map(e -> e.getOutputField())
-				.collect(Collectors.toList());
+		Function<CSVMapping, String> outputFields = e -> e.getOutputField();
 
-		List<String> outputHeaders = map.values().stream().map(outputFields).reduce(new ArrayList<String>(), (k, l) -> {
-			k.addAll(l);
-			return k;
-		} , (a, b) -> {
-			a.addAll(b);
-			return a;
-		});
+		List<String> outputHeaders = map.stream().map(outputFields).collect(Collectors.toList());
 
 		final CsvSchema schema = CSVUtil.buildSchema(outputHeaders);
 
@@ -127,16 +120,16 @@ public final class CSVMapper {
 		}
 	}
 
-	private static JDefaultDict<String, List<CSVMapping>> extractMappings(Reader input) throws IOException {
-		JDefaultDict<String, List<CSVMapping>> result = new JDefaultDict<>(k -> new ArrayList<>());
+	private static List<CSVMapping> extractMappings(Reader input) throws IOException {
+		List<CSVMapping> result = new ArrayList<>();
 
 		List<String> headers = new ArrayList<>();
 
 		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
-			return CSVMapping.getMapping(l.get(h.indexOf(CSVMapping.LANGUAGE)), l.get(h.indexOf(CSVMapping.OLD_FIELD)),
+			return CSVMapping.newMapping(l.get(h.indexOf(CSVMapping.LANGUAGE)), l.get(h.indexOf(CSVMapping.OLD_FIELD)),
 					l.get(h.indexOf(CSVMapping.NEW_FIELD)), l.get(h.indexOf(CSVMapping.MAPPING)));
 		} , l -> {
-			result.get(l.getInputField()).add(l);
+			result.add(l);
 		});
 
 		return result;
