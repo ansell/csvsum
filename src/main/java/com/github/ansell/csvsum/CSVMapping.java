@@ -28,7 +28,7 @@ class CSVMapping {
 	protected static final String DEFAULT_MAPPING = "inputValue";
 
 	enum CSVMappingLanguage {
-		DEFAULT, JAVASCRIPT
+		DEFAULT, JAVASCRIPT, GROOVY
 	}
 
 	private CSVMappingLanguage language;
@@ -54,7 +54,7 @@ class CSVMapping {
 		}
 	}
 
-	private ScriptEngine nashornEngine;
+	private ScriptEngine scriptEngine;
 
 	/**
 	 * All creation of CSVMapping objects must be done through the
@@ -96,22 +96,22 @@ class CSVMapping {
 			return;
 		}
 
-		if (this.language != CSVMappingLanguage.JAVASCRIPT) {
+		if (this.language == CSVMappingLanguage.JAVASCRIPT) {
+			// evaluate JavaScript code and access the variable that results
+			// from
+			// the mapping
+			try {
+				scriptEngine = SCRIPT_MANAGER.getEngineByName("javascript");
+
+				scriptEngine
+						.eval("var mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) { return "
+								+ this.mapping + "; };");
+			} catch (ScriptException e) {
+				throw new RuntimeException(e);
+			}
+		} else {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
 		}
-
-		// evaluate JavaScript code and access the variable that results from
-		// the mapping
-		try {
-			nashornEngine = SCRIPT_MANAGER.getEngineByName("nashorn");
-
-			nashornEngine
-					.eval("var mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) { return "
-							+ this.mapping + "; };");
-		} catch (ScriptException e) {
-			throw new RuntimeException(e);
-		}
-
 	}
 
 	CSVMappingLanguage getLanguage() {
@@ -162,18 +162,17 @@ class CSVMapping {
 			return nextInputValue;
 		}
 
-		if (this.language != CSVMappingLanguage.JAVASCRIPT) {
+		if (this.language == CSVMappingLanguage.JAVASCRIPT) {
+			// evaluate JavaScript code and access the variable that results
+			// from the mapping
+			try {
+				return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", inputHeaders,
+						this.getInputField(), nextInputValue, this.getOutputField(), line);
+			} catch (ScriptException | NoSuchMethodException e) {
+				throw new RuntimeException(e);
+			}
+		} else {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
-		}
-
-		// evaluate JavaScript code and access the variable that results from
-		// the mapping
-		try {
-			return (String) ((Invocable) nashornEngine).invokeFunction("mapFunction", inputHeaders,
-					this.getInputField(), nextInputValue, this.getOutputField(), line);
-			// return (String) engine.get("output");
-		} catch (ScriptException | NoSuchMethodException e) {
-			throw new RuntimeException(e);
 		}
 	}
 }
