@@ -23,7 +23,7 @@ class CSVMapping {
 	/**
 	 * The default mapping if none is specified in the mapping file.
 	 */
-	protected static final String DEFAULT_MAPPING = "input";
+	protected static final String DEFAULT_MAPPING = "inputValue";
 
 	enum CSVMappingLanguage {
 		JAVASCRIPT
@@ -39,9 +39,16 @@ class CSVMapping {
 	protected static final String MAPPING = "Mapping";
 
 	private static final ScriptEngineManager SCRIPT_MANAGER = new ScriptEngineManager();
-	
-	
-	static final CSVMapping getMapping(String language, String input, String output, String mapping) {
+	private ScriptEngine nashornEngine;
+
+	/**
+	 * All creation of CSVMapping objects must be done through the
+	 * {@link #newMapping(String, String, String, String)} method.
+	 */
+	private CSVMapping() {
+	}
+
+	static final CSVMapping newMapping(String language, String input, String output, String mapping) {
 		CSVMapping result = new CSVMapping();
 
 		result.language = CSVMappingLanguage.valueOf(language.toUpperCase());
@@ -51,11 +58,40 @@ class CSVMapping {
 
 		result.input = input;
 		result.output = output;
+		// By default empty mappings do not change the input, and are
+		// efficiently dealt with as such
 		if (!mapping.isEmpty()) {
 			result.mapping = mapping;
 		}
 
+		result.init();
+
 		return result;
+	}
+
+	private void init() {
+		if (this.language != CSVMappingLanguage.JAVASCRIPT) {
+			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
+		}
+
+		// Short circuit if the mapping is the default mapping and avoid
+		// creating an instance of nashorn for this mapping
+		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING)) {
+			return;
+		}
+
+		// evaluate JavaScript code and access the variable that results from
+		// the mapping
+		try {
+			nashornEngine = SCRIPT_MANAGER.getEngineByName("nashorn");
+
+			nashornEngine
+					.eval("var mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) { return "
+							+ this.mapping + "; };");
+		} catch (ScriptException e) {
+			throw new RuntimeException(e);
+		}
+
 	}
 
 	CSVMappingLanguage getLanguage() {
@@ -84,21 +120,16 @@ class CSVMapping {
 			outputValues.put(nextMapping.getOutputField(), nextMapping.apply(inputHeaders, line));
 		}
 
-		for(String nextOutput : outputHeaders) {
+		for (String nextOutput : outputHeaders) {
 			result.add(outputValues.get(nextOutput));
 		}
-		
+
 		return result;
 	}
 
 	public String apply(List<String> inputHeaders, List<String> line) {
-
-		if (this.language != CSVMappingLanguage.JAVASCRIPT) {
-			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
-		}
-
 		String nextInputValue = line.get(inputHeaders.indexOf(getInputField()));
-		
+
 		// Short circuit if the mapping is the default mapping
 		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING)) {
 			return nextInputValue;
@@ -107,15 +138,8 @@ class CSVMapping {
 		// evaluate JavaScript code and access the variable that results from
 		// the mapping
 		try {
-			ScriptEngine engine = SCRIPT_MANAGER.getEngineByName("nashorn");
-
-			engine.eval(
-					"var mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) { return "
-							+ this.mapping + "; };");
-
-			Invocable invocable = (Invocable) engine;
-
-			return (String) invocable.invokeFunction("mapFunction", inputHeaders, this.getInputField(), nextInputValue, this.getOutputField(), line);
+			return (String) ((Invocable) nashornEngine).invokeFunction("mapFunction", inputHeaders,
+					this.getInputField(), nextInputValue, this.getOutputField(), line);
 			// return (String) engine.get("output");
 		} catch (ScriptException | NoSuchMethodException e) {
 			throw new RuntimeException(e);

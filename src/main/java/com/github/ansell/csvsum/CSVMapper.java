@@ -126,7 +126,7 @@ public final class CSVMapper {
 		List<String> headers = new ArrayList<>();
 
 		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
-			return CSVMapping.getMapping(l.get(h.indexOf(CSVMapping.LANGUAGE)), l.get(h.indexOf(CSVMapping.OLD_FIELD)),
+			return CSVMapping.newMapping(l.get(h.indexOf(CSVMapping.LANGUAGE)), l.get(h.indexOf(CSVMapping.OLD_FIELD)),
 					l.get(h.indexOf(CSVMapping.NEW_FIELD)), l.get(h.indexOf(CSVMapping.MAPPING)));
 		} , l -> {
 			result.add(l);
