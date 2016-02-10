@@ -7,13 +7,18 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
@@ -64,26 +69,44 @@ public final class CSVMapper {
 			throw new FileNotFoundException("Could not find input CSV file: " + inputPath.toString());
 		}
 
+		final Path mappingPath = mapping.value(options).toPath();
+		if (!Files.exists(mappingPath)) {
+			throw new FileNotFoundException("Could not find mappng CSV file: " + mappingPath.toString());
+		}
+
 		final Writer writer;
 		if (options.has(output)) {
 			writer = Files.newBufferedWriter(output.value(options).toPath());
 		} else {
 			writer = new BufferedWriter(new OutputStreamWriter(System.out));
 		}
-		
-        ScriptEngineManager manager = new ScriptEngineManager();
-        ScriptEngine engine = manager.getEngineByName("nashorn");
 
-        // create File object
-        File f = new File("test.txt");
-        Files.write(f.toPath(), Arrays.asList("test value"));
-        
-        // expose File object as a global variable to the engine
-        engine.put("file", f);
+		Map<String, CSVMapping> map = extractMappings(Files.newBufferedReader(mappingPath));
+		runMapper(Files.newBufferedReader(inputPath), map, writer);
 
-        // evaluate JavaScript code and access the variable
-        engine.eval("print(file.getAbsolutePath())");
+	}
 
+	private static void runMapper(Reader input, Map<String, CSVMapping> map, Writer output) throws ScriptException {
+		ScriptEngineManager manager = new ScriptEngineManager();
+		ScriptEngine engine = manager.getEngineByName("nashorn");
+
+		List<String> inputList = new ArrayList<>();
+		inputList.add("item 1");
+		inputList.add("item 2");
+		engine.put("input", inputList);
+		List<String> outputList = new ArrayList<>();
+		engine.put("output", outputList);
+
+		// evaluate JavaScript code and access the variable
+		engine.eval("for each (var nextInput in input) { output.add(nextInput); }");
+
+		System.out.println(outputList);
+
+		throw new UnsupportedOperationException("TODO: Implement me!");
+	}
+
+	private static Map<String, CSVMapping> extractMappings(Reader input) {
+		throw new UnsupportedOperationException("TODO: Implement me!");
 	}
 
 }
