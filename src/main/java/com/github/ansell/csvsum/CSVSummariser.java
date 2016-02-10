@@ -6,9 +6,11 @@ package com.github.ansell.csvsum;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -81,7 +83,10 @@ public final class CSVSummariser {
 			writer = new BufferedWriter(new OutputStreamWriter(System.out));
 		}
 
-		int maxSampleCount = samplesToShow.value(options);
+		runSummarise(Files.newBufferedReader(inputPath), writer, samplesToShow.value(options));
+	}
+
+	public static void runSummarise(Reader input, Writer output, int maxSampleCount) throws IOException {
 
 		JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
@@ -95,7 +100,7 @@ public final class CSVSummariser {
 
 		final AtomicInteger rowCount = new AtomicInteger();
 
-		CSVUtil.streamCSV(Files.newBufferedReader(inputPath), h -> headers.addAll(h), (h, l) -> {
+		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
 			rowCount.incrementAndGet();
 			for (int i = 0; i < h.size(); i++) {
 				if (l.get(i).trim().isEmpty()) {
@@ -130,7 +135,7 @@ public final class CSVSummariser {
 				.addColumn("possiblyFloatingPoint", CsvSchema.ColumnType.BOOLEAN).addColumn("sampleValues")
 				.setUseHeader(true).build();
 
-		SequenceWriter csvWriter = CSVUtil.newCSVWriter(writer, schema);
+		SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);
 
 		headers.forEach(h -> {
 			int emptyCount = emptyCounts.get(h).get();
