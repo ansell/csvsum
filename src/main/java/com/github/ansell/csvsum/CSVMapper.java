@@ -113,7 +113,7 @@ public final class CSVMapper {
 		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);) {
 			List<String> inputHeaders = new ArrayList<>();
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
-				return CSVMapping.mapLine(h, outputHeaders, l, map);
+				return CSVMapping.mapLine(inputHeaders, outputHeaders, l, map);
 			} , l -> {
 				// Write out all of the mapped lines for this original line in
 				// the original CSV file

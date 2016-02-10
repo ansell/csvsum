@@ -77,6 +77,8 @@ class CSVMapping {
 		Map<String, String> outputValues = new HashMap<>();
 		List<String> result = new ArrayList<>();
 
+		System.out.println("Input headers: " + inputHeaders);
+
 		for (int i = 0; i < inputHeaders.size(); i++) {
 			String originalHeader = inputHeaders.get(i);
 			String originalValue = line.get(i);
@@ -84,6 +86,7 @@ class CSVMapping {
 			List<CSVMapping> nextMap = map.get(originalHeader);
 
 			for (CSVMapping nextMapping : nextMap) {
+
 				outputValues.put(nextMapping.getOutputField(), nextMapping.apply(inputHeaders, outputHeaders,
 						originalHeader, originalValue, nextMapping.getOutputField(), line));
 			}
