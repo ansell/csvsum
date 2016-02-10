@@ -130,12 +130,9 @@ public final class CSVSummariser {
 				k -> new AtomicBoolean(true));
 		final JDefaultDict<String, AtomicBoolean> possibleDoubleFields = new JDefaultDict<>(
 				k -> new AtomicBoolean(true));
-
 		final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts = new JDefaultDict<String, JDefaultDict<String, AtomicInteger>>(
 				k -> new JDefaultDict<>(l -> new AtomicInteger()));
-
 		final List<String> headers = new ArrayList<String>();
-
 		final AtomicInteger rowCount = new AtomicInteger();
 
 		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
@@ -165,6 +162,8 @@ public final class CSVSummariser {
 			// valueCounts map for uniqueness summaries
 		});
 
+		// This schema defines the fields and order for the columns in the
+		// summary CSV file
 		final CsvSchema schema = CsvSchema.builder().addColumn("fieldName")
 				.addColumn("emptyCount", CsvSchema.ColumnType.NUMBER)
 				.addColumn("nonEmptyCount", CsvSchema.ColumnType.NUMBER)
@@ -174,6 +173,8 @@ public final class CSVSummariser {
 				.addColumn("possiblyFloatingPoint", CsvSchema.ColumnType.BOOLEAN).addColumn("sampleValues")
 				.setUseHeader(true).build();
 
+		// Shared StringBuilder across fields for efficiency
+		// After each field the StringBuilder is truncated
 		final StringBuilder sampleValue = new StringBuilder();
 		final Consumer<? super String> sampleHandler = s -> {
 			if (sampleValue.length() > 0) {
