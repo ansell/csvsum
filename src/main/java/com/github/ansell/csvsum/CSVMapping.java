@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
+import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
@@ -27,7 +28,7 @@ class CSVMapping {
 	protected static final String DEFAULT_MAPPING = "inputValue";
 
 	enum CSVMappingLanguage {
-		JAVASCRIPT
+		DEFAULT, JAVASCRIPT
 	}
 
 	private CSVMappingLanguage language;
@@ -40,6 +41,20 @@ class CSVMapping {
 	protected static final String MAPPING = "Mapping";
 
 	private static final ScriptEngineManager SCRIPT_MANAGER = new ScriptEngineManager();
+
+	// Uncomment the following to debug which script engines are available on
+	// the classpath
+	// static {
+	// List<ScriptEngineFactory> factories =
+	// SCRIPT_MANAGER.getEngineFactories();
+	//
+	// System.out.println("Installed script engines:");
+	//
+	// for (ScriptEngineFactory nextFactory : factories) {
+	// System.out.println(nextFactory.getEngineName());
+	// }
+	// }
+
 	private ScriptEngine nashornEngine;
 
 	/**
@@ -52,7 +67,12 @@ class CSVMapping {
 	static final CSVMapping newMapping(String language, String input, String output, String mapping) {
 		CSVMapping result = new CSVMapping();
 
-		result.language = CSVMappingLanguage.valueOf(language.toUpperCase());
+		try {
+			result.language = CSVMappingLanguage.valueOf(language.toUpperCase());
+		} catch (IllegalArgumentException e) {
+			result.language = CSVMappingLanguage.DEFAULT;
+		}
+
 		if (result.language == null) {
 			throw new IllegalArgumentException("No mapping language found for: " + language);
 		}
