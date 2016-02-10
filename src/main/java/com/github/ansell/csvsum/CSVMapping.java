@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
@@ -21,6 +20,11 @@ import javax.script.ScriptException;
  */
 class CSVMapping {
 
+	/**
+	 * The default mapping if none is specified in the mapping file.
+	 */
+	protected static final String DEFAULT_MAPPING = "input";
+
 	enum CSVMappingLanguage {
 		JAVASCRIPT
 	}
@@ -28,7 +32,7 @@ class CSVMapping {
 	private CSVMappingLanguage language;
 	private String input;
 	private String output;
-	private String mapping = "input";
+	private String mapping = DEFAULT_MAPPING;
 	protected static final String LANGUAGE = "Language";
 	protected static final String OLD_FIELD = "OldField";
 	protected static final String NEW_FIELD = "NewField";
@@ -102,6 +106,11 @@ class CSVMapping {
 
 		if (this.language != CSVMappingLanguage.JAVASCRIPT) {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
+		}
+
+		// Short circuit if the mapping is the default mapping
+		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING)) {
+			return nextInputValue;
 		}
 
 		// evaluate JavaScript code and access the variable that results from
