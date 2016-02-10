@@ -85,9 +85,11 @@ class CSVMapping {
 
 			for (CSVMapping nextMapping : nextMap) {
 				outputValues.put(nextMapping.getOutputField(), nextMapping.apply(inputHeaders, outputHeaders,
-						originalHeader, originalValue, nextMapping.getOutputField()));
+						originalHeader, originalValue, nextMapping.getOutputField(), line));
 			}
 		}
+
+		System.out.println("Output headers: " + outputHeaders);
 
 		// Then order them consistenty with the list of output headers
 		for (String nextOutputHeader : outputHeaders) {
@@ -102,7 +104,7 @@ class CSVMapping {
 	}
 
 	public String apply(List<String> inputHeaders, List<String> outputHeaders, String nextInputHeader,
-			String nextInputValue, String nextOutputHeader) {
+			String nextInputValue, String nextOutputHeader, List<String> line) {
 
 		if (this.language != CSVMappingLanguage.JAVASCRIPT) {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
@@ -120,13 +122,13 @@ class CSVMapping {
 			ScriptEngine engine = manager.getEngineByName("nashorn");
 
 			engine.eval(
-					"var mapFunction = function(inputHeaders, outputHeaders, nextInputHeader, input, nextOutputHeader) { return "
+					"var mapFunction = function(inputHeaders, outputHeaders, nextInputHeader, input, nextOutputHeader, line) { return "
 							+ this.mapping + "; };");
 
 			Invocable invocable = (Invocable) engine;
 
 			return (String) invocable.invokeFunction("mapFunction", inputHeaders, outputHeaders, nextInputHeader,
-					nextInputValue, nextOutputHeader);
+					nextInputValue, nextOutputHeader, line);
 			// return (String) engine.get("output");
 		} catch (ScriptException | NoSuchMethodException e) {
 			throw new RuntimeException(e);
