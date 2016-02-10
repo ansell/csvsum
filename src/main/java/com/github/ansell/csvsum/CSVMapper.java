@@ -15,11 +15,16 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
+import com.fasterxml.jackson.databind.SequenceWriter;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.jdefaultdict.JDefaultDict;
 
 import joptsimple.OptionException;
@@ -84,35 +89,49 @@ public final class CSVMapper {
 		}
 
 		JDefaultDict<String, List<CSVMapping>> map = extractMappings(Files.newBufferedReader(mappingPath));
+
 		runMapper(Files.newBufferedReader(inputPath), map, writer);
 
 	}
 
 	private static void runMapper(Reader input, Map<String, List<CSVMapping>> map, Writer output)
-			throws ScriptException {
-		ScriptEngineManager manager = new ScriptEngineManager();
-		ScriptEngine engine = manager.getEngineByName("nashorn");
+			throws ScriptException, IOException {
 
-		List<String> inputList = new ArrayList<>();
-		inputList.add("item 1");
-		inputList.add("item 2");
-		engine.put("input", inputList);
-		List<String> outputList = new ArrayList<>();
-		engine.put("output", outputList);
+		Function<List<CSVMapping>, List<String>> outputFields = k -> k.stream().map(e -> e.getOutputField())
+				.collect(Collectors.toList());
 
-		// evaluate JavaScript code and access the variable
-		engine.eval(
-				"for each (var nextInput in input.entrySet()) { output.put(nextInput.getKey(), nextOutput.getValue()); }");
+		List<String> outputHeaders = map.values().stream().map(outputFields).reduce(new ArrayList<String>(), (k, l) -> {
+			k.addAll(l);
+			return k;
+		} , (a, b) -> {
+			a.addAll(b);
+			return a;
+		});
 
-		System.out.println(outputList);
+		final CsvSchema schema = CSVUtil.buildSchema(outputHeaders);
 
-		throw new UnsupportedOperationException("TODO: Implement me!");
+		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);) {
+			List<String> inputHeaders = new ArrayList<>();
+			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
+				return CSVMapping.mapLine(h, outputHeaders, l, map);
+			} , l -> {
+				// Write out all of the mapped lines for this original line in
+				// the original CSV file
+				try {
+					csvWriter.write(l);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			});
+
+		}
 	}
 
 	private static JDefaultDict<String, List<CSVMapping>> extractMappings(Reader input) throws IOException {
 		JDefaultDict<String, List<CSVMapping>> result = new JDefaultDict<>(k -> new ArrayList<>());
 
 		List<String> headers = new ArrayList<>();
+
 		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
 			return CSVMapping.getMapping(l.get(h.indexOf(CSVMapping.LANGUAGE)), l.get(h.indexOf(CSVMapping.OLD_FIELD)),
 					l.get(h.indexOf(CSVMapping.NEW_FIELD)), l.get(h.indexOf(CSVMapping.MAPPING)));

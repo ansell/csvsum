@@ -108,4 +108,21 @@ public final class CSVUtil {
 		return csvWriter;
 	}
 
+	/**
+	 * Build a {@link CsvSchema} object using the given headers.
+	 * 
+	 * @param header
+	 *            The list of strings in the header.
+	 * @return A {@link CsvSchema} object including the given header items.
+	 */
+	public static CsvSchema buildSchema(List<String> header) {
+		CsvSchema.Builder result = CsvSchema.builder();
+
+		for (String nextHeader : header) {
+			result = result.addColumn(nextHeader);
+		}
+
+		return result.setUseHeader(true).build();
+	}
+
 }
