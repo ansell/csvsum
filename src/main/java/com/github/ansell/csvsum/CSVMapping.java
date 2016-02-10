@@ -72,47 +72,30 @@ class CSVMapping {
 	}
 
 	public static List<String> mapLine(List<String> inputHeaders, List<String> outputHeaders, List<String> line,
-			Map<String, List<CSVMapping>> map) {
+			List<CSVMapping> map) {
 
 		Map<String, String> outputValues = new HashMap<>();
 		List<String> result = new ArrayList<>();
 
-		//System.out.println("Input headers: " + inputHeaders);
-
-		for (int i = 0; i < inputHeaders.size(); i++) {
-			String originalHeader = inputHeaders.get(i);
-			String originalValue = line.get(i);
-
-			List<CSVMapping> nextMap = map.get(originalHeader);
-
-			for (CSVMapping nextMapping : nextMap) {
-
-				outputValues.put(nextMapping.getOutputField(), nextMapping.apply(inputHeaders, outputHeaders,
-						originalHeader, originalValue, nextMapping.getOutputField(), line));
-			}
+		for (CSVMapping nextMapping : map) {
+			outputValues.put(nextMapping.getOutputField(), nextMapping.apply(inputHeaders, line));
 		}
 
-		//System.out.println("Output headers: " + outputHeaders);
-
-		// Then order them consistenty with the list of output headers
-		for (String nextOutputHeader : outputHeaders) {
-			if (!outputValues.containsKey(nextOutputHeader)) {
-				throw new RuntimeException("Mapped value was not found for output field: " + nextOutputHeader);
-			}
-
-			result.add(outputValues.get(nextOutputHeader));
+		for(String nextOutput : outputHeaders) {
+			result.add(outputValues.get(nextOutput));
 		}
-
+		
 		return result;
 	}
 
-	public String apply(List<String> inputHeaders, List<String> outputHeaders, String nextInputHeader,
-			String nextInputValue, String nextOutputHeader, List<String> line) {
+	public String apply(List<String> inputHeaders, List<String> line) {
 
 		if (this.language != CSVMappingLanguage.JAVASCRIPT) {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
 		}
 
+		String nextInputValue = line.get(inputHeaders.indexOf(getInputField()));
+		
 		// Short circuit if the mapping is the default mapping
 		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING)) {
 			return nextInputValue;
@@ -125,13 +108,12 @@ class CSVMapping {
 			ScriptEngine engine = manager.getEngineByName("nashorn");
 
 			engine.eval(
-					"var mapFunction = function(inputHeaders, outputHeaders, nextInputHeader, input, nextOutputHeader, line) { return "
+					"var mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) { return "
 							+ this.mapping + "; };");
 
 			Invocable invocable = (Invocable) engine;
 
-			return (String) invocable.invokeFunction("mapFunction", inputHeaders, outputHeaders, nextInputHeader,
-					nextInputValue, nextOutputHeader, line);
+			return (String) invocable.invokeFunction("mapFunction", inputHeaders, this.getInputField(), nextInputValue, this.getOutputField(), line);
 			// return (String) engine.get("output");
 		} catch (ScriptException | NoSuchMethodException e) {
 			throw new RuntimeException(e);
