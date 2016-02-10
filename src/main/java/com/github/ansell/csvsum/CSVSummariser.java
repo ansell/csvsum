@@ -161,8 +161,8 @@ public final class CSVSummariser {
 			return l;
 		} , l -> {
 			// We are a streaming summariser, and do not store the raw original
-			// lines. Only unique values are stored in the valueCounts map for
-			// uniqueness summaries
+			// lines. Only unique, non-empty, values are stored in the
+			// valueCounts map for uniqueness summaries
 		});
 
 		final CsvSchema schema = CsvSchema.builder().addColumn("fieldName")
