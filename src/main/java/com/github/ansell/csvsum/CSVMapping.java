@@ -96,16 +96,23 @@ class CSVMapping {
 			return;
 		}
 
+		// precompile the function for this mapping for efficiency
 		if (this.language == CSVMappingLanguage.JAVASCRIPT) {
-			// evaluate JavaScript code and access the variable that results
-			// from
-			// the mapping
 			try {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("javascript");
 
 				scriptEngine
 						.eval("var mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) { return "
 								+ this.mapping + "; };");
+			} catch (ScriptException e) {
+				throw new RuntimeException(e);
+			}
+		} else if (this.language == CSVMappingLanguage.GROOVY) {
+			try {
+				scriptEngine = SCRIPT_MANAGER.getEngineByName("groovy");
+
+				scriptEngine.eval("def mapFunction(inputHeaders, inputField, inputValue, outputField, line) {  "
+						+ this.mapping + " }");
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
 			}
@@ -162,8 +169,8 @@ class CSVMapping {
 			return nextInputValue;
 		}
 
-		if (this.language == CSVMappingLanguage.JAVASCRIPT) {
-			// evaluate JavaScript code and access the variable that results
+		if (this.language == CSVMappingLanguage.JAVASCRIPT || this.language == CSVMappingLanguage.GROOVY) {
+			// evaluate script code and access the variable that results
 			// from the mapping
 			try {
 				return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", inputHeaders,
