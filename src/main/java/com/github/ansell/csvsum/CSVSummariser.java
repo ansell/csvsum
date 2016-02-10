@@ -174,8 +174,6 @@ public final class CSVSummariser {
 				.addColumn("possiblyFloatingPoint", CsvSchema.ColumnType.BOOLEAN).addColumn("sampleValues")
 				.setUseHeader(true).build();
 
-		final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);
-
 		final StringBuilder sampleValue = new StringBuilder();
 		final Consumer<? super String> sampleHandler = s -> {
 			if (sampleValue.length() > 0) {
@@ -184,39 +182,41 @@ public final class CSVSummariser {
 			sampleValue.append(s);
 		};
 
-		headers.forEach(h -> {
-			final int emptyCount = emptyCounts.get(h).get();
-			final int nonEmptyCount = nonEmptyCounts.get(h).get();
-			final int valueCount = valueCounts.get(h).keySet().size();
-			final boolean possiblePrimaryKey = valueCount == nonEmptyCount && valueCount == rowCount.get();
+		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);) {
+			headers.forEach(h -> {
+				final int emptyCount = emptyCounts.get(h).get();
+				final int nonEmptyCount = nonEmptyCounts.get(h).get();
+				final int valueCount = valueCounts.get(h).keySet().size();
+				final boolean possiblePrimaryKey = valueCount == nonEmptyCount && valueCount == rowCount.get();
 
-			boolean possiblyInteger = false;
-			boolean possiblyDouble = false;
-			// Only expose our numeric type guess if non-empty values found
-			if (nonEmptyCount > 0) {
-				possiblyInteger = possibleIntegerFields.get(h).get();
-				possiblyDouble = possibleDoubleFields.get(h).get();
-			}
-
-			final Stream<String> stream = valueCounts.get(h).keySet().stream();
-			if (maxSampleCount >= 0) {
-				stream.limit(maxSampleCount).sorted().forEach(sampleHandler);
-				if (valueCount > maxSampleCount) {
-					sampleValue.append(", ...");
+				boolean possiblyInteger = false;
+				boolean possiblyDouble = false;
+				// Only expose our numeric type guess if non-empty values found
+				if (nonEmptyCount > 0) {
+					possiblyInteger = possibleIntegerFields.get(h).get();
+					possiblyDouble = possibleDoubleFields.get(h).get();
 				}
-			} else {
-				stream.sorted().forEach(sampleHandler);
-			}
 
-			try {
-				csvWriter.write(Arrays.asList(h, emptyCount, nonEmptyCount, valueCount, possiblePrimaryKey,
-						possiblyInteger, possiblyDouble, sampleValue));
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			} finally {
-				sampleValue.setLength(0);
-			}
-		});
+				final Stream<String> stream = valueCounts.get(h).keySet().stream();
+				if (maxSampleCount >= 0) {
+					stream.limit(maxSampleCount).sorted().forEach(sampleHandler);
+					if (valueCount > maxSampleCount) {
+						sampleValue.append(", ...");
+					}
+				} else {
+					stream.sorted().forEach(sampleHandler);
+				}
+
+				try {
+					csvWriter.write(Arrays.asList(h, emptyCount, nonEmptyCount, valueCount, possiblePrimaryKey,
+							possiblyInteger, possiblyDouble, sampleValue));
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				} finally {
+					sampleValue.setLength(0);
+				}
+			});
+		}
 	}
 
 }
