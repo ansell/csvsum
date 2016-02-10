@@ -6,19 +6,21 @@ package com.github.ansell.csvsum;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+
+import com.github.ansell.jdefaultdict.JDefaultDict;
 
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
@@ -81,12 +83,13 @@ public final class CSVMapper {
 			writer = new BufferedWriter(new OutputStreamWriter(System.out));
 		}
 
-		Map<String, CSVMapping> map = extractMappings(Files.newBufferedReader(mappingPath));
+		JDefaultDict<String, List<CSVMapping>> map = extractMappings(Files.newBufferedReader(mappingPath));
 		runMapper(Files.newBufferedReader(inputPath), map, writer);
 
 	}
 
-	private static void runMapper(Reader input, Map<String, CSVMapping> map, Writer output) throws ScriptException {
+	private static void runMapper(Reader input, Map<String, List<CSVMapping>> map, Writer output)
+			throws ScriptException {
 		ScriptEngineManager manager = new ScriptEngineManager();
 		ScriptEngine engine = manager.getEngineByName("nashorn");
 
@@ -98,15 +101,26 @@ public final class CSVMapper {
 		engine.put("output", outputList);
 
 		// evaluate JavaScript code and access the variable
-		engine.eval("for each (var nextInput in input) { output.add(nextInput); }");
+		engine.eval(
+				"for each (var nextInput in input.entrySet()) { output.put(nextInput.getKey(), nextOutput.getValue()); }");
 
 		System.out.println(outputList);
 
 		throw new UnsupportedOperationException("TODO: Implement me!");
 	}
 
-	private static Map<String, CSVMapping> extractMappings(Reader input) {
-		throw new UnsupportedOperationException("TODO: Implement me!");
+	private static JDefaultDict<String, List<CSVMapping>> extractMappings(Reader input) throws IOException {
+		JDefaultDict<String, List<CSVMapping>> result = new JDefaultDict<>(k -> new ArrayList<>());
+
+		List<String> headers = new ArrayList<>();
+		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
+			return CSVMapping.getMapping(l.get(h.indexOf(CSVMapping.LANGUAGE)), l.get(h.indexOf(CSVMapping.OLD_FIELD)),
+					l.get(h.indexOf(CSVMapping.NEW_FIELD)), l.get(h.indexOf(CSVMapping.MAPPING)));
+		} , l -> {
+			result.get(l.getInputField()).add(l);
+		});
+
+		return result;
 	}
 
 }

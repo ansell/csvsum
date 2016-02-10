@@ -18,6 +18,10 @@ class CSVMapping {
 	private String input;
 	private String output;
 	private String mapping;
+	protected static final String LANGUAGE = "Language";
+	protected static final String OLD_FIELD = "OldField";
+	protected static final String NEW_FIELD = "NewField";
+	protected static final String MAPPING = "Mapping";
 
 	static final CSVMapping getMapping(String language, String input, String output, String mapping) {
 		CSVMapping result = new CSVMapping();
