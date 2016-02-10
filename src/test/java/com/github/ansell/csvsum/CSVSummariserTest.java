@@ -8,13 +8,10 @@ import static org.junit.Assert.*;
 import java.io.FileNotFoundException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;

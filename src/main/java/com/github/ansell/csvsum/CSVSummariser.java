@@ -7,9 +7,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
@@ -20,7 +18,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
@@ -192,7 +189,7 @@ public final class CSVSummariser {
 			final int nonEmptyCount = nonEmptyCounts.get(h).get();
 			final int valueCount = valueCounts.get(h).keySet().size();
 			final boolean possiblePrimaryKey = valueCount == nonEmptyCount && valueCount == rowCount.get();
-			
+
 			boolean possiblyInteger = false;
 			boolean possiblyDouble = false;
 			// Only expose our numeric type guess if non-empty values found
