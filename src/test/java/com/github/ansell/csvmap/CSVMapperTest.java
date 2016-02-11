@@ -86,6 +86,19 @@ public class CSVMapperTest {
 	 * {@link com.github.ansell.csvsum.CSVMapper#main(java.lang.String[])}.
 	 */
 	@Test
+	public final void testMainMappingDoesNotExist() throws Exception {
+		Path testDirectory = tempDir.newFolder("test-does-not-exist").toPath();
+
+		thrown.expect(FileNotFoundException.class);
+		CSVMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
+				testDirectory.resolve("test-does-not-exist.csv").toString());
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVMapper#main(java.lang.String[])}.
+	 */
+	@Test
 	public final void testMainEmpty() throws Exception {
 		Path testFile = tempDir.newFile("test-empty.csv").toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-empty.csv"), testFile,
@@ -105,5 +118,18 @@ public class CSVMapperTest {
 	public final void testMainComplete() throws Exception {
 		CSVMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
 				testMapping.toAbsolutePath().toString());
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csvsum.CSVMapper#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainCompleteWithOutputFile() throws Exception {
+		Path testDirectory = tempDir.newFolder("test").toPath();
+
+		CSVMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
+				testMapping.toAbsolutePath().toString(), "--output",
+				testDirectory.resolve("test-output.csv").toString());
 	}
 }
