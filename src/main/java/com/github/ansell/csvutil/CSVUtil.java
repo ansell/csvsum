@@ -1,4 +1,4 @@
-package com.github.ansell.csvsum;
+package com.github.ansell.csvutil;
 
 import java.io.IOException;
 import java.io.Reader;

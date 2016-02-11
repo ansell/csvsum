@@ -18,8 +18,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-import com.github.ansell.csvsum.CSVMapper;
-
 import joptsimple.OptionException;
 
 /**
@@ -51,7 +49,7 @@ public class CSVMapperTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csvmap.CSVMapper#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainNoArgs() throws Exception {
@@ -61,7 +59,7 @@ public class CSVMapperTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csvmap.CSVMapper#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainHelp() throws Exception {
@@ -70,7 +68,7 @@ public class CSVMapperTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csvmap.CSVMapper#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainFileDoesNotExist() throws Exception {
@@ -83,7 +81,7 @@ public class CSVMapperTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csvmap.CSVMapper#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainMappingDoesNotExist() throws Exception {
@@ -96,7 +94,7 @@ public class CSVMapperTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csvmap.CSVMapper#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainEmpty() throws Exception {
@@ -112,7 +110,7 @@ public class CSVMapperTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csvmap.CSVMapper#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainComplete() throws Exception {
@@ -122,7 +120,7 @@ public class CSVMapperTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csvmap.CSVMapper#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainCompleteWithOutputFile() throws Exception {

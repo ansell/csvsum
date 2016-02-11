@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.github.ansell.csvsum;
+package com.github.ansell.csvutil;
 
 import static org.junit.Assert.*;
 
@@ -13,6 +13,8 @@ import java.util.List;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import com.github.ansell.csvutil.CSVUtil;
 
 /**
  * Tests for {@link CSVUtil}.
@@ -26,7 +28,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csvutil.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -41,7 +43,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csvutil.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -56,7 +58,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csvutil.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -71,7 +73,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csvutil.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -86,7 +88,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csvutil.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -102,7 +104,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csvutil.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -121,7 +123,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csvutil.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -138,7 +140,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csvutil.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -158,7 +160,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csvutil.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -178,7 +180,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csvutil.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test

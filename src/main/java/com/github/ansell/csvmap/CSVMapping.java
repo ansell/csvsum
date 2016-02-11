@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.github.ansell.csvsum;
+package com.github.ansell.csvmap;
 
 import java.util.ArrayList;
 import java.util.List;

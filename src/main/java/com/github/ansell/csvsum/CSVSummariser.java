@@ -22,6 +22,7 @@ import java.util.stream.Stream;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import com.github.ansell.csvutil.CSVUtil;
 import com.github.ansell.jdefaultdict.JDefaultDict;
 
 import joptsimple.OptionException;
