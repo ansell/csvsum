@@ -157,7 +157,7 @@
 							<id>csvsum</id>
 						</program>
 						<program>
-							<mainClass>com.github.ansell.csvsum.CSVMapper</mainClass>
+							<mainClass>com.github.ansell.csvmap.CSVMapper</mainClass>
 							<id>csvmap</id>
 						</program>
 					</programs>

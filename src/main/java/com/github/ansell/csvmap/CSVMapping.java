@@ -125,9 +125,7 @@ class CSVMapping {
 			try {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("lua");
 
-				compiledScript = ((Compilable) scriptEngine).compile(
-						"mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) return  "
-								+ this.mapping + " end");
+				compiledScript = ((Compilable) scriptEngine).compile("return " + this.mapping);
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
 			}
