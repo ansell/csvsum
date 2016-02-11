@@ -25,6 +25,7 @@
  */
 package com.github.ansell.csvmap;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -106,10 +107,13 @@ public final class CSVMapper {
 			writer = new BufferedWriter(new OutputStreamWriter(System.out));
 		}
 
-		List<CSVMapping> map = extractMappings(Files.newBufferedReader(mappingPath));
-
-		runMapper(Files.newBufferedReader(inputPath), map, writer);
-
+		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);
+				final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
+			List<CSVMapping> map = extractMappings(readerMapping);
+			runMapper(readerInput, map, writer);
+		} finally {
+			writer.close();
+		}
 	}
 
 	private static void runMapper(Reader input, List<CSVMapping> map, Writer output)
