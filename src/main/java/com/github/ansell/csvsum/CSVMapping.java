@@ -28,7 +28,7 @@ class CSVMapping {
 	protected static final String DEFAULT_MAPPING = "inputValue";
 
 	enum CSVMappingLanguage {
-		DEFAULT, JAVASCRIPT, GROOVY
+		DEFAULT, JAVASCRIPT, GROOVY, LUA
 	}
 
 	private CSVMappingLanguage language;
@@ -116,6 +116,16 @@ class CSVMapping {
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
 			}
+		} else if (this.language == CSVMappingLanguage.LUA) {
+			try {
+				scriptEngine = SCRIPT_MANAGER.getEngineByName("lua");
+
+				scriptEngine
+						.eval("mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) return  "
+								+ this.mapping + " end");
+			} catch (ScriptException e) {
+				throw new RuntimeException(e);
+			}
 		} else {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
 		}
@@ -169,7 +179,8 @@ class CSVMapping {
 			return nextInputValue;
 		}
 
-		if (this.language == CSVMappingLanguage.JAVASCRIPT || this.language == CSVMappingLanguage.GROOVY) {
+		if (this.language == CSVMappingLanguage.JAVASCRIPT || this.language == CSVMappingLanguage.GROOVY
+				|| this.language == CSVMappingLanguage.LUA) {
 			// evaluate script code and access the variable that results
 			// from the mapping
 			try {
