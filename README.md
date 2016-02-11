@@ -58,7 +58,7 @@ If the Mapping field contains a script, it is executed in the context of the fol
     <dependency>
         <groupId>com.github.ansell.csvsum</groupId>
         <artifactId>csvsum</artifactId>
-        <version>0.0.2</version>
+        <version>0.0.3</version>
     </dependency>
 
 # Changelog
