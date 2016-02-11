@@ -198,7 +198,7 @@ class CSVMapping {
 					return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", inputHeaders,
 							this.getInputField(), nextInputValue, this.getOutputField(), line);
 				} else if (compiledScript != null) {
-					Bindings bindings = new SimpleBindings();
+					Bindings bindings = scriptEngine.createBindings();
 					// inputHeaders, inputField, inputValue, outputField, line
 					bindings.put("inputHeaders", inputHeaders);
 					bindings.put("inputField", this.getInputField());
