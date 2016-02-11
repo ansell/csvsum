@@ -64,6 +64,7 @@ If the Mapping field contains a script, it is executed in the context of the fol
 # Changelog
 
 ## 2016-02-11
+* Release 0.0.3
 * Add CSVMapper to map CSV files to other CSV files using a given map
 * Support Javascript (Nashorn), Groovy and Lua as scripting languages for the mapping
 
