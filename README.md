@@ -47,11 +47,11 @@ If the Mapping field is empty, or is "inputValue", then the interpreters are not
 
 If the Mapping field contains a script, it is executed in the context of the following named parameters:
 
-# inputHeaders : The headers from the input file as a list, in the order they were in the original file.
-# inputField : The field that was designated to be the source for this mapping. Note that this parameter doesn't need to be used, and arbitrary fields can be merged using inputheaders and line.
-# inputValue : The value of the field from inputField.
-# outputField : The label of the output field that the results of this row will be assigned to.
-# line : The values from the current line being processed from the input file, in the same order as the inputHeaders list.
+* inputHeaders : The headers from the input file as a list, in the order they were in the original file.
+* inputField : The field that was designated to be the source for this mapping. Note that this parameter doesn't need to be used, and arbitrary fields can be merged using inputheaders and line.
+* inputValue : The value of the field from inputField.
+* outputField : The label of the output field that the results of this row will be assigned to.
+* line : The values from the current line being processed from the input file, in the same order as the inputHeaders list.
 
 # Maven
 
@@ -65,8 +65,7 @@ If the Mapping field contains a script, it is executed in the context of the fol
 
 ## 2016-02-11
 * Add CSVMapper to map CSV files to other CSV files using a given map
-* Support Javascript (Nashorn) and Groovy as languages
-* Add infrastructure for Lua but no working mapping yet
+* Support Javascript (Nashorn), Groovy and Lua as scripting languages for the mapping
 
 ## 2016-02-10
 * Add possiblePrimaryKey to output based on if there are unique values found for each row for a field
