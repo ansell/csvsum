@@ -66,15 +66,18 @@ class CSVMapping {
 
 	private static final ScriptEngineManager SCRIPT_MANAGER = new ScriptEngineManager();
 
-	// Uncomment the following to debug which script engines are available on
-	// the classpath
+	private static final boolean DEBUG = false;
+	
 	static {
-		List<ScriptEngineFactory> factories = SCRIPT_MANAGER.getEngineFactories();
+		if(DEBUG)
+		{
+			List<ScriptEngineFactory> factories = SCRIPT_MANAGER.getEngineFactories();
 
-		System.out.println("Installed script engines:");
-
-		for (ScriptEngineFactory nextFactory : factories) {
-			System.out.println(nextFactory.getEngineName());
+			System.out.println("Installed script engines:");
+	
+			for (ScriptEngineFactory nextFactory : factories) {
+				System.out.println(nextFactory.getEngineName());
+			}
 		}
 	}
 
