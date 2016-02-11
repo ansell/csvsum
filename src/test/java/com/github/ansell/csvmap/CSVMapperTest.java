@@ -25,11 +25,7 @@
  */
 package com.github.ansell.csvmap;
 
-import static org.junit.Assert.*;
-
 import java.io.FileNotFoundException;
-import java.io.StringReader;
-import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
