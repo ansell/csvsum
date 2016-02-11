@@ -4,16 +4,20 @@
 package com.github.ansell.csvsum;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.script.Bindings;
+import javax.script.Compilable;
+import javax.script.CompiledScript;
 import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+import javax.script.SimpleBindings;
 
 /**
  * A mapping definition from an original CSV field to an output CSV field.
@@ -55,6 +59,7 @@ class CSVMapping {
 	}
 
 	private ScriptEngine scriptEngine;
+	private CompiledScript compiledScript;
 
 	/**
 	 * All creation of CSVMapping objects must be done through the
@@ -120,8 +125,8 @@ class CSVMapping {
 			try {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("lua");
 
-				scriptEngine
-						.eval("mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) return  "
+				compiledScript = ((Compilable) scriptEngine).compile(
+						"mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) return  "
 								+ this.mapping + " end");
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
@@ -161,7 +166,11 @@ class CSVMapping {
 		// cores to do a serial mapping, not a parallel mapping
 		// map.parallelStream().forEach(nextMapping -> {
 		for (CSVMapping nextMapping : map) {
-			outputValues.put(nextMapping.getOutputField(), nextMapping.apply(inputHeaders, line));
+			String mappedValue = nextMapping.apply(inputHeaders, line);
+			// Enable the following to debug issues. Causes a 100% slowdown
+			// Objects.requireNonNull(mappedValue, "Mapping failed for: " +
+			// nextMapping.getMapping() + " on " + line);
+			outputValues.put(nextMapping.getOutputField(), mappedValue);
 		}
 
 		for (String nextOutput : outputHeaders) {
@@ -181,11 +190,26 @@ class CSVMapping {
 
 		if (this.language == CSVMappingLanguage.JAVASCRIPT || this.language == CSVMappingLanguage.GROOVY
 				|| this.language == CSVMappingLanguage.LUA) {
-			// evaluate script code and access the variable that results
-			// from the mapping
+
 			try {
-				return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", inputHeaders,
-						this.getInputField(), nextInputValue, this.getOutputField(), line);
+				if (scriptEngine instanceof Invocable) {
+					// evaluate script code and access the variable that results
+					// from the mapping
+					return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", inputHeaders,
+							this.getInputField(), nextInputValue, this.getOutputField(), line);
+				} else if (compiledScript != null) {
+					Bindings bindings = new SimpleBindings();
+					// inputHeaders, inputField, inputValue, outputField, line
+					bindings.put("inputHeaders", inputHeaders);
+					bindings.put("inputField", this.getInputField());
+					bindings.put("inputValue", nextInputValue);
+					bindings.put("outputField", this.getOutputField());
+					bindings.put("line", line);
+					return (String) compiledScript.eval(bindings);
+				} else {
+					throw new UnsupportedOperationException(
+							"Cannot handle results from ScriptEngine.eval that are not Invocable or CompiledScript");
+				}
 			} catch (ScriptException | NoSuchMethodException e) {
 				throw new RuntimeException(e);
 			}

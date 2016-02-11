@@ -1,6 +1,6 @@
-# csvsum
+# CSV Summariser and Mapper
 
-CSV summariser to quickly find out what you need to know about that random CSV file you were given.
+CSV summariser to quickly find out what you need to know about that random CSV file you were given, and a mapper to make the CSV file fit with what you need
 
 [![Build Status](https://travis-ci.org/ansell/csvsum.svg?branch=master)](https://travis-ci.org/ansell/csvsum) [![Coverage Status](https://coveralls.io/repos/ansell/csvsum/badge.svg?branch=master)](https://coveralls.io/r/ansell/csvsum?branch=master)
 
@@ -10,8 +10,11 @@ CSV summariser to quickly find out what you need to know about that random CSV f
 2. Set the csvsum program to be executable.
 
     chmod a+x ./csvsum
+    chmod a+x ./csvmap
 
-# Usage
+# CSV Summariser
+
+## Usage
 
 Run csvsum with --help to get usage details:
 
@@ -20,6 +23,18 @@ Run csvsum with --help to get usage details:
 Run csvsum with a sample csv file:
 
     ./csvsum --input src/test/resources/com/github/ansell/csvsum/test-single-header-one-line.csv
+
+# CSV Mapper
+
+## Usage
+
+Run csvmap with --help to get usage details:
+
+    ./csvmap --help
+
+Run csvmap with a sample csv file:
+
+    ./csvmap --input src/test/resources/com/github/ansell/csvmap/test-source.csv --mapping src/test/resources/com/github/ansell/csvmap/test-mappings.csv
 
 # Maven
 
@@ -30,6 +45,11 @@ Run csvsum with a sample csv file:
     </dependency>
 
 # Changelog
+
+## 2016-02-11
+* Add CSVMapper to map CSV files to other CSV files using a given map
+* Support Javascript (Nashorn) and Groovy as languages
+* Add infrastructure for Lua but no working mapping yet
 
 ## 2016-02-10
 * Add possiblePrimaryKey to output based on if there are unique values found for each row for a field
