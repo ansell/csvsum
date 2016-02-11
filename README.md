@@ -6,8 +6,11 @@ CSV summariser to quickly find out what you need to know about that random CSV f
 
 # Setup
 
-1. Install Maven
-2. Set the csvsum program to be executable.
+Install Maven and Git
+
+Download the Git repository.
+
+Set the csvsum and csvmap programs to be executable.
 
     chmod a+x ./csvsum
     chmod a+x ./csvmap
@@ -35,6 +38,20 @@ Run csvmap with --help to get usage details:
 Run csvmap with a sample csv file:
 
     ./csvmap --input src/test/resources/com/github/ansell/csvmap/test-source.csv --mapping src/test/resources/com/github/ansell/csvmap/test-mappings.csv
+
+The Language field in the mapping CSV file is one of: Javascript, Groovy, Lua.
+
+The Mapping field in the mapping CSV file is either empty or a script in the Language.
+
+If the Mapping field is empty, or is "inputValue", then the interpreters are not run for this field, and the values from the OldField are directly sent to NewField.
+
+If the Mapping field contains a script, it is executed in the context of the following named parameters:
+
+# inputHeaders : The headers from the input file as a list, in the order they were in the original file.
+# inputField : The field that was designated to be the source for this mapping. Note that this parameter doesn't need to be used, and arbitrary fields can be merged using inputheaders and line.
+# inputValue : The value of the field from inputField.
+# outputField : The label of the output field that the results of this row will be assigned to.
+# line : The values from the current line being processed from the input file, in the same order as the inputHeaders list.
 
 # Maven
 
