@@ -42,6 +42,8 @@ import java.util.stream.Collectors;
 
 import javax.script.ScriptException;
 
+import org.jooq.lambda.Unchecked;
+
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csvutil.CSVUtil;
@@ -129,15 +131,7 @@ public final class CSVMapper {
 			List<String> inputHeaders = new ArrayList<>();
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
 				return CSVMapping.mapLine(inputHeaders, outputHeaders, l, map);
-			} , l -> {
-				// Write out all of the mapped lines for this original line in
-				// the original CSV file
-				try {
-					csvWriter.write(l);
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			});
+			} , Unchecked.consumer(l -> csvWriter.write(l)));
 
 		}
 	}
@@ -150,9 +144,7 @@ public final class CSVMapper {
 		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
 			return CSVMapping.newMapping(l.get(h.indexOf(CSVMapping.LANGUAGE)), l.get(h.indexOf(CSVMapping.OLD_FIELD)),
 					l.get(h.indexOf(CSVMapping.NEW_FIELD)), l.get(h.indexOf(CSVMapping.MAPPING)));
-		} , l -> {
-			result.add(l);
-		});
+		} , l -> result.add(l));
 
 		return result;
 	}

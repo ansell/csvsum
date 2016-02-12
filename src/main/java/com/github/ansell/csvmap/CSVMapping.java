@@ -67,17 +67,12 @@ class CSVMapping {
 	private static final ScriptEngineManager SCRIPT_MANAGER = new ScriptEngineManager();
 
 	private static final boolean DEBUG = false;
-	
-	static {
-		if(DEBUG)
-		{
-			List<ScriptEngineFactory> factories = SCRIPT_MANAGER.getEngineFactories();
 
+	static {
+		if (DEBUG) {
 			System.out.println("Installed script engines:");
-	
-			for (ScriptEngineFactory nextFactory : factories) {
-				System.out.println(nextFactory.getEngineName());
-			}
+			SCRIPT_MANAGER.getEngineFactories().stream().map(ScriptEngineFactory::getEngineName)
+					.forEach(System.out::println);
 		}
 	}
 
@@ -120,7 +115,7 @@ class CSVMapping {
 	private void init() {
 		// Short circuit if the mapping is the default mapping and avoid
 		// creating an instance of nashorn for this mapping
-		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING)) {
+		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING) || this.language == CSVMappingLanguage.DEFAULT) {
 			return;
 		}
 
@@ -173,7 +168,7 @@ class CSVMapping {
 		return this.mapping;
 	}
 
-	public static List<String> mapLine(List<String> inputHeaders, List<String> outputHeaders, List<String> line,
+	static List<String> mapLine(List<String> inputHeaders, List<String> outputHeaders, List<String> line,
 			List<CSVMapping> map) {
 
 		if (outputHeaders.size() != map.size()) {
@@ -186,26 +181,22 @@ class CSVMapping {
 		// Note, empirically, it seems about 50% faster with a limited number of
 		// cores to do a serial mapping, not a parallel mapping
 		// map.parallelStream().forEach(nextMapping -> {
-		for (CSVMapping nextMapping : map) {
+		// for (CSVMapping nextMapping : map) {
+		map.forEach(nextMapping -> {
 			String mappedValue = nextMapping.apply(inputHeaders, line);
-			// Enable the following to debug issues. Causes a 100% slowdown
-			// Objects.requireNonNull(mappedValue, "Mapping failed for: " +
-			// nextMapping.getMapping() + " on " + line);
 			outputValues.put(nextMapping.getOutputField(), mappedValue);
-		}
+		});
 
-		for (String nextOutput : outputHeaders) {
-			result.add(outputValues.get(nextOutput));
-		}
+		outputHeaders.forEach(nextOutput -> result.add(outputValues.get(nextOutput)));
 
 		return result;
 	}
 
-	public String apply(List<String> inputHeaders, List<String> line) {
+	private String apply(List<String> inputHeaders, List<String> line) {
 		String nextInputValue = line.get(inputHeaders.indexOf(getInputField()));
 
 		// Short circuit if the mapping is the default mapping
-		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING)) {
+		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING) || this.language == CSVMappingLanguage.DEFAULT) {
 			return nextInputValue;
 		}
 
