@@ -23,7 +23,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.github.ansell.csvmap;
+package com.github.ansell.csv.map;
 
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
@@ -35,6 +35,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
+
+import com.github.ansell.csv.map.CSVMapper;
 
 import joptsimple.OptionException;
 
@@ -67,7 +69,7 @@ public class CSVMapperTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvmap.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainNoArgs() throws Exception {
@@ -77,7 +79,7 @@ public class CSVMapperTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvmap.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainHelp() throws Exception {
@@ -86,7 +88,7 @@ public class CSVMapperTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvmap.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainFileDoesNotExist() throws Exception {
@@ -99,7 +101,7 @@ public class CSVMapperTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvmap.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainMappingDoesNotExist() throws Exception {
@@ -112,7 +114,7 @@ public class CSVMapperTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvmap.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainEmpty() throws Exception {
@@ -128,7 +130,7 @@ public class CSVMapperTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvmap.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainComplete() throws Exception {
@@ -138,7 +140,7 @@ public class CSVMapperTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvmap.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainCompleteWithOutputFile() throws Exception {

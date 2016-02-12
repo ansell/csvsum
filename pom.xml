@@ -2,7 +2,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
-	<groupId>com.github.ansell.csvsum</groupId>
+	<groupId>com.github.ansell.csv.sum</groupId>
 	<artifactId>csvsum</artifactId>
 	<version>0.0.4-SNAPSHOT</version>
 	<name>CSVSum</name>
@@ -158,11 +158,11 @@
 				<configuration>
 					<programs>
 						<program>
-							<mainClass>com.github.ansell.csvsum.CSVSummariser</mainClass>
+							<mainClass>com.github.ansell.csv.sum.CSVSummariser</mainClass>
 							<id>csvsum</id>
 						</program>
 						<program>
-							<mainClass>com.github.ansell.csvmap.CSVMapper</mainClass>
+							<mainClass>com.github.ansell.csv.map.CSVMapper</mainClass>
 							<id>csvmap</id>
 						</program>
 					</programs>
