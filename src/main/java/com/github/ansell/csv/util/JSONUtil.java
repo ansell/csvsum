@@ -25,7 +25,10 @@
  */
 package com.github.ansell.csv.util;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.Writer;
 
@@ -36,6 +39,7 @@ import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.jsonldjava.utils.JsonUtils;
 
 /**
  * JSON utilities used by CSV processors.
@@ -47,14 +51,29 @@ public class JSONUtil {
 	private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 	private static final JsonFactory JSON_FACTORY = new JsonFactory(JSON_MAPPER);
 
-	public static void queryJSON(Reader input) throws JsonProcessingException, IOException {
-		JsonNode root = JSON_MAPPER.readTree(input);
-
-		JsonPointer ptr = JsonPointer.compile("");
-		root.at(ptr);
+	public static String queryJSON(String url, String jpath)
+			throws JsonProcessingException, IOException {
+		return queryJSON(url, JsonPointer.compile(jpath));
 	}
 
-	public static void toPrettyPrint(Reader input, Writer output) throws IOException {
+	public static String queryJSON(String url, JsonPointer jpath)
+			throws JsonProcessingException, IOException {
+		try (final InputStream stream = JsonUtils.openStreamForURL(
+				new java.net.URL(url), JsonUtils.getDefaultHttpClient());
+				final Reader input = new BufferedReader(new InputStreamReader(
+						stream));) {
+			return queryJSON(input, jpath);
+		}
+	}
+
+	public static String queryJSON(Reader input, JsonPointer jpath)
+			throws JsonProcessingException, IOException {
+		JsonNode root = JSON_MAPPER.readTree(input);
+		return root.at(jpath).asText();
+	}
+
+	public static void toPrettyPrint(Reader input, Writer output)
+			throws IOException {
 		final JsonGenerator jw = JSON_FACTORY.createGenerator(output);
 		jw.useDefaultPrettyPrinter();
 		JsonParser parser = JSON_FACTORY.createParser(input);
