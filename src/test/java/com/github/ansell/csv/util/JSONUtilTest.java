@@ -27,19 +27,38 @@ package com.github.ansell.csv.util;
 
 import static org.junit.Assert.*;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
+import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
+import org.junit.rules.TemporaryFolder;
 
 import com.fasterxml.jackson.core.JsonPointer;
+import com.github.jsonldjava.utils.JsonUtils;
 
 /**
  * 
  * @author Peter Ansell p_ansell@yahoo.com
  */
 public class JSONUtilTest {
+
+	@Rule
+	public ExpectedException thrown = ExpectedException.none();
+
+	@Rule
+	public TemporaryFolder tempDir = new TemporaryFolder();
 
 	/**
 	 * Test method for
@@ -53,6 +72,44 @@ public class JSONUtilTest {
 		JSONUtil.toPrettyPrint(input, output);
 		System.out.println(output.toString());
 		assertTrue(output.toString().contains("\"test\" : \"something\""));
+	}
+
+	@Ignore("ALA website is broken w.r.t chunked encoding")
+	@Test
+	public final void testPrettyPrintURL() throws Exception {
+		StringWriter output = new StringWriter();
+		try (InputStream inputStream = JsonUtils
+				.openStreamForURL(
+						new java.net.URL(
+								"http://bie.ala.org.au/search.json?q=Banksia+occidentalis"),
+						JsonUtils.getDefaultHttpClient());
+				Reader input = new BufferedReader(new InputStreamReader(
+						inputStream));) {
+			JSONUtil.toPrettyPrint(input, output);
+		}
+
+		System.out.println(output.toString());
+
+		JSONUtil.queryJSON(
+				"http://bie.ala.org.au/search.json?q=Banksia+occidentalis",
+				"/searchResults/results/0/guid");
+	}
+
+	@Test
+	public final void testQuery() throws Exception {
+		Path testFile = tempDir.newFile().toPath();
+		Files.copy(
+				this.getClass().getResourceAsStream(
+						"/com/github/ansell/csvmap/ala-test.json"), testFile,
+				StandardCopyOption.REPLACE_EXISTING);
+		try (Reader reader = Files.newBufferedReader(testFile);) {
+			JSONUtil.toPrettyPrint(reader, new OutputStreamWriter(System.out));
+		}
+		System.out.println("");
+		try (Reader reader = Files.newBufferedReader(testFile);) {
+			System.out.println(JSONUtil.queryJSON(reader,
+					JsonPointer.compile("/searchResults/results/0/guid")));
+		}
 	}
 
 	/**
