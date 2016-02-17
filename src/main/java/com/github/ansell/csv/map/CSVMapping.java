@@ -114,7 +114,7 @@ class CSVMapping {
 
 	private void init() {
 		// Short circuit if the mapping is the default mapping and avoid
-		// creating an instance of nashorn for this mapping
+		// creating an instance of nashorn/groovy/etc. for this mapping
 		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING) || this.language == CSVMappingLanguage.DEFAULT) {
 			return;
 		}
@@ -125,8 +125,8 @@ class CSVMapping {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("javascript");
 
 				scriptEngine
-						.eval("var mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) { return "
-								+ this.mapping + "; };");
+						.eval("var mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) { "
+								+ this.mapping + " };");
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
 			}
@@ -143,7 +143,7 @@ class CSVMapping {
 			try {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("lua");
 
-				compiledScript = ((Compilable) scriptEngine).compile("return " + this.mapping);
+				compiledScript = ((Compilable) scriptEngine).compile(this.mapping);
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
 			}

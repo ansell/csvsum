@@ -27,6 +27,8 @@ package com.github.ansell.csv.map;
 
 import static org.junit.Assert.*;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import javax.script.Bindings;
@@ -84,4 +86,11 @@ public class ScriptEngineTest {
 		assertEquals("testreturnvalue", result);
 	}
 
+	@Test
+	public final void testDate() throws Exception {
+		LocalDate parseDate1 = LocalDate.parse("21-Sep-14", DateTimeFormatter.ofPattern("d-MMM-yy"));
+		LocalDate parsedDate = LocalDate.parse("2-Apr-14", DateTimeFormatter.ofPattern("d-MMM-yy"));
+		System.out.println(parsedDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
+	}
+	
 }
