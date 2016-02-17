@@ -58,10 +58,17 @@ If the Mapping field contains a script, it is executed in the context of the fol
     <dependency>
         <groupId>com.github.ansell.csv.sum</groupId>
         <artifactId>csvsum</artifactId>
-        <version>0.0.3</version>
+        <version>0.0.4</version>
     </dependency>
 
 # Changelog
+
+## 2016-02-17
+* Release 0.0.4
+
+## 2016-02-16
+* Refactor package names to separate them
+* Add requirement for javascript and lua mappings to include the return keyword in the mapping
 
 ## 2016-02-11
 * Release 0.0.3
