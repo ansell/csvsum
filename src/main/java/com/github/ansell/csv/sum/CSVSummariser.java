@@ -23,7 +23,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.github.ansell.csvsum;
+package com.github.ansell.csv.sum;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -44,7 +44,7 @@ import java.util.stream.Stream;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
-import com.github.ansell.csvutil.CSVUtil;
+import com.github.ansell.csv.util.CSVUtil;
 import com.github.ansell.jdefaultdict.JDefaultDict;
 
 import joptsimple.OptionException;

@@ -56,7 +56,7 @@ If the Mapping field contains a script, it is executed in the context of the fol
 # Maven
 
     <dependency>
-        <groupId>com.github.ansell.csvsum</groupId>
+        <groupId>com.github.ansell.csv.sum</groupId>
         <artifactId>csvsum</artifactId>
         <version>0.0.3</version>
     </dependency>

@@ -23,7 +23,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.github.ansell.csvsum;
+package com.github.ansell.csv.sum;
 
 import static org.junit.Assert.*;
 
@@ -38,6 +38,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
+
+import com.github.ansell.csv.sum.CSVSummariser;
 
 import joptsimple.OptionException;
 
@@ -56,7 +58,7 @@ public class CSVSummariserTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainNoArgs() throws Exception {
@@ -66,7 +68,7 @@ public class CSVSummariserTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainHelp() throws Exception {
@@ -75,7 +77,7 @@ public class CSVSummariserTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainFileDoesNotExist() throws Exception {
@@ -87,7 +89,7 @@ public class CSVSummariserTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainEmpty() throws Exception {
@@ -102,7 +104,7 @@ public class CSVSummariserTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainSingleHeaderNoLines() throws Exception {
@@ -115,7 +117,7 @@ public class CSVSummariserTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainSingleHeaderOneLine() throws Exception {
@@ -128,7 +130,7 @@ public class CSVSummariserTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainSingleHeaderOneLineFileOutput() throws Exception {
@@ -145,7 +147,7 @@ public class CSVSummariserTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainSingleHeaderOneLineFileOutputFewSamples() throws Exception {
@@ -162,7 +164,7 @@ public class CSVSummariserTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainSingleHeaderOneLineEmptyValue() throws Exception {
@@ -177,7 +179,7 @@ public class CSVSummariserTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainSingleHeaderMultipleLinesWithEmptyValues() throws Exception {
@@ -192,7 +194,7 @@ public class CSVSummariserTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainSingleHeaderTwentyOneLines() throws Exception {
@@ -207,7 +209,7 @@ public class CSVSummariserTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testSummariseInteger() throws Exception {
@@ -217,7 +219,7 @@ public class CSVSummariserTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testSummariseDouble() throws Exception {
@@ -227,7 +229,7 @@ public class CSVSummariserTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csvsum.CSVSummariser#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testSummariseAllSampleValues() throws Exception {
