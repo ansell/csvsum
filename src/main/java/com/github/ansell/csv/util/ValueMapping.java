@@ -25,6 +25,8 @@
  */
 package com.github.ansell.csv.util;
 
+import java.io.IOException;
+import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -228,5 +230,19 @@ public class ValueMapping {
 		} else {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
 		}
+	}
+
+	public static List<ValueMapping> extractMappings(Reader input) throws IOException {
+		List<ValueMapping> result = new ArrayList<>();
+	
+		List<String> headers = new ArrayList<>();
+	
+		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
+			return newMapping(l.get(h.indexOf(LANGUAGE)),
+					l.get(h.indexOf(OLD_FIELD)), l.get(h.indexOf(NEW_FIELD)),
+					l.get(h.indexOf(MAPPING)));
+		} , l -> result.add(l));
+	
+		return result;
 	}
 }

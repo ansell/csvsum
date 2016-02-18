@@ -33,12 +33,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
-import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
@@ -112,23 +110,9 @@ public class AccessMapper {
 
 		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);
 				final InputStream readerInput = Files.newInputStream(inputPath);) {
-			List<ValueMapping> map = extractMappings(readerMapping);
+			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
 			runMapper(readerInput, map, output.value(options).toPath(), outputPrefix.value(options));
 		}
-	}
-
-	private static List<ValueMapping> extractMappings(Reader input) throws IOException {
-		List<ValueMapping> result = new ArrayList<>();
-
-		List<String> headers = new ArrayList<>();
-
-		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
-			return ValueMapping.newMapping(l.get(h.indexOf(ValueMapping.LANGUAGE)),
-					l.get(h.indexOf(ValueMapping.OLD_FIELD)), l.get(h.indexOf(ValueMapping.NEW_FIELD)),
-					l.get(h.indexOf(ValueMapping.MAPPING)));
-		} , l -> result.add(l));
-
-		return result;
 	}
 
 	private static void runMapper(InputStream input, List<ValueMapping> map, Path outputDir, String csvPrefix)

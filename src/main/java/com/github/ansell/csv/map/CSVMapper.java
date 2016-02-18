@@ -112,7 +112,7 @@ public final class CSVMapper {
 
 		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);
 				final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
-			List<ValueMapping> map = extractMappings(readerMapping);
+			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
 			runMapper(readerInput, map, writer);
 		} finally {
 			writer.close();
@@ -135,19 +135,6 @@ public final class CSVMapper {
 			} , Unchecked.consumer(l -> csvWriter.write(l)));
 
 		}
-	}
-
-	private static List<ValueMapping> extractMappings(Reader input) throws IOException {
-		List<ValueMapping> result = new ArrayList<>();
-
-		List<String> headers = new ArrayList<>();
-
-		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
-			return ValueMapping.newMapping(l.get(h.indexOf(ValueMapping.LANGUAGE)), l.get(h.indexOf(ValueMapping.OLD_FIELD)),
-					l.get(h.indexOf(ValueMapping.NEW_FIELD)), l.get(h.indexOf(ValueMapping.MAPPING)));
-		} , l -> result.add(l));
-
-		return result;
 	}
 
 }
