@@ -176,7 +176,7 @@ public class AccessMapper {
 					// on the resulting list of strings
 					for (Row nextRow : originTable) {
 						ConcurrentMap<String, String> output = new ConcurrentHashMap<>();
-						ConcurrentMap<String, Row> foreignRowsForThisRow = new ConcurrentHashMap<>();
+						ConcurrentMap<String, Row> componentRowsForThisRow = new ConcurrentHashMap<>();
 						List<? extends Column> originColumns = originTable.getColumns();
 						for (Column nextOriginColumn : originColumns) {
 							for (final ValueMapping nextValueMapping : map) {
@@ -187,13 +187,9 @@ public class AccessMapper {
 										if (joiners.containsKey(nextValueMapping)) {
 											Row findFirstRow = joiners.get(nextValueMapping).findFirstRow(nextRow);
 											if (findFirstRow != null) {
-												foreignRowsForThisRow.put(splitDBField[0], findFirstRow);
+												String[] splitDBFieldOutput = nextValueMapping.getOutputField().split("\\.");
+												componentRowsForThisRow.put(splitDBFieldOutput[0], findFirstRow);
 											}
-											// for (Map<String, Object> row :
-											// joiners.get(nextValueMapping).getToTable())
-											// {
-											// System.out.println(row);
-											// }
 										} else {
 											// System.out.println(
 											// "TODO: Support fetching of
@@ -206,10 +202,7 @@ public class AccessMapper {
 											// nextValueMapping.getOutputField());
 										}
 									} else {
-										Object nextColumnValue = nextRow.get(splitDBField[1]);
-										if (nextColumnValue != null) {
-											output.put(nextValueMapping.getOutputField(), nextColumnValue.toString());
-										}
+										componentRowsForThisRow.put(splitDBField[0], nextRow);
 									}
 								}
 							}
@@ -217,12 +210,16 @@ public class AccessMapper {
 
 						// Populate the foreign row values
 						for (final ValueMapping nextValueMapping : map) {
-							if (foreignKeyMapping.containsKey(nextValueMapping)) {
-								String[] splitDBField = nextValueMapping.getInputField().split("\\.");
-								Row findFirstRow = foreignRowsForThisRow.get(splitDBField[0]);
+							String[] splitDBField = nextValueMapping.getInputField().split("\\.");
+							if (componentRowsForThisRow.containsKey(splitDBField[0])) {
+								Row findFirstRow = componentRowsForThisRow.get(splitDBField[0]);
 								Object nextColumnValue = findFirstRow.get(splitDBField[1]);
 								if (nextColumnValue != null) {
 									output.put(nextValueMapping.getOutputField(), nextColumnValue.toString());
+									System.out.println(
+											nextValueMapping.getOutputField() + "=>" + nextColumnValue.toString());
+								} else {
+									System.out.println("No mapping found for: " + nextValueMapping.getInputField());
 								}
 							}
 						}
