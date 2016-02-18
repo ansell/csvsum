@@ -156,10 +156,10 @@ public class AccessMapper {
 					foreignKeyMapping.put(nextValueMapping, db.getTable(splitForeignDBField[0]));
 					try {
 						joiners.put(nextValueMapping, Joiner.create(nextTable, db.getTable(splitForeignDBField[0])));
+						System.out.println("PK->FK: " + joiners.get(nextValueMapping).toFKString());
 					} catch (IllegalArgumentException e) {
 						e.printStackTrace();
 					}
-					System.out.println("PK->FK: " + joiners.get(nextValueMapping).toFKString());
 				}
 			}
 			// There may have been no mappings...
