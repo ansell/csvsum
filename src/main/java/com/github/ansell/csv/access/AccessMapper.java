@@ -37,6 +37,7 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -129,7 +130,7 @@ public class AccessMapper {
 		}
 	}
 
-	private static void mapDBToSingleCSV(InputStream readerDB, List<ValueMapping> map, Path path, String string)
+	private static void mapDBToSingleCSV(InputStream readerDB, List<ValueMapping> map, Path csvPath, String csvPrefix)
 			throws IOException {
 		Path tempFile = Files.createTempFile("Source-accessdb", ".accdb");
 		Files.copy(readerDB, tempFile, StandardCopyOption.REPLACE_EXISTING);
@@ -164,28 +165,63 @@ public class AccessMapper {
 			}
 			// There may have been no mappings...
 			if (originTable != null) {
-				// Run through the fields on the origin table joining them as
-				// necessary before running the other non-access mappings on the
-				// resulting list of strings
-				List<? extends Column> originColumns = originTable.getColumns();
-				for (Column nextOriginColumn : originColumns) {
-					for (final ValueMapping nextValueMapping : map) {
-						String[] splitDBField = nextValueMapping.getInputField().split("\\.");
-						if (splitDBField[0].equals(originTable.getName())
-								&& splitDBField[1].equals(nextOriginColumn.getName())) {
-							if (foreignKeyMapping.containsKey(nextValueMapping)) {
-								if (joiners.containsKey(nextValueMapping)) {
-									for (Map<String, Object> row : joiners.get(nextValueMapping).getToTable()) {
-										System.out.println(row);
+				List<String> headers = map.stream().map(m -> m.getOutputField()).collect(Collectors.toList());
+				final CsvSchema schema = CSVUtil.buildSchema(headers);
+
+				try (final Writer csv = Files
+						.newBufferedWriter(csvPath.resolve(csvPrefix + originTable.getName() + ".csv"));
+						final SequenceWriter csvWriter = CSVUtil.newCSVWriter(new BufferedWriter(csv), schema);) {
+					// Run through the fields on the origin table joining them
+					// as necessary before running the other non-access mappings
+					// on the resulting list of strings
+					for (Row nextRow : originTable) {
+						ConcurrentMap<String, String> output = new ConcurrentHashMap<>();
+						ConcurrentMap<Table, Row> foreignRowsForThisRow = new ConcurrentHashMap<>();
+						List<? extends Column> originColumns = originTable.getColumns();
+						for (Column nextOriginColumn : originColumns) {
+							for (final ValueMapping nextValueMapping : map) {
+								String[] splitDBField = nextValueMapping.getInputField().split("\\.");
+								if (splitDBField[0].equals(originTable.getName())
+										&& splitDBField[1].equals(nextOriginColumn.getName())) {
+									if (foreignKeyMapping.containsKey(nextValueMapping)) {
+										if (joiners.containsKey(nextValueMapping)) {
+											Row findFirstRow = joiners.get(nextValueMapping).findFirstRow(nextRow);
+											if (findFirstRow != null) {
+												foreignRowsForThisRow.put(foreignKeyMapping.get(nextValueMapping),
+														findFirstRow);
+											}
+											// for (Map<String, Object> row :
+											// joiners.get(nextValueMapping).getToTable())
+											// {
+											// System.out.println(row);
+											// }
+										} else {
+											// System.out.println(
+											// "TODO: Support fetching of
+											// foreign keys when an index was
+											// not available: "
+											// +
+											// nextValueMapping.getInputField()
+											// + "=>"
+											// +
+											// nextValueMapping.getOutputField());
+										}
+									} else {
+										Object nextColumnValue = nextRow.get(splitDBField[1]);
+										if (nextColumnValue != null) {
+											output.put(nextValueMapping.getOutputField(), nextColumnValue.toString());
+										}
 									}
-								} else {
-									System.out.println(
-											"TODO: Support fetching of foreign keys when an index was not available: "
-													+ nextValueMapping.getInputField() + "=>"
-													+ nextValueMapping.getOutputField());
 								}
 							}
 						}
+						List<String> nextEmittedRow = new ArrayList<>(map.size());
+						// Then after all are filled, emit the row
+						for (final ValueMapping nextValueMapping : map) {
+							nextEmittedRow.add(output.getOrDefault(nextValueMapping.getOutputField(), "Unknown"));
+						}
+						System.out.println("nextEmittedRow: " + nextEmittedRow);
+						csvWriter.write(nextEmittedRow);
 					}
 				}
 			}
