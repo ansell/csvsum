@@ -216,8 +216,8 @@ public class AccessMapper {
 								Object nextColumnValue = findFirstRow.get(splitDBField[1]);
 								if (nextColumnValue != null) {
 									output.put(nextValueMapping.getOutputField(), nextColumnValue.toString());
-									System.out.println(
-											nextValueMapping.getOutputField() + "=>" + nextColumnValue.toString());
+									//System.out.println(
+									//		nextValueMapping.getOutputField() + "=>" + nextColumnValue.toString());
 								} else {
 									System.out.println("No mapping found for: " + nextValueMapping.getInputField());
 								}
