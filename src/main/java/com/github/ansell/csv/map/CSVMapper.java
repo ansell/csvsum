@@ -47,6 +47,7 @@ import org.jooq.lambda.Unchecked;
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.util.CSVUtil;
+import com.github.ansell.csv.util.ValueMapping;
 
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
@@ -111,17 +112,17 @@ public final class CSVMapper {
 
 		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);
 				final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
-			List<CSVMapping> map = extractMappings(readerMapping);
+			List<ValueMapping> map = extractMappings(readerMapping);
 			runMapper(readerInput, map, writer);
 		} finally {
 			writer.close();
 		}
 	}
 
-	private static void runMapper(Reader input, List<CSVMapping> map, Writer output)
+	private static void runMapper(Reader input, List<ValueMapping> map, Writer output)
 			throws ScriptException, IOException {
 
-		Function<CSVMapping, String> outputFields = e -> e.getOutputField();
+		Function<ValueMapping, String> outputFields = e -> e.getOutputField();
 
 		List<String> outputHeaders = map.stream().map(outputFields).collect(Collectors.toList());
 
@@ -130,20 +131,20 @@ public final class CSVMapper {
 		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);) {
 			List<String> inputHeaders = new ArrayList<>();
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
-				return CSVMapping.mapLine(inputHeaders, outputHeaders, l, map);
+				return ValueMapping.mapLine(inputHeaders, outputHeaders, l, map);
 			} , Unchecked.consumer(l -> csvWriter.write(l)));
 
 		}
 	}
 
-	private static List<CSVMapping> extractMappings(Reader input) throws IOException {
-		List<CSVMapping> result = new ArrayList<>();
+	private static List<ValueMapping> extractMappings(Reader input) throws IOException {
+		List<ValueMapping> result = new ArrayList<>();
 
 		List<String> headers = new ArrayList<>();
 
 		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
-			return CSVMapping.newMapping(l.get(h.indexOf(CSVMapping.LANGUAGE)), l.get(h.indexOf(CSVMapping.OLD_FIELD)),
-					l.get(h.indexOf(CSVMapping.NEW_FIELD)), l.get(h.indexOf(CSVMapping.MAPPING)));
+			return ValueMapping.newMapping(l.get(h.indexOf(ValueMapping.LANGUAGE)), l.get(h.indexOf(ValueMapping.OLD_FIELD)),
+					l.get(h.indexOf(ValueMapping.NEW_FIELD)), l.get(h.indexOf(ValueMapping.MAPPING)));
 		} , l -> result.add(l));
 
 		return result;

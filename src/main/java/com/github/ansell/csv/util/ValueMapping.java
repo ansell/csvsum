@@ -23,7 +23,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.github.ansell.csv.map;
+package com.github.ansell.csv.util;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,25 +44,25 @@ import javax.script.ScriptException;
  * 
  * @author Peter Ansell p_ansell@yahoo.com
  */
-class CSVMapping {
+public class ValueMapping {
 
 	/**
 	 * The default mapping if none is specified in the mapping file.
 	 */
 	protected static final String DEFAULT_MAPPING = "inputValue";
 
-	enum CSVMappingLanguage {
+	public enum ValueMappingLanguage {
 		DEFAULT, JAVASCRIPT, GROOVY, LUA
 	}
 
-	private CSVMappingLanguage language;
+	private ValueMappingLanguage language;
 	private String input;
 	private String output;
 	private String mapping = DEFAULT_MAPPING;
-	protected static final String LANGUAGE = "Language";
-	protected static final String OLD_FIELD = "OldField";
-	protected static final String NEW_FIELD = "NewField";
-	protected static final String MAPPING = "Mapping";
+	public static final String LANGUAGE = "Language";
+	public static final String OLD_FIELD = "OldField";
+	public static final String NEW_FIELD = "NewField";
+	public static final String MAPPING = "Mapping";
 
 	private static final ScriptEngineManager SCRIPT_MANAGER = new ScriptEngineManager();
 
@@ -80,19 +80,19 @@ class CSVMapping {
 	private CompiledScript compiledScript;
 
 	/**
-	 * All creation of CSVMapping objects must be done through the
+	 * All creation of ValueMapping objects must be done through the
 	 * {@link #newMapping(String, String, String, String)} method.
 	 */
-	private CSVMapping() {
+	private ValueMapping() {
 	}
 
-	static final CSVMapping newMapping(String language, String input, String output, String mapping) {
-		CSVMapping result = new CSVMapping();
+	public static final ValueMapping newMapping(String language, String input, String output, String mapping) {
+		ValueMapping result = new ValueMapping();
 
 		try {
-			result.language = CSVMappingLanguage.valueOf(language.toUpperCase());
+			result.language = ValueMappingLanguage.valueOf(language.toUpperCase());
 		} catch (IllegalArgumentException e) {
-			result.language = CSVMappingLanguage.DEFAULT;
+			result.language = ValueMappingLanguage.DEFAULT;
 		}
 
 		if (result.language == null) {
@@ -115,12 +115,12 @@ class CSVMapping {
 	private void init() {
 		// Short circuit if the mapping is the default mapping and avoid
 		// creating an instance of nashorn/groovy/etc. for this mapping
-		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING) || this.language == CSVMappingLanguage.DEFAULT) {
+		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING) || this.language == ValueMappingLanguage.DEFAULT) {
 			return;
 		}
 
 		// precompile the function for this mapping for efficiency
-		if (this.language == CSVMappingLanguage.JAVASCRIPT) {
+		if (this.language == ValueMappingLanguage.JAVASCRIPT) {
 			try {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("javascript");
 
@@ -130,7 +130,7 @@ class CSVMapping {
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
 			}
-		} else if (this.language == CSVMappingLanguage.GROOVY) {
+		} else if (this.language == ValueMappingLanguage.GROOVY) {
 			try {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("groovy");
 
@@ -139,7 +139,7 @@ class CSVMapping {
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
 			}
-		} else if (this.language == CSVMappingLanguage.LUA) {
+		} else if (this.language == ValueMappingLanguage.LUA) {
 			try {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("lua");
 
@@ -152,24 +152,24 @@ class CSVMapping {
 		}
 	}
 
-	CSVMappingLanguage getLanguage() {
+	public ValueMappingLanguage getLanguage() {
 		return this.language;
 	}
 
-	String getInputField() {
+	public String getInputField() {
 		return this.input;
 	}
 
-	String getOutputField() {
+	public String getOutputField() {
 		return this.output;
 	}
 
-	String getMapping() {
+	public String getMapping() {
 		return this.mapping;
 	}
 
-	static List<String> mapLine(List<String> inputHeaders, List<String> outputHeaders, List<String> line,
-			List<CSVMapping> map) {
+	public static List<String> mapLine(List<String> inputHeaders, List<String> outputHeaders, List<String> line,
+			List<ValueMapping> map) {
 
 		if (outputHeaders.size() != map.size()) {
 			throw new IllegalArgumentException("The number of mappings must match the number of output headers");
@@ -181,7 +181,7 @@ class CSVMapping {
 		// Note, empirically, it seems about 50% faster with a limited number of
 		// cores to do a serial mapping, not a parallel mapping
 		// map.parallelStream().forEach(nextMapping -> {
-		// for (CSVMapping nextMapping : map) {
+		// for (ValueMapping nextMapping : map) {
 		map.forEach(nextMapping -> {
 			String mappedValue = nextMapping.apply(inputHeaders, line);
 			outputValues.put(nextMapping.getOutputField(), mappedValue);
@@ -196,12 +196,12 @@ class CSVMapping {
 		String nextInputValue = line.get(inputHeaders.indexOf(getInputField()));
 
 		// Short circuit if the mapping is the default mapping
-		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING) || this.language == CSVMappingLanguage.DEFAULT) {
+		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING) || this.language == ValueMappingLanguage.DEFAULT) {
 			return nextInputValue;
 		}
 
-		if (this.language == CSVMappingLanguage.JAVASCRIPT || this.language == CSVMappingLanguage.GROOVY
-				|| this.language == CSVMappingLanguage.LUA) {
+		if (this.language == ValueMappingLanguage.JAVASCRIPT || this.language == ValueMappingLanguage.GROOVY
+				|| this.language == ValueMappingLanguage.LUA) {
 
 			try {
 				if (scriptEngine instanceof Invocable) {
