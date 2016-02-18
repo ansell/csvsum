@@ -54,6 +54,8 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.util.CSVUtil;
 import com.github.ansell.csv.util.ValueMapping;
 import com.healthmarketscience.jackcess.Column;
+import com.healthmarketscience.jackcess.Cursor;
+import com.healthmarketscience.jackcess.CursorBuilder;
 import com.healthmarketscience.jackcess.Database;
 import com.healthmarketscience.jackcess.DatabaseBuilder;
 import com.healthmarketscience.jackcess.Index;
@@ -130,22 +132,7 @@ public class AccessMapper {
 				System.out.println("Converting " + tableName + " to CSV: " + csvPath.toAbsolutePath().toString());
 				Table table = db.getTable(tableName);
 
-				try {
-					Index primaryKeyIndex = table.getPrimaryKeyIndex();
-					System.out.println(
-							"Found primary key index for table: " + tableName + " named " + primaryKeyIndex.getName());
-					debugIndex(primaryKeyIndex, new HashSet<>());
-
-					for (Index nextIndex : table.getIndexes()) {
-						if (!nextIndex.getName().equals(primaryKeyIndex.getName())) {
-							System.out.println("Found non-primary key index for table: " + tableName + " named "
-									+ nextIndex.getName());
-							debugIndex(nextIndex, new HashSet<>());
-						}
-					}
-				} catch (IllegalArgumentException e) {
-					System.out.println("No primary key index found for table: " + tableName);
-				}
+				debugTable(table);
 
 				String[] tempArray = new String[table.getColumnCount()];
 				int x = 0;
@@ -173,21 +160,58 @@ public class AccessMapper {
 		}
 	}
 
+	private static void debugTable(Table table) throws IOException {
+
+		System.out.println("\tTable columns for " + table.getName());
+
+		for (Column nextColumn : table.getColumns()) {
+			System.out.println("\t\t" + nextColumn.getName());
+		}
+
+		try {
+			Index primaryKeyIndex = table.getPrimaryKeyIndex();
+			System.out.println(
+					"\tFound primary key index for table: " + table.getName() + " named " + primaryKeyIndex.getName());
+			debugIndex(primaryKeyIndex, new HashSet<>());
+
+			for (Index nextIndex : table.getIndexes()) {
+				if (!nextIndex.getName().equals(primaryKeyIndex.getName())) {
+					System.out.println("\tFound non-primary key index for table: " + table.getName() + " named "
+							+ nextIndex.getName());
+					debugIndex(nextIndex, new HashSet<>());
+				}
+			}
+		} catch (IllegalArgumentException e) {
+			System.out.println("No primary key index found for table: " + table.getName());
+		}
+		
+		Cursor cursor = table.getDefaultCursor();
+		int i = 0;
+		while(cursor.moveToNextRow()) {
+			if(i >= 20) {
+				break;
+			}
+			System.out.println(cursor.getCurrentRow().toString());
+			i++;
+		}
+	}
+
 	private static void debugIndex(Index index, Set<Index> visited) throws IOException {
 		visited.add(index);
-		System.out.println("Includes columns:");
+		System.out.println("\t\tIndex columns:");
 		for (Index.Column nextColumn : index.getColumns()) {
-			System.out.print("\t" + nextColumn.getName());
-			System.out.print("=>" + nextColumn.getColumn().getName());
+			System.out.print("\t\t\t" + nextColumn.getName());
 		}
+
 		System.out.println("");
 		Index referencedIndex = index.getReferencedIndex();
 		if (referencedIndex != null) {
-			System.out.println("References another index: " + referencedIndex.getName());
+			System.out.println("\t" + index.getName() + " references another index: " + referencedIndex.getName());
 			if (!visited.contains(referencedIndex)) {
 				visited.add(referencedIndex);
 				debugIndex(referencedIndex, visited);
 			}
+
 		}
 
 	}
