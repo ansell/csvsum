@@ -176,7 +176,7 @@ public class AccessMapper {
 					// on the resulting list of strings
 					for (Row nextRow : originTable) {
 						ConcurrentMap<String, String> output = new ConcurrentHashMap<>();
-						ConcurrentMap<Table, Row> foreignRowsForThisRow = new ConcurrentHashMap<>();
+						ConcurrentMap<String, Row> foreignRowsForThisRow = new ConcurrentHashMap<>();
 						List<? extends Column> originColumns = originTable.getColumns();
 						for (Column nextOriginColumn : originColumns) {
 							for (final ValueMapping nextValueMapping : map) {
@@ -187,8 +187,7 @@ public class AccessMapper {
 										if (joiners.containsKey(nextValueMapping)) {
 											Row findFirstRow = joiners.get(nextValueMapping).findFirstRow(nextRow);
 											if (findFirstRow != null) {
-												foreignRowsForThisRow.put(foreignKeyMapping.get(nextValueMapping),
-														findFirstRow);
+												foreignRowsForThisRow.put(splitDBField[0], findFirstRow);
 											}
 											// for (Map<String, Object> row :
 											// joiners.get(nextValueMapping).getToTable())
@@ -215,12 +214,26 @@ public class AccessMapper {
 								}
 							}
 						}
+
+						// Populate the foreign row values
+						for (final ValueMapping nextValueMapping : map) {
+							if (foreignKeyMapping.containsKey(nextValueMapping)) {
+								String[] splitDBField = nextValueMapping.getInputField().split("\\.");
+								Row findFirstRow = foreignRowsForThisRow.get(splitDBField[0]);
+								Object nextColumnValue = findFirstRow.get(splitDBField[1]);
+								if (nextColumnValue != null) {
+									output.put(nextValueMapping.getOutputField(), nextColumnValue.toString());
+								}
+							}
+						}
+
 						List<String> nextEmittedRow = new ArrayList<>(map.size());
 						// Then after all are filled, emit the row
 						for (final ValueMapping nextValueMapping : map) {
 							nextEmittedRow.add(output.getOrDefault(nextValueMapping.getOutputField(), "Unknown"));
 						}
-						System.out.println("nextEmittedRow: " + nextEmittedRow);
+						// System.out.println("nextEmittedRow: " +
+						// nextEmittedRow);
 						csvWriter.write(nextEmittedRow);
 					}
 				}
