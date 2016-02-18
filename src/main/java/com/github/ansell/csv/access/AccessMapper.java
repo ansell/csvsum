@@ -38,7 +38,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -122,6 +124,7 @@ public class AccessMapper {
 
 		try (final Database db = DatabaseBuilder.open(tempFile.toFile());) {
 			for (String tableName : db.getTableNames()) {
+				System.out.println("");
 				String csvName = csvPrefix + tableName + ".csv";
 				Path csvPath = outputDir.resolve(csvName);
 				System.out.println("Converting " + tableName + " to CSV: " + csvPath.toAbsolutePath().toString());
@@ -131,11 +134,13 @@ public class AccessMapper {
 					Index primaryKeyIndex = table.getPrimaryKeyIndex();
 					System.out.println(
 							"Found primary key index for table: " + tableName + " named " + primaryKeyIndex.getName());
+					debugIndex(primaryKeyIndex, new HashSet<>());
 
 					for (Index nextIndex : table.getIndexes()) {
 						if (!nextIndex.getName().equals(primaryKeyIndex.getName())) {
 							System.out.println("Found non-primary key index for table: " + tableName + " named "
 									+ nextIndex.getName());
+							debugIndex(nextIndex, new HashSet<>());
 						}
 					}
 				} catch (IllegalArgumentException e) {
@@ -162,8 +167,29 @@ public class AccessMapper {
 					}
 					System.out.println("Converted " + rows + " rows from table " + tableName);
 				}
+				System.out.println("");
+				System.out.println("----------------------------");
 			}
 		}
+	}
+
+	private static void debugIndex(Index index, Set<Index> visited) throws IOException {
+		visited.add(index);
+		System.out.println("Includes columns:");
+		for (Index.Column nextColumn : index.getColumns()) {
+			System.out.print("\t" + nextColumn.getName());
+			System.out.print("=>" + nextColumn.getColumn().getName());
+		}
+		System.out.println("");
+		Index referencedIndex = index.getReferencedIndex();
+		if (referencedIndex != null) {
+			System.out.println("References another index: " + referencedIndex.getName());
+			if (!visited.contains(referencedIndex)) {
+				visited.add(referencedIndex);
+				debugIndex(referencedIndex, visited);
+			}
+		}
+
 	}
 
 }
