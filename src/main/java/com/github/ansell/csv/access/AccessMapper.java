@@ -40,7 +40,10 @@ import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -53,6 +56,7 @@ import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.util.CSVUtil;
 import com.github.ansell.csv.util.ValueMapping;
+import com.github.ansell.csv.util.ValueMapping.ValueMappingLanguage;
 import com.healthmarketscience.jackcess.Column;
 import com.healthmarketscience.jackcess.Cursor;
 import com.healthmarketscience.jackcess.CursorBuilder;
@@ -61,6 +65,7 @@ import com.healthmarketscience.jackcess.DatabaseBuilder;
 import com.healthmarketscience.jackcess.Index;
 import com.healthmarketscience.jackcess.Row;
 import com.healthmarketscience.jackcess.Table;
+import com.healthmarketscience.jackcess.util.Joiner;
 
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
@@ -112,15 +117,82 @@ public class AccessMapper {
 			throw new FileNotFoundException("Could not find mappng CSV file: " + mappingPath.toString());
 		}
 
-		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);
-				final InputStream readerInput = Files.newInputStream(inputPath);) {
+		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);) {
 			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
-			runMapper(readerInput, map, output.value(options).toPath(), outputPrefix.value(options));
+			try (final InputStream readerDB = Files.newInputStream(inputPath);) {
+				dumpToCSVs(readerDB, output.value(options).toPath(), outputPrefix.value(options));
+			}
+			try (final InputStream readerDB = Files.newInputStream(inputPath);) {
+				mapDBToSingleCSV(readerDB, map, output.value(options).toPath(),
+						outputPrefix.value(options) + "Single-");
+			}
 		}
 	}
 
-	private static void runMapper(InputStream input, List<ValueMapping> map, Path outputDir, String csvPrefix)
-			throws ScriptException, IOException {
+	private static void mapDBToSingleCSV(InputStream readerDB, List<ValueMapping> map, Path path, String string)
+			throws IOException {
+		Path tempFile = Files.createTempFile("Source-accessdb", ".accdb");
+		Files.copy(readerDB, tempFile, StandardCopyOption.REPLACE_EXISTING);
+
+		try (final Database db = DatabaseBuilder.open(tempFile.toFile());) {
+			// Ordered mappings so that the first table in the mapping is the
+			// one to perform the base joins on
+			Table originTable = null;
+			ConcurrentMap<ValueMapping, Table> tableMapping = new ConcurrentHashMap<>();
+			ConcurrentMap<ValueMapping, Table> foreignKeyMapping = new ConcurrentHashMap<>();
+			ConcurrentMap<ValueMapping, Joiner> joiners = new ConcurrentHashMap<>();
+			// Populate the table mapping for each value mapping
+			for (final ValueMapping nextValueMapping : map) {
+				String[] splitDBField = nextValueMapping.getInputField().split("\\.");
+				System.out.println(nextValueMapping.getInputField());
+				Table nextTable = db.getTable(splitDBField[0]);
+				tableMapping.put(nextValueMapping, nextTable);
+				if (originTable == null) {
+					originTable = nextTable;
+				}
+
+				if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
+					String[] splitForeignDBField = nextValueMapping.getOutputField().split("\\.");
+					foreignKeyMapping.put(nextValueMapping, db.getTable(splitForeignDBField[0]));
+					try {
+						joiners.put(nextValueMapping, Joiner.create(nextTable, db.getTable(splitForeignDBField[0])));
+					} catch (IllegalArgumentException e) {
+						e.printStackTrace();
+					}
+					System.out.println("PK->FK: " + joiners.get(nextValueMapping).toFKString());
+				}
+			}
+			// There may have been no mappings...
+			if (originTable != null) {
+				// Run through the fields on the origin table joining them as
+				// necessary before running the other non-access mappings on the
+				// resulting list of strings
+				List<? extends Column> originColumns = originTable.getColumns();
+				for (Column nextOriginColumn : originColumns) {
+					for (final ValueMapping nextValueMapping : map) {
+						String[] splitDBField = nextValueMapping.getInputField().split("\\.");
+						if (splitDBField[0].equals(originTable.getName())
+								&& splitDBField[1].equals(nextOriginColumn.getName())) {
+							if (foreignKeyMapping.containsKey(nextValueMapping)) {
+								if (joiners.containsKey(nextValueMapping)) {
+									for (Map<String, Object> row : joiners.get(nextValueMapping).getToTable()) {
+										System.out.println(row);
+									}
+								} else {
+									System.out.println(
+											"TODO: Support fetching of foreign keys when an index was not available: "
+													+ nextValueMapping.getInputField() + "=>"
+													+ nextValueMapping.getOutputField());
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	private static void dumpToCSVs(InputStream input, Path outputDir, String csvPrefix) throws IOException {
 		Path tempFile = Files.createTempFile("Source-accessdb", ".accdb");
 		Files.copy(input, tempFile, StandardCopyOption.REPLACE_EXISTING);
 
@@ -184,11 +256,11 @@ public class AccessMapper {
 		} catch (IllegalArgumentException e) {
 			System.out.println("No primary key index found for table: " + table.getName());
 		}
-		
+
 		Cursor cursor = table.getDefaultCursor();
 		int i = 0;
-		while(cursor.moveToNextRow()) {
-			if(i >= 20) {
+		while (cursor.moveToNextRow()) {
+			if (i >= 20) {
 				break;
 			}
 			System.out.println(cursor.getCurrentRow().toString());
