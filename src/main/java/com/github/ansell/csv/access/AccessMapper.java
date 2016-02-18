@@ -219,7 +219,7 @@ public class AccessMapper {
 									//System.out.println(
 									//		nextValueMapping.getOutputField() + "=>" + nextColumnValue.toString());
 								} else {
-									System.out.println("No mapping found for: " + nextValueMapping.getInputField());
+									//System.out.println("No mapping found for: " + nextValueMapping.getInputField());
 								}
 							}
 						}
@@ -227,7 +227,7 @@ public class AccessMapper {
 						List<String> nextEmittedRow = new ArrayList<>(map.size());
 						// Then after all are filled, emit the row
 						for (final ValueMapping nextValueMapping : map) {
-							nextEmittedRow.add(output.getOrDefault(nextValueMapping.getOutputField(), "Unknown"));
+							nextEmittedRow.add(output.getOrDefault(nextValueMapping.getOutputField(), ""));
 						}
 						// System.out.println("nextEmittedRow: " +
 						// nextEmittedRow);
