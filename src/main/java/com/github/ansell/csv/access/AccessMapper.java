@@ -37,6 +37,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -133,7 +134,7 @@ public class AccessMapper {
 	private static void runMapper(InputStream input, List<ValueMapping> map, Path outputDir, String csvPrefix)
 			throws ScriptException, IOException {
 		Path tempFile = Files.createTempFile("Source-accessdb", ".accdb");
-		Files.copy(input, tempFile);
+		Files.copy(input, tempFile, StandardCopyOption.REPLACE_EXISTING);
 
 		try (final Database db = DatabaseBuilder.open(tempFile.toFile());) {
 			for (String tableName : db.getTableNames()) {
