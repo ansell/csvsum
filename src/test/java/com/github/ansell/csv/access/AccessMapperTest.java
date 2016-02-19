@@ -88,4 +88,17 @@ public class AccessMapperTest {
 				testMapping.toAbsolutePath().toString(), "--output", testOutput.toAbsolutePath().toString());
 	}
 
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.access.AccessMapper#main(java.lang.String[])}
+	 * .
+	 */
+	@Test
+	public final void testMainDebug() throws Exception {
+		Path testOutput = tempDir.newFolder("test-output").toPath();
+
+		AccessMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
+				testMapping.toAbsolutePath().toString(), "--output", testOutput.toAbsolutePath().toString(), "--debug",
+				Boolean.TRUE.toString());
+	}
 }
