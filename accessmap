@@ -1,0 +1,13 @@
+#!/bin/bash
+# This script runs the Access Mapper retrieval code.
+# Before running this script for the first time 
+# you may need to run:
+#     chmod +x accessmap
+#
+
+if [ ! -d "target/appassembler/bin" ]; then
+    mvn -quiet clean install -DskipTests -Djetty.skip
+fi
+
+chmod u+x target/appassembler/bin/*
+target/appassembler/bin/accessmap "$@"
