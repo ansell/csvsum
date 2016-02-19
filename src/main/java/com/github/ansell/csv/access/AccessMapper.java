@@ -39,6 +39,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -194,8 +195,22 @@ public class AccessMapper {
 												String[] splitDBFieldOutput = nextValueMapping.getOutputField()
 														.split("\\.");
 												componentRowsForThisRow.put(splitDBFieldOutput[0], findFirstRow);
+											} else {
+												// Will not likely gain anything
+												// from this due to the
+												// restriction on the origin
+												// table above
+												String[] splitDBFieldOutput = nextValueMapping.getOutputField()
+														.split("\\.");
+												Row findFirstRow2 = joiners.get(nextValueMapping)
+														.findFirstRow(Collections.singletonMap(splitDBField[1],
+																nextRow.get(splitDBFieldOutput[1])));
+												if (findFirstRow2 != null) {
+													componentRowsForThisRow.put(splitDBFieldOutput[0], findFirstRow2);
+												}
 											}
 										} else {
+
 											// System.out.println(
 											// "TODO: Support fetching of
 											// foreign keys when an index was
