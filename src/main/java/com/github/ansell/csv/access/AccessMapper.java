@@ -157,9 +157,10 @@ public class AccessMapper {
 
 				if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
 					String[] splitForeignDBField = nextValueMapping.getOutputField().split("\\.");
-					foreignKeyMapping.put(nextValueMapping, db.getTable(splitForeignDBField[0]));
+					Table nextForeignTable = db.getTable(splitForeignDBField[0]);
+					foreignKeyMapping.put(nextValueMapping, nextForeignTable);
 					try {
-						joiners.put(nextValueMapping, Joiner.create(nextTable, db.getTable(splitForeignDBField[0])));
+						joiners.put(nextValueMapping, Joiner.create(nextTable, nextForeignTable));
 						System.out.println("PK->FK: " + joiners.get(nextValueMapping).toFKString());
 					} catch (IllegalArgumentException e) {
 						e.printStackTrace();
