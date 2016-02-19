@@ -27,6 +27,7 @@ package com.github.ansell.csv.access;
 
 import static org.junit.Assert.*;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -55,6 +56,8 @@ public class AccessMapperTest {
 
 	private Path testFile;
 
+	private Path testOutput;
+
 	/**
 	 * @throws java.lang.Exception
 	 */
@@ -66,6 +69,7 @@ public class AccessMapperTest {
 		testFile = tempDir.newFile("test-source.accdb").toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvaccess/test-source.accdb"), testFile,
 				StandardCopyOption.REPLACE_EXISTING);
+		testOutput = tempDir.newFolder("test-output").toPath();
 	}
 
 	/**
@@ -82,8 +86,6 @@ public class AccessMapperTest {
 	 */
 	@Test
 	public final void testMain() throws Exception {
-		Path testOutput = tempDir.newFolder("test-output").toPath();
-
 		AccessMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
 				testMapping.toAbsolutePath().toString(), "--output", testOutput.toAbsolutePath().toString());
 	}
@@ -95,10 +97,26 @@ public class AccessMapperTest {
 	 */
 	@Test
 	public final void testMainDebug() throws Exception {
-		Path testOutput = tempDir.newFolder("test-output").toPath();
-
 		AccessMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
 				testMapping.toAbsolutePath().toString(), "--output", testOutput.toAbsolutePath().toString(), "--debug",
 				Boolean.TRUE.toString());
 	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.access.AccessMapper#main(java.lang.String[])}
+	 * .
+	 */
+	@Test
+	public final void testMainEmpty() throws Exception {
+		Path testFile = tempDir.newFile("test-empty.accdb").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvaccess/test-empty.accdb"), testFile,
+				StandardCopyOption.REPLACE_EXISTING);
+
+		thrown.expect(IOException.class);
+		thrown.expectMessage("Empty database file");
+		AccessMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
+				testMapping.toAbsolutePath().toString(), "--output", testOutput.toAbsolutePath().toString());
+	}
+
 }
