@@ -39,6 +39,10 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
+import com.github.ansell.csv.map.CSVMapper;
+
+import joptsimple.OptionException;
+
 /**
  * Tests for {@link AccessMapper}.
  * 
@@ -77,6 +81,27 @@ public class AccessMapperTest {
 	 */
 	@After
 	public void tearDown() throws Exception {
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.access.AccessMapper#main(java.lang.String[])}
+	 * .
+	 */
+	@Test
+	public final void testMainNoArgs() throws Exception {
+		thrown.expect(OptionException.class);
+		AccessMapper.main();
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.access.AccessMapper#main(java.lang.String[])}
+	 * .
+	 */
+	@Test
+	public final void testMainHelp() throws Exception {
+		AccessMapper.main("--help");
 	}
 
 	/**
