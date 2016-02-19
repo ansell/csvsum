@@ -48,14 +48,36 @@ import javax.script.ScriptException;
  */
 public class ValueMapping {
 
-	public enum ValueMappingLanguage {
-		DEFAULT, JAVASCRIPT, GROOVY, LUA, ACCESS
-	}
-
 	/**
 	 * The default mapping if none is specified in the mapping file.
 	 */
 	protected static final String DEFAULT_MAPPING = "inputValue";
+
+	public enum ValueMappingLanguage {
+		DEFAULT(ValueMapping.DEFAULT_MAPPING),
+
+		JAVASCRIPT("return inputValue;"),
+
+		GROOVY("inputValue"),
+
+		LUA("return inputValue"),
+
+		ACCESS("");
+
+		private final String defaultMapping;
+
+		ValueMappingLanguage(String defaultMapping) {
+			this.defaultMapping = defaultMapping;
+		}
+
+		public String getDefaultMapping() {
+			return this.defaultMapping;
+		}
+
+		public boolean matchesDefaultMapping(String mapping) {
+			return this.getDefaultMapping().equals(mapping);
+		}
+	}
 
 	public static final String LANGUAGE = "Language";
 
@@ -129,7 +151,7 @@ public class ValueMapping {
 		if (!mapping.isEmpty()) {
 			nextMapping = mapping;
 		} else {
-			nextMapping = DEFAULT_MAPPING;
+			nextMapping = nextLanguage.getDefaultMapping();
 		}
 
 		ValueMapping result = new ValueMapping(nextLanguage, input, output, nextMapping);
@@ -164,8 +186,8 @@ public class ValueMapping {
 	private String apply(List<String> inputHeaders, List<String> line) {
 		String nextInputValue = line.get(inputHeaders.indexOf(getInputField()));
 
-		// Short circuit if the mapping is the default mapping
-		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING) || this.language == ValueMappingLanguage.DEFAULT) {
+		// Short circuit if the mapping is a default mapping
+		if (this.language == ValueMappingLanguage.DEFAULT || this.language.matchesDefaultMapping(this.mapping)) {
 			return nextInputValue;
 		}
 
@@ -268,7 +290,7 @@ public class ValueMapping {
 	private void init() {
 		// Short circuit if the mapping is the default mapping and avoid
 		// creating an instance of nashorn/groovy/etc. for this mapping
-		if (this.mapping.equalsIgnoreCase(DEFAULT_MAPPING) || this.language == ValueMappingLanguage.DEFAULT) {
+		if (this.language == ValueMappingLanguage.DEFAULT || this.language.matchesDefaultMapping(this.mapping)) {
 			return;
 		}
 
