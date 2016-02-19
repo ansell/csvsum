@@ -92,6 +92,8 @@ public class AccessMapper {
 				.describedAs("The directory to contain the mapped file.");
 		final OptionSpec<String> outputPrefix = parser.accepts("prefix").withRequiredArg().ofType(String.class)
 				.defaultsTo("Mapped-").describedAs("The prefix to use to name the mapped files.");
+		final OptionSpec<Boolean> debug = parser.accepts("debug").withOptionalArg().ofType(Boolean.class)
+				.defaultsTo(Boolean.FALSE).describedAs("Set to true to debug the table structures");
 
 		OptionSet options = null;
 
@@ -121,8 +123,9 @@ public class AccessMapper {
 		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);) {
 			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
 			try (final InputStream readerDB = Files.newInputStream(inputPath);) {
-				dumpToCSVs(readerDB, output.value(options).toPath(), outputPrefix.value(options));
+				dumpToCSVs(readerDB, output.value(options).toPath(), outputPrefix.value(options), debug.value(options));
 			}
+			// Read the database again to map it to a single CSV
 			try (final InputStream readerDB = Files.newInputStream(inputPath);) {
 				mapDBToSingleCSV(readerDB, map, output.value(options).toPath(),
 						outputPrefix.value(options) + "Single-");
@@ -187,7 +190,8 @@ public class AccessMapper {
 										if (joiners.containsKey(nextValueMapping)) {
 											Row findFirstRow = joiners.get(nextValueMapping).findFirstRow(nextRow);
 											if (findFirstRow != null) {
-												String[] splitDBFieldOutput = nextValueMapping.getOutputField().split("\\.");
+												String[] splitDBFieldOutput = nextValueMapping.getOutputField()
+														.split("\\.");
 												componentRowsForThisRow.put(splitDBFieldOutput[0], findFirstRow);
 											}
 										} else {
@@ -216,10 +220,12 @@ public class AccessMapper {
 								Object nextColumnValue = findFirstRow.get(splitDBField[1]);
 								if (nextColumnValue != null) {
 									output.put(nextValueMapping.getOutputField(), nextColumnValue.toString());
-									//System.out.println(
-									//		nextValueMapping.getOutputField() + "=>" + nextColumnValue.toString());
+									// System.out.println(
+									// nextValueMapping.getOutputField() + "=>"
+									// + nextColumnValue.toString());
 								} else {
-									//System.out.println("No mapping found for: " + nextValueMapping.getInputField());
+									// System.out.println("No mapping found for:
+									// " + nextValueMapping.getInputField());
 								}
 							}
 						}
@@ -238,7 +244,8 @@ public class AccessMapper {
 		}
 	}
 
-	private static void dumpToCSVs(InputStream input, Path outputDir, String csvPrefix) throws IOException {
+	private static void dumpToCSVs(InputStream input, Path outputDir, String csvPrefix, boolean debug)
+			throws IOException {
 		Path tempFile = Files.createTempFile("Source-accessdb", ".accdb");
 		Files.copy(input, tempFile, StandardCopyOption.REPLACE_EXISTING);
 
@@ -250,7 +257,9 @@ public class AccessMapper {
 				System.out.println("Converting " + tableName + " to CSV: " + csvPath.toAbsolutePath().toString());
 				Table table = db.getTable(tableName);
 
-				debugTable(table);
+				if (debug) {
+					debugTable(table);
+				}
 
 				String[] tempArray = new String[table.getColumnCount()];
 				int x = 0;
