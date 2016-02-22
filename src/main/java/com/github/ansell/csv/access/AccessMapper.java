@@ -324,7 +324,7 @@ public class AccessMapper {
 
 		final CsvSchema schema = CSVUtil.buildSchema(Arrays.asList("OldField", "NewField", "Language", "Mapping"));
 		try (final Database db = DatabaseBuilder.open(tempFile.toFile());
-				final Writer columnCsv = Files.newBufferedWriter(outputDir.resolve(csvPrefix + "-Columns.csv"));
+				final Writer columnCsv = Files.newBufferedWriter(outputDir.resolve(csvPrefix + "AutoMapping-Columns.csv"));
 				final SequenceWriter columnCsvWriter = CSVUtil.newCSVWriter(new BufferedWriter(columnCsv), schema);) {
 			for (String tableName : db.getTableNames()) {
 				Table table = db.getTable(tableName);
