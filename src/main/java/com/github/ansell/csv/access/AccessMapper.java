@@ -55,9 +55,11 @@ import org.jooq.lambda.tuple.Tuple2;
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.util.CSVUtil;
+import com.github.ansell.csv.util.JSONUtil;
 import com.github.ansell.csv.util.ValueMapping;
 import com.github.ansell.csv.util.ValueMapping.ValueMappingLanguage;
 import com.github.ansell.jdefaultdict.JDefaultDict;
+import com.github.jsonldjava.utils.JsonUtils;
 import com.healthmarketscience.jackcess.Column;
 import com.healthmarketscience.jackcess.Cursor;
 import com.healthmarketscience.jackcess.Database;
@@ -81,6 +83,8 @@ public class AccessMapper {
 
 	private static final String DOT_REGEX = "\\.";
 	private static final Pattern DOT_PATTERN = Pattern.compile(DOT_REGEX);
+	private static final String COMMA_REGEX = "\\,";
+	private static final Pattern COMMA_PATTERN = Pattern.compile(COMMA_REGEX);
 
 	public static void main(String... args) throws Exception {
 		final OptionParser parser = new OptionParser();
@@ -266,9 +270,7 @@ public class AccessMapper {
 			Table dest = entry.getValue().v2();
 
 			Row originRow = componentRowsForThisRow.get(origin.getName());
-			Object nextFKValue = originRow.get(DOT_PATTERN.split(nextMapping.getInputField())[1]);
-			Map<String, Object> singletonMap = Collections.singletonMap(DOT_PATTERN.split(nextMapping.getMapping())[1],
-					nextFKValue);
+			Map<String, Object> singletonMap = buildMatchMap(nextMapping, originRow);
 
 			// Cursor cursor = dest.getDefaultCursor();
 
@@ -299,6 +301,26 @@ public class AccessMapper {
 				}
 			}
 		}
+	}
+
+	private static Map<String, Object> buildMatchMap(ValueMapping mapping, Row originRow) {
+		Map<String, Object> result = new HashMap<>();
+		
+		String[] destFields = COMMA_PATTERN.split(mapping.getMapping());
+		String[] sourceFields = COMMA_PATTERN.split(mapping.getInputField());
+		
+		if(destFields.length != sourceFields.length) {
+			throw new RuntimeException("Source and destination mapping fields must be equal size: " + mapping);
+		}
+		
+		for(int i = 0; i < destFields.length; i++) {
+			String[] destField = DOT_PATTERN.split(destFields[i]);
+			String[] sourceField = DOT_PATTERN.split(sourceFields[i]);
+			Object nextFKValue = originRow.get(sourceField[1]);
+			result.put(destField[1], nextFKValue);
+		}
+		
+		return result;
 	}
 
 	private static void getRowFromJoiner(ConcurrentMap<ValueMapping, Joiner> joiners,

@@ -28,9 +28,11 @@ package com.github.ansell.csv.util;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 
 import javax.script.Bindings;
 import javax.script.Compilable;
@@ -40,6 +42,8 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
+
+import com.healthmarketscience.jackcess.Row;
 
 /**
  * A mapping definition from an original CSV field to an output CSV field.
@@ -334,4 +338,5 @@ public class ValueMapping {
 		return "ValueMapping [input=" + input + ", output=" + output + ", language=" + language + ", mapping=" + mapping
 				+ "]";
 	}
+
 }
