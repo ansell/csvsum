@@ -194,7 +194,8 @@ public class AccessMapper {
 						// Rows, indexed by the table that they came from
 						ConcurrentMap<String, Row> componentRowsForThisRow = new ConcurrentHashMap<>();
 						for (final ValueMapping nextValueMapping : map) {
-							System.out.println("Next value mapping: " + nextValueMapping);
+							// System.out.println("Next value mapping: " +
+							// nextValueMapping);
 							String[] splitDBField = nextValueMapping.getInputField().split("\\.");
 							if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
 								String[] splitDBFieldOutput = nextValueMapping.getMapping().split("\\.");
@@ -203,7 +204,9 @@ public class AccessMapper {
 									// the
 									// input field, then use it
 									if (foreignKeyMapping.containsKey(splitDBFieldOutput[0])) {
-										System.out.println("Foreign key mapping found for: " + splitDBFieldOutput[0]);
+										// System.out.println("Foreign key
+										// mapping found for: " +
+										// splitDBFieldOutput[0]);
 										if (joiners.containsKey(nextValueMapping)) {
 											String key = nextValueMapping.getInputField().split("\\.")[0];
 											Row fromRow = componentRowsForThisRow.get(key);
@@ -229,43 +232,41 @@ public class AccessMapper {
 												}
 											}
 										} else {
-											System.out.println("No joiner found for: " + nextValueMapping);
+											// System.out.println("No joiner
+											// found for: " + nextValueMapping);
 											// A joiner could not be created for
-											// this
-											// case as the original database did
-											// not
+											// this case as the original
+											// database did not
 											// setup an actual foreign key for
-											// the
-											// relationship
-											if (!componentRowsForThisRow.containsKey(splitDBField[0])) {
-												ConcurrentMap<ValueMapping, Tuple2<Table, Table>> mapping = foreignKeyMapping
-														.get(splitDBField[0]);
+											// the relationship
+											ConcurrentMap<ValueMapping, Tuple2<Table, Table>> mapping = foreignKeyMapping
+													.get(splitDBFieldOutput[0]);
 
-												for (Entry<ValueMapping, Tuple2<Table, Table>> entry : mapping
-														.entrySet()) {
-													ValueMapping nextMapping = entry.getKey();
-													Table origin = entry.getValue().v1();
-													Table dest = entry.getValue().v2();
+											for (Entry<ValueMapping, Tuple2<Table, Table>> entry : mapping.entrySet()) {
+												ValueMapping nextMapping = entry.getKey();
+												Table origin = entry.getValue().v1();
+												Table dest = entry.getValue().v2();
 
-													Row originRow = componentRowsForThisRow.get(origin.getName());
-													Cursor cursor = dest.getDefaultCursor();
+												Row originRow = componentRowsForThisRow.get(origin.getName());
+												Cursor cursor = dest.getDefaultCursor();
 
-													Object nextFKValue = originRow
-															.get(nextMapping.getInputField().split("\\.")[1]);
-													boolean findFirstRow = cursor.findFirstRow(Collections.singletonMap(
-															nextMapping.getMapping().split("\\.")[1], nextFKValue));
+												Object nextFKValue = originRow
+														.get(nextMapping.getInputField().split("\\.")[1]);
+												boolean findFirstRow = cursor.findFirstRow(Collections.singletonMap(
+														nextMapping.getMapping().split("\\.")[1], nextFKValue));
 
-													if (findFirstRow) {
-														System.out.println(
-																"Adding linked row for table: " + splitDBField[0]);
-														componentRowsForThisRow.put(splitDBField[0],
-																cursor.getCurrentRow());
-													} else {
-														System.out.println("Could not match proposed foreign key from "
-																+ nextMapping.getInputField() + " to "
-																+ nextMapping.getMapping()
-																+ " (no joiner) based on the key: " + nextFKValue);
-													}
+												if (findFirstRow) {
+													Row currentRow = cursor.getCurrentRow();
+													// System.out.println("Adding
+													// linked row for table: " +
+													// splitDBField[0]
+													// + " " + currentRow);
+													componentRowsForThisRow.put(splitDBFieldOutput[0], currentRow);
+												} else {
+													System.out.println("Could not match proposed foreign key from "
+															+ nextMapping.getInputField() + " to "
+															+ nextMapping.getMapping()
+															+ " (no joiner) based on the key: " + nextFKValue);
 												}
 											}
 										}
@@ -275,7 +276,8 @@ public class AccessMapper {
 								// Else we use the current table to populate the
 								// output rows
 								if (!componentRowsForThisRow.containsKey(splitDBField[0])) {
-									System.out.println("Adding linked row for the origin table: " + splitDBField[0]);
+									// System.out.println("Adding linked row for
+									// the origin table: " + splitDBField[0]);
 									componentRowsForThisRow.put(splitDBField[0], nextRow);
 								}
 							}
@@ -293,8 +295,8 @@ public class AccessMapper {
 									// nextValueMapping.getOutputField() + "=>"
 									// + nextColumnValue.toString());
 								} else {
-									// System.out.println("No mapping found for:
-									// " + nextValueMapping.getInputField());
+									System.out.println("No mapping, or a null value, found for: " + nextValueMapping.getInputField()
+											+ " related table row was: " + findFirstRow);
 								}
 							}
 						}
