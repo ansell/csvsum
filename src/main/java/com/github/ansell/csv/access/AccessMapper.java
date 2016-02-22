@@ -305,21 +305,21 @@ public class AccessMapper {
 
 	private static Map<String, Object> buildMatchMap(ValueMapping mapping, Row originRow) {
 		Map<String, Object> result = new HashMap<>();
-		
+
 		String[] destFields = COMMA_PATTERN.split(mapping.getMapping());
 		String[] sourceFields = COMMA_PATTERN.split(mapping.getInputField());
-		
-		if(destFields.length != sourceFields.length) {
+
+		if (destFields.length != sourceFields.length) {
 			throw new RuntimeException("Source and destination mapping fields must be equal size: " + mapping);
 		}
-		
-		for(int i = 0; i < destFields.length; i++) {
+
+		for (int i = 0; i < destFields.length; i++) {
 			String[] destField = DOT_PATTERN.split(destFields[i]);
 			String[] sourceField = DOT_PATTERN.split(sourceFields[i]);
 			Object nextFKValue = originRow.get(sourceField[1]);
 			result.put(destField[1], nextFKValue);
 		}
-		
+
 		return result;
 	}
 
@@ -346,7 +346,8 @@ public class AccessMapper {
 
 		final CsvSchema schema = CSVUtil.buildSchema(Arrays.asList("OldField", "NewField", "Language", "Mapping"));
 		try (final Database db = DatabaseBuilder.open(tempFile.toFile());
-				final Writer columnCsv = Files.newBufferedWriter(outputDir.resolve(csvPrefix + "AutoMapping-Columns.csv"));
+				final Writer columnCsv = Files
+						.newBufferedWriter(outputDir.resolve(csvPrefix + "AutoMapping-Columns.csv"));
 				final SequenceWriter columnCsvWriter = CSVUtil.newCSVWriter(new BufferedWriter(columnCsv), schema);) {
 			for (String tableName : db.getTableNames()) {
 				Table table = db.getTable(tableName);
@@ -428,13 +429,18 @@ public class AccessMapper {
 	private static void debugIndex(Index index, Set<Index> visited, SequenceWriter csvWriter) throws IOException {
 		visited.add(index);
 		System.out.println("\t\tIndex columns:");
+		StringBuilder columnList = new StringBuilder();
 		for (Index.Column nextColumn : index.getColumns()) {
 			System.out.print("\t\t\t" + nextColumn.getName());
-			if (csvWriter != null) {
-				csvWriter.write(Arrays.asList(index.getTable().getName() + "." + nextColumn.getName(),
-						index.getTable().getName() + "." + nextColumn.getName(), "Access",
-						index.getTable().getName() + "." + nextColumn.getName()));
+
+			if (columnList.length() > 0) {
+				columnList.append(",");
 			}
+			columnList.append(index.getTable().getName() + "." + nextColumn.getName());
+		}
+		if (csvWriter != null) {
+			csvWriter.write(
+					Arrays.asList(columnList.toString(), columnList.toString(), "Access", columnList.toString()));
 		}
 
 		System.out.println("");
