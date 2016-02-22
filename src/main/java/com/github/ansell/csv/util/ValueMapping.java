@@ -322,8 +322,16 @@ public class ValueMapping {
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
 			}
+		} else if (this.language == ValueMappingLanguage.ACCESS) {
+
 		} else {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
 		}
+	}
+
+	@Override
+	public String toString() {
+		return "ValueMapping [input=" + input + ", output=" + output + ", language=" + language + ", mapping=" + mapping
+				+ "]";
 	}
 }
