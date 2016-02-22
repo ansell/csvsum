@@ -322,18 +322,15 @@ public class AccessMapper {
 		Path tempFile = Files.createTempFile("Source-accessdb", ".accdb");
 		Files.copy(input, tempFile, StandardCopyOption.REPLACE_EXISTING);
 
-		try (final Database db = DatabaseBuilder.open(tempFile.toFile());) {
+		final CsvSchema schema = CSVUtil.buildSchema(Arrays.asList("OldField", "NewField", "Language", "Mapping"));
+		try (final Database db = DatabaseBuilder.open(tempFile.toFile());
+				final Writer columnCsv = Files.newBufferedWriter(outputDir.resolve(csvPrefix + "-Columns.csv"));
+				final SequenceWriter columnCsvWriter = CSVUtil.newCSVWriter(new BufferedWriter(columnCsv), schema);) {
 			for (String tableName : db.getTableNames()) {
 				Table table = db.getTable(tableName);
 
 				if (debug) {
-					final CsvSchema schema = CSVUtil
-							.buildSchema(Arrays.asList("OldField", "NewField", "Language", "Mapping"));
-					try (final Writer csv = Files
-							.newBufferedWriter(outputDir.resolve(csvPrefix + tableName + "-Columns.csv"));
-							final SequenceWriter csvWriter = CSVUtil.newCSVWriter(new BufferedWriter(csv), schema);) {
-						debugTable(table, csvWriter);
-					}
+					debugTable(table, columnCsvWriter);
 				}
 
 				System.out.println("");
@@ -347,16 +344,17 @@ public class AccessMapper {
 					tempArray[x++] = nextColumn.getName();
 				}
 
-				final CsvSchema schema = CSVUtil.buildSchema(Arrays.asList(tempArray));
-				try (final Writer csv = Files.newBufferedWriter(csvPath);
-						final SequenceWriter csvWriter = CSVUtil.newCSVWriter(new BufferedWriter(csv), schema);) {
+				final CsvSchema fullFileSchema = CSVUtil.buildSchema(Arrays.asList(tempArray));
+				try (final Writer fullFileCsv = Files.newBufferedWriter(csvPath);
+						final SequenceWriter fullFileCsvWriter = CSVUtil.newCSVWriter(new BufferedWriter(fullFileCsv),
+								fullFileSchema);) {
 					int rows = 0;
 					for (Row nextRow : table) {
 						int i = 0;
 						for (Object nextValue : nextRow.values()) {
 							tempArray[i++] = nextValue == null ? null : nextValue.toString();
 						}
-						csvWriter.write(Arrays.asList(tempArray));
+						fullFileCsvWriter.write(Arrays.asList(tempArray));
 						rows++;
 					}
 					System.out.println("Converted " + rows + " rows from table " + tableName);
