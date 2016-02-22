@@ -295,8 +295,11 @@ public class AccessMapper {
 									// nextValueMapping.getOutputField() + "=>"
 									// + nextColumnValue.toString());
 								} else {
-									System.out.println("No mapping, or a null value, found for: " + nextValueMapping.getInputField()
-											+ " related table row was: " + findFirstRow);
+									// System.out.println("No mapping, or a null
+									// value, found for: " +
+									// nextValueMapping.getInputField()
+									// + " related table row was: " +
+									// findFirstRow);
 								}
 							}
 						}
