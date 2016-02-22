@@ -29,10 +29,8 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -48,13 +46,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.script.ScriptException;
-
-import org.apache.commons.io.IOUtils;
-import org.jooq.lambda.Unchecked;
 import org.jooq.lambda.tuple.Tuple;
 import org.jooq.lambda.tuple.Tuple2;
 
@@ -66,7 +59,6 @@ import com.github.ansell.csv.util.ValueMapping.ValueMappingLanguage;
 import com.github.ansell.jdefaultdict.JDefaultDict;
 import com.healthmarketscience.jackcess.Column;
 import com.healthmarketscience.jackcess.Cursor;
-import com.healthmarketscience.jackcess.CursorBuilder;
 import com.healthmarketscience.jackcess.Database;
 import com.healthmarketscience.jackcess.DatabaseBuilder;
 import com.healthmarketscience.jackcess.Index;
@@ -147,12 +139,11 @@ public class AccessMapper {
 		try (final Database db = DatabaseBuilder.open(tempFile.toFile());) {
 			// Ordered mappings so that the first table in the mapping is the
 			// one to perform the base joins on
-			ConcurrentMap<ValueMapping, Table> tableMapping = new ConcurrentHashMap<>();
 			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<Table, Table>>> foreignKeyMapping = new JDefaultDict<>(
 					k -> new ConcurrentHashMap<>());
 			ConcurrentMap<ValueMapping, Joiner> joiners = new ConcurrentHashMap<>();
 			// Populate the table mapping for each value mapping
-			Table originTable = parseTableMappings(map, db, tableMapping, foreignKeyMapping, joiners);
+			Table originTable = parseTableMappings(map, db, foreignKeyMapping, joiners);
 			// There may have been no mappings...
 			if (originTable != null) {
 				List<String> headers = map.stream().map(m -> m.getOutputField()).collect(Collectors.toList());
@@ -173,22 +164,20 @@ public class AccessMapper {
 	}
 
 	private static Table parseTableMappings(List<ValueMapping> map, final Database db,
-			ConcurrentMap<ValueMapping, Table> tableMapping,
 			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<Table, Table>>> foreignKeyMapping,
 			ConcurrentMap<ValueMapping, Joiner> joiners) throws IOException {
 		Table originTable = null;
 		for (final ValueMapping nextValueMapping : map) {
-			String[] splitDBField = nextValueMapping.getInputField().split("\\.");
+			final String[] splitDBField = nextValueMapping.getInputField().split("\\.");
 			System.out.println(nextValueMapping.getInputField());
-			Table nextTable = db.getTable(splitDBField[0]);
-			tableMapping.put(nextValueMapping, nextTable);
+			final Table nextTable = db.getTable(splitDBField[0]);
 			if (originTable == null) {
 				originTable = nextTable;
 			}
 
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
-				String[] splitForeignDBField = nextValueMapping.getMapping().split("\\.");
-				Table nextForeignTable = db.getTable(splitForeignDBField[0]);
+				final String[] splitForeignDBField = nextValueMapping.getMapping().split("\\.");
+				final Table nextForeignTable = db.getTable(splitForeignDBField[0]);
 				if (nextForeignTable == null) {
 					throw new RuntimeException(
 							"Could not find table referenced by access mapping: " + nextValueMapping.getMapping());
@@ -196,8 +185,8 @@ public class AccessMapper {
 				foreignKeyMapping.get(splitForeignDBField[0]).put(nextValueMapping,
 						Tuple.tuple(nextTable, nextForeignTable));
 				try {
-					Joiner create = Joiner.create(nextTable, nextForeignTable);
-					if(create != null) {
+					final Joiner create = Joiner.create(nextTable, nextForeignTable);
+					if (create != null) {
 						joiners.put(nextValueMapping, create);
 						System.out.println("PK->FK: " + joiners.get(nextValueMapping).toFKString());
 					}
