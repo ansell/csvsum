@@ -213,25 +213,25 @@ public class AccessMapper {
 		// Rows, indexed by the table that they came from
 		Map<String, Row> componentRowsForThisRow = new HashMap<>();
 		for (final ValueMapping nextValueMapping : map) {
-			String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
+			String[] splitDBFieldSource = DOT_PATTERN.split(nextValueMapping.getInputField());
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
-				String[] splitDBFieldOutput = DOT_PATTERN.split(nextValueMapping.getMapping());
-				if (!componentRowsForThisRow.containsKey(splitDBFieldOutput[0])) {
+				String[] splitDBFieldDest = DOT_PATTERN.split(nextValueMapping.getMapping());
+				if (!componentRowsForThisRow.containsKey(splitDBFieldDest[0])) {
 					// If we have a mapping to another table for the input
 					// field, then use it
-					if (foreignKeyMapping.containsKey(splitDBFieldOutput[0])) {
+					if (foreignKeyMapping.containsKey(splitDBFieldDest[0])) {
 						if (joiners.containsKey(nextValueMapping)) {
-							getRowFromJoiner(joiners, componentRowsForThisRow, nextValueMapping, splitDBField,
-									splitDBFieldOutput);
+							getRowFromJoiner(joiners, componentRowsForThisRow, nextValueMapping, splitDBFieldSource,
+									splitDBFieldDest);
 						} else {
-							getRowFromTables(foreignKeyMapping, componentRowsForThisRow, splitDBFieldOutput);
+							getRowFromTables(foreignKeyMapping, componentRowsForThisRow, splitDBFieldDest);
 						}
 					}
 				}
 			} else {
 				// Else we use the current table to populate the output rows
-				if (!componentRowsForThisRow.containsKey(splitDBField[0])) {
-					componentRowsForThisRow.put(splitDBField[0], nextRow);
+				if (!componentRowsForThisRow.containsKey(splitDBFieldSource[0])) {
+					componentRowsForThisRow.put(splitDBFieldSource[0], nextRow);
 				}
 			}
 		}
@@ -335,11 +335,11 @@ public class AccessMapper {
 
 		if (fromRow == null) {
 			System.out.println("Could not find any linked rows with the key: " + key);
-		}
-
-		Row findFirstRow = joiners.get(nextValueMapping).findFirstRow(fromRow);
-		if (findFirstRow != null) {
-			componentRowsForThisRow.put(splitDBFieldOutput[0], findFirstRow);
+		} else {
+			Row findFirstRow = joiners.get(nextValueMapping).findFirstRow(fromRow);
+			if (findFirstRow != null) {
+				componentRowsForThisRow.put(splitDBFieldOutput[0], findFirstRow);
+			}
 		}
 	}
 
@@ -402,7 +402,7 @@ public class AccessMapper {
 				columnCsv.write(Arrays.asList(table.getName() + "." + nextColumn.getName(),
 						table.getName() + "." + nextColumn.getName(), "", ""));
 			}
-			
+
 			Index primaryKeyIndex = table.getPrimaryKeyIndex();
 			System.out.println(
 					"\tFound primary key index for table: " + table.getName() + " named " + primaryKeyIndex.getName());
