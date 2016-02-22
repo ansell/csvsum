@@ -46,6 +46,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.jooq.lambda.tuple.Tuple;
@@ -77,6 +78,9 @@ import joptsimple.OptionSpec;
  * @author Peter Ansell p_ansell@yahoo.com
  */
 public class AccessMapper {
+
+	private static final String DOT_REGEX = "\\.";
+	private static final Pattern DOT_PATTERN = Pattern.compile(DOT_REGEX);
 
 	public static void main(String... args) throws Exception {
 		final OptionParser parser = new OptionParser();
@@ -168,7 +172,7 @@ public class AccessMapper {
 			ConcurrentMap<ValueMapping, Joiner> joiners) throws IOException {
 		Table originTable = null;
 		for (final ValueMapping nextValueMapping : map) {
-			final String[] splitDBField = nextValueMapping.getInputField().split("\\.");
+			final String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
 			System.out.println(nextValueMapping.getInputField());
 			final Table nextTable = db.getTable(splitDBField[0]);
 			if (originTable == null) {
@@ -176,7 +180,7 @@ public class AccessMapper {
 			}
 
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
-				final String[] splitForeignDBField = nextValueMapping.getMapping().split("\\.");
+				final String[] splitForeignDBField = DOT_PATTERN.split(nextValueMapping.getMapping());
 				final Table nextForeignTable = db.getTable(splitForeignDBField[0]);
 				if (nextForeignTable == null) {
 					throw new RuntimeException(
@@ -205,9 +209,9 @@ public class AccessMapper {
 		// Rows, indexed by the table that they came from
 		Map<String, Row> componentRowsForThisRow = new HashMap<>();
 		for (final ValueMapping nextValueMapping : map) {
-			String[] splitDBField = nextValueMapping.getInputField().split("\\.");
+			String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
-				String[] splitDBFieldOutput = nextValueMapping.getMapping().split("\\.");
+				String[] splitDBFieldOutput = DOT_PATTERN.split(nextValueMapping.getMapping());
 				if (!componentRowsForThisRow.containsKey(splitDBFieldOutput[0])) {
 					// If we have a mapping to another table for the input
 					// field, then use it
@@ -231,7 +235,7 @@ public class AccessMapper {
 		// Populate the foreign row values
 		Map<String, String> output = new HashMap<>();
 		for (final ValueMapping nextValueMapping : map) {
-			String[] splitDBField = nextValueMapping.getInputField().split("\\.");
+			String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
 			if (componentRowsForThisRow.containsKey(splitDBField[0])) {
 				Row findFirstRow = componentRowsForThisRow.get(splitDBField[0]);
 				Object nextColumnValue = findFirstRow.get(splitDBField[1]);
@@ -262,19 +266,37 @@ public class AccessMapper {
 			Table dest = entry.getValue().v2();
 
 			Row originRow = componentRowsForThisRow.get(origin.getName());
-			Cursor cursor = dest.getDefaultCursor();
-
-			Object nextFKValue = originRow.get(nextMapping.getInputField().split("\\.")[1]);
-			Map<String, Object> singletonMap = Collections.singletonMap(nextMapping.getMapping().split("\\.")[1],
+			Object nextFKValue = originRow.get(DOT_PATTERN.split(nextMapping.getInputField())[1]);
+			Map<String, Object> singletonMap = Collections.singletonMap(DOT_PATTERN.split(nextMapping.getMapping())[1],
 					nextFKValue);
+
+			// Cursor cursor = dest.getDefaultCursor();
+
+			// HACK: This will not work if they are not looking for the primary
+			// key on the destination
+			Cursor cursor = dest.getPrimaryKeyIndex().newCursor().toIndexCursor();
+
 			boolean findFirstRow = cursor.findFirstRow(singletonMap);
 
 			if (findFirstRow) {
 				Row currentRow = cursor.getCurrentRow();
 				componentRowsForThisRow.put(splitDBFieldOutput[0], currentRow);
 			} else {
-				System.out.println("Could not match proposed foreign key from " + nextMapping.getInputField() + " to "
-						+ nextMapping.getMapping() + " (no joiner) based on the key: " + nextFKValue);
+				// If the fast index cursor did not work fall back to the slow
+				// default cursor
+				Cursor slowCursor = dest.getDefaultCursor();
+
+				boolean slowFindFirstRow = slowCursor.findFirstRow(singletonMap);
+
+				if (slowFindFirstRow) {
+					Row currentRow = slowCursor.getCurrentRow();
+					componentRowsForThisRow.put(splitDBFieldOutput[0], currentRow);
+				} else {
+					// System.out.println("Could not match proposed foreign key
+					// from " + nextMapping.getInputField()
+					// + " to " + nextMapping.getMapping() + " (no joiner) based
+					// on the key: " + nextFKValue);
+				}
 			}
 		}
 	}
@@ -365,8 +387,8 @@ public class AccessMapper {
 
 			for (Column nextColumn : table.getColumns()) {
 				System.out.println("\t\t" + nextColumn.getName());
-				columnCsv.write(Arrays.asList(table.getName() + "." + nextColumn.getName(), table.getName(),
-						nextColumn.getName(), "", ""));
+				columnCsv.write(Arrays.asList(table.getName() + "." + nextColumn.getName(),
+						table.getName() + "." + nextColumn.getName(), "", ""));
 			}
 		} catch (IllegalArgumentException e) {
 			System.out.println("No primary key index found for table: " + table.getName());
