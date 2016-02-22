@@ -217,8 +217,8 @@ public class AccessMapper {
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
 				String[] splitDBFieldOutput = nextValueMapping.getMapping().split("\\.");
 				if (!componentRowsForThisRow.containsKey(splitDBFieldOutput[0])) {
-					// If we have a mapping to another table for
-					// the input field, then use it
+					// If we have a mapping to another table for the input
+					// field, then use it
 					if (foreignKeyMapping.containsKey(splitDBFieldOutput[0])) {
 						if (joiners.containsKey(nextValueMapping)) {
 							getRowFromJoiner(joiners, componentRowsForThisRow, nextValueMapping, splitDBField,
@@ -229,11 +229,8 @@ public class AccessMapper {
 					}
 				}
 			} else {
-				// Else we use the current table to populate the
-				// output rows
+				// Else we use the current table to populate the output rows
 				if (!componentRowsForThisRow.containsKey(splitDBField[0])) {
-					// System.out.println("Adding linked row for
-					// the origin table: " + splitDBField[0]);
 					componentRowsForThisRow.put(splitDBField[0], nextRow);
 				}
 			}
@@ -263,11 +260,8 @@ public class AccessMapper {
 	private static void getRowFromTables(
 			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<Table, Table>>> foreignKeyMapping,
 			Map<String, Row> componentRowsForThisRow, String[] splitDBFieldOutput) throws IOException {
-		// A joiner could not be created for
-		// this case as the original
-		// database did not
-		// setup an actual foreign key for
-		// the relationship
+		// A joiner could not be created for this case as the original database
+		// did not setup an actual foreign key for the relationship
 		ConcurrentMap<ValueMapping, Tuple2<Table, Table>> mapping = foreignKeyMapping.get(splitDBFieldOutput[0]);
 
 		for (Entry<ValueMapping, Tuple2<Table, Table>> entry : mapping.entrySet()) {
@@ -285,10 +279,6 @@ public class AccessMapper {
 
 			if (findFirstRow) {
 				Row currentRow = cursor.getCurrentRow();
-				// System.out.println("Adding
-				// linked row for table: " +
-				// splitDBField[0]
-				// + " " + currentRow);
 				componentRowsForThisRow.put(splitDBFieldOutput[0], currentRow);
 			} else {
 				System.out.println("Could not match proposed foreign key from " + nextMapping.getInputField() + " to "
