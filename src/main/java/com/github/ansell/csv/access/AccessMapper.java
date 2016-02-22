@@ -388,7 +388,7 @@ public class AccessMapper {
 		Cursor cursor = table.getDefaultCursor();
 		int i = 0;
 		while (cursor.moveToNextRow()) {
-			if (i >= 20) {
+			if (i >= 5) {
 				break;
 			}
 			System.out.println(cursor.getCurrentRow().toString());
