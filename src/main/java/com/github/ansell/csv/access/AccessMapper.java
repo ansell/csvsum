@@ -196,8 +196,11 @@ public class AccessMapper {
 				foreignKeyMapping.get(splitForeignDBField[0]).put(nextValueMapping,
 						Tuple.tuple(nextTable, nextForeignTable));
 				try {
-					joiners.put(nextValueMapping, Joiner.create(nextTable, nextForeignTable));
-					System.out.println("PK->FK: " + joiners.get(nextValueMapping).toFKString());
+					Joiner create = Joiner.create(nextTable, nextForeignTable);
+					if(create != null) {
+						joiners.put(nextValueMapping, create);
+						System.out.println("PK->FK: " + joiners.get(nextValueMapping).toFKString());
+					}
 				} catch (IllegalArgumentException e) {
 					e.printStackTrace();
 				}
@@ -310,15 +313,22 @@ public class AccessMapper {
 
 		try (final Database db = DatabaseBuilder.open(tempFile.toFile());) {
 			for (String tableName : db.getTableNames()) {
+				Table table = db.getTable(tableName);
+
+				if (debug) {
+					final CsvSchema schema = CSVUtil
+							.buildSchema(Arrays.asList("OldField", "NewField", "Language", "Mapping"));
+					try (final Writer csv = Files
+							.newBufferedWriter(outputDir.resolve(csvPrefix + tableName + "-Columns.csv"));
+							final SequenceWriter csvWriter = CSVUtil.newCSVWriter(new BufferedWriter(csv), schema);) {
+						debugTable(table, csvWriter);
+					}
+				}
+
 				System.out.println("");
 				String csvName = csvPrefix + tableName + ".csv";
 				Path csvPath = outputDir.resolve(csvName);
 				System.out.println("Converting " + tableName + " to CSV: " + csvPath.toAbsolutePath().toString());
-				Table table = db.getTable(tableName);
-
-				if (debug) {
-					debugTable(table);
-				}
 
 				String[] tempArray = new String[table.getColumnCount()];
 				int x = 0;
@@ -346,26 +356,28 @@ public class AccessMapper {
 		}
 	}
 
-	private static void debugTable(Table table) throws IOException {
+	private static void debugTable(Table table, SequenceWriter columnCsv) throws IOException {
 
 		System.out.println("\tTable columns for " + table.getName());
-
-		for (Column nextColumn : table.getColumns()) {
-			System.out.println("\t\t" + nextColumn.getName());
-		}
 
 		try {
 			Index primaryKeyIndex = table.getPrimaryKeyIndex();
 			System.out.println(
 					"\tFound primary key index for table: " + table.getName() + " named " + primaryKeyIndex.getName());
-			debugIndex(primaryKeyIndex, new HashSet<>());
+			debugIndex(primaryKeyIndex, new HashSet<>(), columnCsv);
 
 			for (Index nextIndex : table.getIndexes()) {
 				if (!nextIndex.getName().equals(primaryKeyIndex.getName())) {
 					System.out.println("\tFound non-primary key index for table: " + table.getName() + " named "
 							+ nextIndex.getName());
-					debugIndex(nextIndex, new HashSet<>());
+					debugIndex(nextIndex, new HashSet<>(), null);
 				}
+			}
+
+			for (Column nextColumn : table.getColumns()) {
+				System.out.println("\t\t" + nextColumn.getName());
+				columnCsv.write(Arrays.asList(table.getName() + "." + nextColumn.getName(), table.getName(),
+						nextColumn.getName(), "", ""));
 			}
 		} catch (IllegalArgumentException e) {
 			System.out.println("No primary key index found for table: " + table.getName());
@@ -382,11 +394,16 @@ public class AccessMapper {
 		}
 	}
 
-	private static void debugIndex(Index index, Set<Index> visited) throws IOException {
+	private static void debugIndex(Index index, Set<Index> visited, SequenceWriter csvWriter) throws IOException {
 		visited.add(index);
 		System.out.println("\t\tIndex columns:");
 		for (Index.Column nextColumn : index.getColumns()) {
 			System.out.print("\t\t\t" + nextColumn.getName());
+			if (csvWriter != null) {
+				csvWriter.write(Arrays.asList(index.getTable().getName() + "." + nextColumn.getName(),
+						index.getTable().getName() + "." + nextColumn.getName(), "Access",
+						index.getTable().getName() + "." + nextColumn.getName()));
+			}
 		}
 
 		System.out.println("");
@@ -395,7 +412,7 @@ public class AccessMapper {
 			System.out.println("\t" + index.getName() + " references another index: " + referencedIndex.getName());
 			if (!visited.contains(referencedIndex)) {
 				visited.add(referencedIndex);
-				debugIndex(referencedIndex, visited);
+				debugIndex(referencedIndex, visited, null);
 			}
 
 		}
