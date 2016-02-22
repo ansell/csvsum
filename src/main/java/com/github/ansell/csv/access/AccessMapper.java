@@ -270,6 +270,10 @@ public class AccessMapper {
 			Table dest = entry.getValue().v2();
 
 			Row originRow = componentRowsForThisRow.get(origin.getName());
+			if (originRow == null) {
+				System.out.println(
+						"Could not find row: Maybe the order of the mapping file needs changing: " + nextMapping);
+			}
 			Map<String, Object> singletonMap = buildMatchMap(nextMapping, originRow);
 
 			// Cursor cursor = dest.getDefaultCursor();
@@ -393,6 +397,12 @@ public class AccessMapper {
 		System.out.println("\tTable columns for " + table.getName());
 
 		try {
+			for (Column nextColumn : table.getColumns()) {
+				System.out.println("\t\t" + nextColumn.getName());
+				columnCsv.write(Arrays.asList(table.getName() + "." + nextColumn.getName(),
+						table.getName() + "." + nextColumn.getName(), "", ""));
+			}
+			
 			Index primaryKeyIndex = table.getPrimaryKeyIndex();
 			System.out.println(
 					"\tFound primary key index for table: " + table.getName() + " named " + primaryKeyIndex.getName());
@@ -404,12 +414,6 @@ public class AccessMapper {
 							+ nextIndex.getName());
 					debugIndex(nextIndex, new HashSet<>(), null);
 				}
-			}
-
-			for (Column nextColumn : table.getColumns()) {
-				System.out.println("\t\t" + nextColumn.getName());
-				columnCsv.write(Arrays.asList(table.getName() + "." + nextColumn.getName(),
-						table.getName() + "." + nextColumn.getName(), "", ""));
 			}
 		} catch (IllegalArgumentException e) {
 			System.out.println("No primary key index found for table: " + table.getName());
