@@ -190,9 +190,8 @@ public class AccessMapper {
 					// as necessary before running the other non-access mappings
 					// on the resulting list of strings
 					for (Row nextRow : originTable) {
-						ConcurrentMap<String, String> output = new ConcurrentHashMap<>();
 						// Rows, indexed by the table that they came from
-						ConcurrentMap<String, Row> componentRowsForThisRow = new ConcurrentHashMap<>();
+						Map<String, Row> componentRowsForThisRow = new ConcurrentHashMap<>();
 						for (final ValueMapping nextValueMapping : map) {
 							// System.out.println("Next value mapping: " +
 							// nextValueMapping);
@@ -201,8 +200,7 @@ public class AccessMapper {
 								String[] splitDBFieldOutput = nextValueMapping.getMapping().split("\\.");
 								if (!componentRowsForThisRow.containsKey(splitDBFieldOutput[0])) {
 									// If we have a mapping to another table for
-									// the
-									// input field, then use it
+									// the input field, then use it
 									if (foreignKeyMapping.containsKey(splitDBFieldOutput[0])) {
 										// System.out.println("Foreign key
 										// mapping found for: " +
@@ -219,18 +217,18 @@ public class AccessMapper {
 											Row findFirstRow = joiners.get(nextValueMapping).findFirstRow(fromRow);
 											if (findFirstRow != null) {
 												componentRowsForThisRow.put(splitDBFieldOutput[0], findFirstRow);
-											} else {
-												// Will not likely gain anything
-												// from this due to the
-												// restriction on the origin
-												// table above
-												Row findFirstRow2 = joiners.get(nextValueMapping)
-														.findFirstRow(Collections.singletonMap(splitDBField[1],
-																fromRow.get(splitDBFieldOutput[1])));
-												if (findFirstRow2 != null) {
-													componentRowsForThisRow.put(splitDBFieldOutput[0], findFirstRow2);
-												}
 											}
+
+											// else {
+											// Row findFirstRow2 =
+											// joiners.get(nextValueMapping)
+											// .findFirstRow(Collections.singletonMap(splitDBField[1],
+											// fromRow.get(splitDBFieldOutput[1])));
+											// if (findFirstRow2 != null) {
+											// componentRowsForThisRow.put(splitDBFieldOutput[0],
+											// findFirstRow2);
+											// }
+											// }
 										} else {
 											// System.out.println("No joiner
 											// found for: " + nextValueMapping);
@@ -284,6 +282,7 @@ public class AccessMapper {
 						}
 
 						// Populate the foreign row values
+						Map<String, String> output = new ConcurrentHashMap<>();
 						for (final ValueMapping nextValueMapping : map) {
 							String[] splitDBField = nextValueMapping.getInputField().split("\\.");
 							if (componentRowsForThisRow.containsKey(splitDBField[0])) {
