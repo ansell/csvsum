@@ -320,7 +320,7 @@ public class AccessMapper {
 	private static Map<String, Object> buildMatchMap(ValueMapping mapping, Row originRow) {
 		Map<String, Object> result = new HashMap<>();
 
-		System.out.println("Building match map for: " + mapping);
+		//System.out.println("Building match map for: " + mapping);
 
 		String[] destFields = COMMA_PATTERN.split(mapping.getMapping());
 		String[] sourceFields = COMMA_PATTERN.split(mapping.getInputField());
