@@ -280,11 +280,21 @@ public class AccessMapper {
 
 			// HACK: This will not work if they are not looking for the primary
 			// key on the destination
-			Cursor cursor = dest.getPrimaryKeyIndex().newCursor().toIndexCursor();
+			Cursor cursor = null;
 
-			boolean findFirstRow = cursor.findFirstRow(singletonMap);
+			try {
+				cursor = dest.getPrimaryKeyIndex().newCursor().toIndexCursor();
+			} catch (IllegalArgumentException e) {
+				cursor = null;
+			}
 
-			if (findFirstRow) {
+			boolean findFirstRow = false;
+
+			if (cursor != null) {
+				findFirstRow = cursor.findFirstRow(singletonMap);
+			}
+
+			if (cursor != null && findFirstRow) {
 				Row currentRow = cursor.getCurrentRow();
 				componentRowsForThisRow.put(splitDBFieldOutput[0], currentRow);
 			} else {
@@ -309,6 +319,8 @@ public class AccessMapper {
 
 	private static Map<String, Object> buildMatchMap(ValueMapping mapping, Row originRow) {
 		Map<String, Object> result = new HashMap<>();
+
+		System.out.println("Building match map for: " + mapping);
 
 		String[] destFields = COMMA_PATTERN.split(mapping.getMapping());
 		String[] sourceFields = COMMA_PATTERN.split(mapping.getInputField());
