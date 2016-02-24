@@ -35,9 +35,6 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -250,10 +247,8 @@ public class AccessMapper {
 				if (nextColumnValue != null) {
 					if (nextColumnValue instanceof Date) {
 						Date nextColumnDate = (Date) nextColumnValue;
-						LocalDateTime localDateTime = nextColumnDate.toInstant().atZone(ZoneId.systemDefault())
-								.toLocalDateTime();
 						output.put(nextValueMapping.getOutputField(),
-								DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(localDateTime));
+								CSVUtil.oldDateToISO8601LocalDateTime(nextColumnDate));
 					} else {
 						output.put(nextValueMapping.getOutputField(), nextColumnValue.toString());
 					}
@@ -403,7 +398,13 @@ public class AccessMapper {
 					for (Row nextRow : table) {
 						int i = 0;
 						for (Object nextValue : nextRow.values()) {
-							tempArray[i++] = nextValue == null ? null : nextValue.toString();
+							if (nextValue == null) {
+								tempArray[i++] = null;
+							} else if (nextValue instanceof Date) {
+								tempArray[i++] = CSVUtil.oldDateToISO8601LocalDateTime((Date) nextValue);
+							} else {
+								tempArray[i++] = nextValue.toString();
+							}
 						}
 						fullFileCsvWriter.write(Arrays.asList(tempArray));
 						rows++;

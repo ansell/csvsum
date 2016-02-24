@@ -28,6 +28,10 @@ package com.github.ansell.csv.util;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -148,6 +152,12 @@ public final class CSVUtil {
 		}
 
 		return result.setUseHeader(true).build();
+	}
+
+	public static String oldDateToISO8601LocalDateTime(Date nextColumnDate) {
+		LocalDateTime localDateTime = nextColumnDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+		String formattedDate = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(localDateTime);
+		return formattedDate;
 	}
 
 }
