@@ -66,6 +66,11 @@ public class JSONUtil {
 		}
 	}
 
+	public static String queryJSON(Reader input, String jpath)
+			throws JsonProcessingException, IOException {
+		return queryJSON(input, JsonPointer.compile(jpath));
+	}
+
 	public static String queryJSON(Reader input, JsonPointer jpath)
 			throws JsonProcessingException, IOException {
 		JsonNode root = JSON_MAPPER.readTree(input);

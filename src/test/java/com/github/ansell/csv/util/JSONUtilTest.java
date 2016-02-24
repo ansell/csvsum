@@ -74,41 +74,39 @@ public class JSONUtilTest {
 		assertTrue(output.toString().contains("\"test\" : \"something\""));
 	}
 
-	@Ignore("ALA website is broken w.r.t chunked encoding")
+	// @Ignore("ALA website is broken w.r.t chunked encoding")
 	@Test
 	public final void testPrettyPrintURL() throws Exception {
 		StringWriter output = new StringWriter();
 		try (InputStream inputStream = JsonUtils
-				.openStreamForURL(
-						new java.net.URL(
-								"http://bie.ala.org.au/search.json?q=Banksia+occidentalis"),
-						JsonUtils.getDefaultHttpClient());
-				Reader input = new BufferedReader(new InputStreamReader(
-						inputStream));) {
+				.openStreamForURL(new java.net.URL("https://api.github.com/repos/ansell/csvsum"
+		// "http://bie.ala.org.au/search.json?q=Banksia+occidentalis"
+		), JsonUtils.getDefaultHttpClient()); Reader input = new BufferedReader(new InputStreamReader(inputStream));) {
 			JSONUtil.toPrettyPrint(input, output);
 		}
 
 		System.out.println(output.toString());
 
-		JSONUtil.queryJSON(
-				"http://bie.ala.org.au/search.json?q=Banksia+occidentalis",
-				"/searchResults/results/0/guid");
+		String avatar = JSONUtil.queryJSON(new StringReader(output.toString()), "/owner/avatar_url");
+
+		assertTrue(avatar.startsWith("https://avatars.githubusercontent.com/"));
+
+		// JSONUtil.queryJSON(
+		// "http://bie.ala.org.au/search.json?q=Banksia+occidentalis",
+		// "/searchResults/results/0/guid");
 	}
 
 	@Test
 	public final void testQuery() throws Exception {
 		Path testFile = tempDir.newFile().toPath();
-		Files.copy(
-				this.getClass().getResourceAsStream(
-						"/com/github/ansell/csvmap/ala-test.json"), testFile,
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/ala-test.json"), testFile,
 				StandardCopyOption.REPLACE_EXISTING);
 		try (Reader reader = Files.newBufferedReader(testFile);) {
 			JSONUtil.toPrettyPrint(reader, new OutputStreamWriter(System.out));
 		}
 		System.out.println("");
 		try (Reader reader = Files.newBufferedReader(testFile);) {
-			System.out.println(JSONUtil.queryJSON(reader,
-					JsonPointer.compile("/searchResults/results/0/guid")));
+			System.out.println(JSONUtil.queryJSON(reader, JsonPointer.compile("/searchResults/results/0/guid")));
 		}
 	}
 
