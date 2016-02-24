@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.script.Bindings;
 import javax.script.Compilable;
@@ -118,6 +119,12 @@ public class ValueMapping {
 
 		if (outputHeaders.size() != map.size()) {
 			throw new IllegalArgumentException("The number of mappings must match the number of output headers");
+		}
+		
+		List<String> outputHeadersFromMap = map.stream().map(k -> k.getOutputField()).collect(Collectors.toList());
+		
+		if (!outputHeadersFromMap.equals(outputHeaders)) {
+			throw new IllegalArgumentException("Mappings contain different output headers to the given output headers");
 		}
 
 		Map<String, String> outputValues = new ConcurrentHashMap<>();
