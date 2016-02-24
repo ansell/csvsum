@@ -1,13 +1,15 @@
 #!/bin/bash
-# This script runs the Access Mapper retrieval code.
+# This script runs the Access Mapper code.
 # Before running this script for the first time 
 # you may need to run:
 #     chmod +x accessmap
 #
 
-if [ ! -d "target/appassembler/bin" ]; then
-    mvn -quiet clean install -DskipTests -Djetty.skip
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+if [ ! -d "${DIR}/target/appassembler/bin" ]; then
+    (cd ${DIR} && mvn -quiet clean install -DskipTests -Djetty.skip)
 fi
 
-chmod u+x target/appassembler/bin/*
-target/appassembler/bin/accessmap "$@"
+chmod u+x `ls ${DIR}/target/appassembler/bin/*`
+$DIR/target/appassembler/bin/accessmap "$@"
