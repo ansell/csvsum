@@ -1,6 +1,6 @@
-# CSV Summariser and Mapper
+# Summariser and Mapper for CSV and Access files
 
-CSV summariser to quickly find out what you need to know about that random CSV file you were given, and a mapper to make the CSV file fit with what you need
+CSV summariser to quickly find out what you need to know about that random CSV file you were given, and a mapper to make the CSV file fit with what you need. It also provides a mapper for Access databases to create CSV files.
 
 [![Build Status](https://travis-ci.org/ansell/csvsum.svg?branch=master)](https://travis-ci.org/ansell/csvsum) [![Coverage Status](https://coveralls.io/repos/ansell/csvsum/badge.svg?branch=master)](https://coveralls.io/r/ansell/csvsum?branch=master)
 
@@ -53,6 +53,18 @@ If the Mapping field contains a script, it is executed in the context of the fol
 * outputField : The label of the output field that the results of this row will be assigned to.
 * line : The values from the current line being processed from the input file, in the same order as the inputHeaders list.
 
+# Access Mapper
+
+## Usage
+
+Run accessmap with --help to get usage details:
+
+    ./accessmap --help
+
+Run accessmap with a sample access file:
+
+    ./accessmap --input src/test/resources/com/github/ansell/csvaccess/test-source.accdb --mapping src/test/resources/com/github/ansell/csvaccess/test-mapping.csv --output target/ --debug true
+
 # Maven
 
     <dependency>
@@ -62,6 +74,9 @@ If the Mapping field contains a script, it is executed in the context of the fol
     </dependency>
 
 # Changelog
+
+## 2016-02-24
+* Add mapper for Microsoft Access databases to CSV files
 
 ## 2016-02-17
 * Release 0.0.4
