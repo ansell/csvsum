@@ -74,7 +74,7 @@ public class JSONUtilTest {
 		assertTrue(output.toString().contains("\"test\" : \"something\""));
 	}
 
-	// @Ignore("ALA website is broken w.r.t chunked encoding")
+	@Ignore("ALA website is broken w.r.t chunked encoding and GitHub is picky about lots of things")
 	@Test
 	public final void testPrettyPrintURL() throws Exception {
 		StringWriter output = new StringWriter();
