@@ -122,6 +122,10 @@ public class JSONUtilTest {
 		String result = JSONUtil.queryJSON(input, jpath);
 		System.out.println(result);
 		assertEquals("something", result);
+
+		String result2 = JSONUtil.queryJSON(input, "/test");
+		System.out.println(result2);
+		assertEquals("something", result2);
 	}
 
 }
