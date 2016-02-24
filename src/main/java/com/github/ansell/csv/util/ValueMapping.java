@@ -120,9 +120,9 @@ public class ValueMapping {
 		if (outputHeaders.size() != map.size()) {
 			throw new IllegalArgumentException("The number of mappings must match the number of output headers");
 		}
-		
+
 		List<String> outputHeadersFromMap = map.stream().map(k -> k.getOutputField()).collect(Collectors.toList());
-		
+
 		if (!outputHeadersFromMap.equals(outputHeaders)) {
 			throw new IllegalArgumentException("Mappings contain different output headers to the given output headers");
 		}
@@ -139,7 +139,7 @@ public class ValueMapping {
 			outputValues.put(nextMapping.getOutputField(), mappedValue);
 		});
 
-		outputHeaders.forEach(nextOutput -> result.add(outputValues.get(nextOutput)));
+		outputHeaders.forEach(nextOutput -> result.add(outputValues.getOrDefault(nextOutput, "")));
 
 		return result;
 	}
@@ -223,6 +223,10 @@ public class ValueMapping {
 			} catch (ScriptException | NoSuchMethodException e) {
 				throw new RuntimeException(e);
 			}
+		} else if (this.language == ValueMappingLanguage.ACCESS) {
+			// Access is currently handled separately, before these mappings are
+			// applied, so make this a noop
+			return nextInputValue;
 		} else {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
 		}

@@ -239,6 +239,8 @@ public class AccessMapper {
 
 		// Populate the foreign row values
 		Map<String, String> output = new HashMap<>();
+		List<String> outputHeaders = new ArrayList<>(map.size());
+		List<String> inputHeaders = new ArrayList<>(map.size());
 		for (final ValueMapping nextValueMapping : map) {
 			String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
 			if (componentRowsForThisRow.containsKey(splitDBField[0])) {
@@ -254,6 +256,8 @@ public class AccessMapper {
 					}
 				}
 			}
+			inputHeaders.add(nextValueMapping.getInputField());
+			outputHeaders.add(nextValueMapping.getOutputField());
 		}
 
 		List<String> nextEmittedRow = new ArrayList<>(map.size());
@@ -261,7 +265,10 @@ public class AccessMapper {
 		for (final ValueMapping nextValueMapping : map) {
 			nextEmittedRow.add(output.getOrDefault(nextValueMapping.getOutputField(), ""));
 		}
-		csvWriter.write(nextEmittedRow);
+		
+		List<String> mappedRow = ValueMapping.mapLine(inputHeaders, outputHeaders, nextEmittedRow, map);
+		
+		csvWriter.write(mappedRow);
 	}
 
 	private static void getRowFromTables(
