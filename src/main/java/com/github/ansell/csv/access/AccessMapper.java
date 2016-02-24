@@ -123,7 +123,7 @@ public class AccessMapper {
 
 		final Path mappingPath = mapping.value(options).toPath();
 		if (!Files.exists(mappingPath)) {
-			throw new FileNotFoundException("Could not find mappng CSV file: " + mappingPath.toString());
+			throw new FileNotFoundException("Could not find mapping CSV file: " + mappingPath.toString());
 		}
 
 		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);) {

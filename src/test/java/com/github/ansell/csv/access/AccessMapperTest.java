@@ -144,4 +144,36 @@ public class AccessMapperTest {
 				testMapping.toAbsolutePath().toString(), "--output", testOutput.toAbsolutePath().toString());
 	}
 
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.access.AccessMapper#main(java.lang.String[])}
+	 * .
+	 */
+	@Test
+	public final void testMainMissingInput() throws Exception {
+		Path testEmptyDir = tempDir.newFolder("test-missing-accdb").toPath();
+
+		thrown.expect(IOException.class);
+		thrown.expectMessage("Could not find input");
+		AccessMapper.main("--input", testEmptyDir.resolve("does-not-exist.accdb").toAbsolutePath().toString(),
+				"--mapping", testMapping.toAbsolutePath().toString(), "--output",
+				testOutput.toAbsolutePath().toString());
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.access.AccessMapper#main(java.lang.String[])}
+	 * .
+	 */
+	@Test
+	public final void testMainMissingMapping() throws Exception {
+		Path testEmptyDir = tempDir.newFolder("test-missing-mapping").toPath();
+
+		thrown.expect(IOException.class);
+		thrown.expectMessage("Could not find mapping");
+		AccessMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
+				testEmptyDir.resolve("mapping-does-not-exist.csv").toAbsolutePath().toString(), "--output",
+				testOutput.toAbsolutePath().toString());
+	}
+
 }
