@@ -77,6 +77,7 @@ Run accessmap with a sample access file:
 
 ## 2016-02-24
 * Add mapper for Microsoft Access databases to CSV files
+* Output dates from Access to ISO8601 instead of the Jackcess/Java default
 
 ## 2016-02-17
 * Release 0.0.4
