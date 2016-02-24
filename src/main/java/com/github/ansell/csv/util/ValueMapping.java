@@ -152,10 +152,6 @@ public class ValueMapping {
 			nextLanguage = ValueMappingLanguage.DEFAULT;
 		}
 
-		if (nextLanguage == null) {
-			throw new IllegalArgumentException("No mapping language found for: " + language);
-		}
-
 		String nextMapping;
 		// By default empty mappings do not change the input, and are
 		// efficiently dealt with as such
