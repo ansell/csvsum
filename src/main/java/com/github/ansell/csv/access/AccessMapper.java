@@ -252,7 +252,8 @@ public class AccessMapper {
 						Date nextColumnDate = (Date) nextColumnValue;
 						LocalDateTime localDateTime = nextColumnDate.toInstant().atZone(ZoneId.systemDefault())
 								.toLocalDateTime();
-						DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(localDateTime);
+						output.put(nextValueMapping.getOutputField(),
+								DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(localDateTime));
 					} else {
 						output.put(nextValueMapping.getOutputField(), nextColumnValue.toString());
 					}
