@@ -35,9 +35,13 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -244,7 +248,14 @@ public class AccessMapper {
 				Row findFirstRow = componentRowsForThisRow.get(splitDBField[0]);
 				Object nextColumnValue = findFirstRow.get(splitDBField[1]);
 				if (nextColumnValue != null) {
-					output.put(nextValueMapping.getOutputField(), nextColumnValue.toString());
+					if (nextColumnValue instanceof Date) {
+						Date nextColumnDate = (Date) nextColumnValue;
+						LocalDateTime localDateTime = nextColumnDate.toInstant().atZone(ZoneId.systemDefault())
+								.toLocalDateTime();
+						DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(localDateTime);
+					} else {
+						output.put(nextValueMapping.getOutputField(), nextColumnValue.toString());
+					}
 				}
 			}
 		}
@@ -320,7 +331,7 @@ public class AccessMapper {
 	private static Map<String, Object> buildMatchMap(ValueMapping mapping, Row originRow) {
 		Map<String, Object> result = new HashMap<>();
 
-		//System.out.println("Building match map for: " + mapping);
+		// System.out.println("Building match map for: " + mapping);
 
 		String[] destFields = COMMA_PATTERN.split(mapping.getMapping());
 		String[] sourceFields = COMMA_PATTERN.split(mapping.getInputField());
