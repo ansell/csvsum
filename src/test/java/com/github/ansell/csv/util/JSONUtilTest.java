@@ -123,7 +123,8 @@ public class JSONUtilTest {
 		System.out.println(result);
 		assertEquals("something", result);
 
-		String result2 = JSONUtil.queryJSON(input, "/test");
+		StringReader input2 = new StringReader("{ \"test\": \"something\"}");
+		String result2 = JSONUtil.queryJSON(input2, "/test");
 		System.out.println(result2);
 		assertEquals("something", result2);
 	}
