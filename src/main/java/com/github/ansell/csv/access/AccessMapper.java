@@ -178,7 +178,8 @@ public class AccessMapper {
 			ConcurrentMap<ValueMapping, Joiner> joiners) throws IOException {
 		Table originTable = map.isEmpty() ? null : db.getTable(DOT_PATTERN.split(map.get(0).getInputField())[0]);
 		// for (final ValueMapping nextValueMapping : map) {
-		map.parallelStream().forEach(Unchecked.consumer(nextValueMapping -> {
+		// Must be a sequential mapping as ordering is important
+		map.stream().sequential().forEach(Unchecked.consumer(nextValueMapping -> {
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
 				final String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
 				System.out.println(nextValueMapping.getInputField());
