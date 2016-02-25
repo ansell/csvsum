@@ -179,11 +179,11 @@ public class AccessMapper {
 		Table originTable = map.isEmpty() ? null : db.getTable(DOT_PATTERN.split(map.get(0).getInputField())[0]);
 		// for (final ValueMapping nextValueMapping : map) {
 		map.parallelStream().forEach(Unchecked.consumer(nextValueMapping -> {
-			final String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
-			System.out.println(nextValueMapping.getInputField());
-			final Table nextTable = db.getTable(splitDBField[0]);
-
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
+				final String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
+				System.out.println(nextValueMapping.getInputField());
+				final Table nextTable = db.getTable(splitDBField[0]);
+
 				final String[] splitForeignDBField = DOT_PATTERN.split(nextValueMapping.getMapping());
 				final Table nextForeignTable = db.getTable(splitForeignDBField[0]);
 				if (nextForeignTable == null) {
