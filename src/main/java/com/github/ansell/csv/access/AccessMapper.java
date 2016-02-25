@@ -242,23 +242,23 @@ public class AccessMapper {
 		List<String> outputHeaders = new ArrayList<>(map.size());
 		List<String> inputHeaders = new ArrayList<>(map.size());
 		for (final ValueMapping nextValueMapping : map) {
-			if (!nextValueMapping.getInputField().isEmpty()) {
-				String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
-				if (splitDBField.length == 2) {
-					if (componentRowsForThisRow.containsKey(splitDBField[0])) {
-						Row findFirstRow = componentRowsForThisRow.get(splitDBField[0]);
-						Object nextColumnValue = findFirstRow.get(splitDBField[1]);
-						if (nextColumnValue != null) {
-							if (nextColumnValue instanceof Date) {
-								Date nextColumnDate = (Date) nextColumnValue;
-								output.put(nextValueMapping.getOutputField(),
-										CSVUtil.oldDateToISO8601LocalDateTime(nextColumnDate));
-							} else {
-								output.put(nextValueMapping.getOutputField(), nextColumnValue.toString());
-							}
+			String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
+			if (splitDBField.length == 2) {
+				if (componentRowsForThisRow.containsKey(splitDBField[0])) {
+					Row findFirstRow = componentRowsForThisRow.get(splitDBField[0]);
+					Object nextColumnValue = findFirstRow.get(splitDBField[1]);
+					if (nextColumnValue != null) {
+						if (nextColumnValue instanceof Date) {
+							Date nextColumnDate = (Date) nextColumnValue;
+							output.put(nextValueMapping.getOutputField(),
+									CSVUtil.oldDateToISO8601LocalDateTime(nextColumnDate));
+						} else {
+							output.put(nextValueMapping.getOutputField(), nextColumnValue.toString());
 						}
 					}
 				}
+			} else {
+				output.put(nextValueMapping.getOutputField(), "");
 			}
 			inputHeaders.add(nextValueMapping.getInputField());
 			outputHeaders.add(nextValueMapping.getOutputField());

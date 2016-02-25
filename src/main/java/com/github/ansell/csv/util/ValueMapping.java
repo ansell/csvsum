@@ -145,6 +145,9 @@ public class ValueMapping {
 	}
 
 	public static final ValueMapping newMapping(String language, String input, String output, String mapping) {
+		if(output == null || output.isEmpty()) {
+			throw new IllegalArgumentException("Output field must not be empty");
+		}
 		ValueMappingLanguage nextLanguage;
 		try {
 			nextLanguage = ValueMappingLanguage.valueOf(language.toUpperCase());
