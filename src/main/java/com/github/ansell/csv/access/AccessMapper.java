@@ -50,6 +50,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.jooq.lambda.Unchecked;
 import org.jooq.lambda.tuple.Tuple;
 import org.jooq.lambda.tuple.Tuple2;
 
@@ -175,14 +176,12 @@ public class AccessMapper {
 	private static Table parseTableMappings(List<ValueMapping> map, final Database db,
 			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<Table, Table>>> foreignKeyMapping,
 			ConcurrentMap<ValueMapping, Joiner> joiners) throws IOException {
-		Table originTable = null;
-		for (final ValueMapping nextValueMapping : map) {
+		Table originTable = map.isEmpty() ? null : db.getTable(DOT_PATTERN.split(map.get(0).getInputField())[0]);
+		// for (final ValueMapping nextValueMapping : map) {
+		map.parallelStream().forEach(Unchecked.consumer(nextValueMapping -> {
 			final String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
 			System.out.println(nextValueMapping.getInputField());
 			final Table nextTable = db.getTable(splitDBField[0]);
-			if (originTable == null) {
-				originTable = nextTable;
-			}
 
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
 				final String[] splitForeignDBField = DOT_PATTERN.split(nextValueMapping.getMapping());
@@ -203,7 +202,7 @@ public class AccessMapper {
 					e.printStackTrace();
 				}
 			}
-		}
+		}));
 		return originTable;
 	}
 
