@@ -47,8 +47,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.jooq.lambda.Unchecked;
 import org.jooq.lambda.tuple.Tuple;
@@ -166,7 +168,10 @@ public class AccessMapper {
 					// as necessary before running the other non-access mappings
 					// on the resulting list of strings
 					for (Row nextRow : originTable) {
+						// StreamSupport.stream(originTable.spliterator(),
+						// true).forEach(Unchecked.consumer(nextRow -> {
 						writeNextRow(map, foreignKeyMapping, joiners, csvWriter, nextRow);
+						// }));
 					}
 				}
 			}
@@ -212,8 +217,10 @@ public class AccessMapper {
 			ConcurrentMap<ValueMapping, Joiner> joiners, final SequenceWriter csvWriter, Row nextRow)
 					throws IOException {
 		// Rows, indexed by the table that they came from
-		Map<String, Row> componentRowsForThisRow = new HashMap<>();
+		ConcurrentMap<String, Row> componentRowsForThisRow = new ConcurrentHashMap<>();
 		for (final ValueMapping nextValueMapping : map) {
+			// map.parallelStream().forEach(Unchecked.consumer(nextValueMapping
+			// -> {
 			String[] splitDBFieldSource = DOT_PATTERN.split(nextValueMapping.getInputField());
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
 				String[] splitDBFieldDest = DOT_PATTERN.split(nextValueMapping.getMapping());
@@ -235,13 +242,15 @@ public class AccessMapper {
 					componentRowsForThisRow.put(splitDBFieldSource[0], nextRow);
 				}
 			}
+			// }));
 		}
 
 		// Populate the foreign row values
-		Map<String, String> output = new HashMap<>();
-		List<String> outputHeaders = new ArrayList<>(map.size());
-		List<String> inputHeaders = new ArrayList<>(map.size());
-		for (final ValueMapping nextValueMapping : map) {
+		ConcurrentMap<String, String> output = new ConcurrentHashMap<>();
+		List<String> outputHeaders = new CopyOnWriteArrayList<>();
+		List<String> inputHeaders = new CopyOnWriteArrayList<>();
+		// for (final ValueMapping nextValueMapping : map) {
+		map.parallelStream().forEach(Unchecked.consumer(nextValueMapping -> {
 			String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
 			if (splitDBField.length == 2) {
 				if (componentRowsForThisRow.containsKey(splitDBField[0])) {
@@ -260,19 +269,24 @@ public class AccessMapper {
 			} else {
 				output.put(nextValueMapping.getOutputField(), "");
 			}
-			inputHeaders.add(nextValueMapping.getInputField());
-			outputHeaders.add(nextValueMapping.getOutputField());
-		}
+		}));
+		// }
 
 		List<String> nextEmittedRow = new ArrayList<>(map.size());
 		// Then after all are filled, emit the row
 		for (final ValueMapping nextValueMapping : map) {
+			inputHeaders.add(nextValueMapping.getInputField());
+			outputHeaders.add(nextValueMapping.getOutputField());
 			nextEmittedRow.add(output.getOrDefault(nextValueMapping.getOutputField(), ""));
 		}
 
 		List<String> mappedRow = ValueMapping.mapLine(inputHeaders, outputHeaders, nextEmittedRow, map);
 
-		csvWriter.write(mappedRow);
+		// TODO: Delegate this quick process to a single thread and parallelise
+		// the mapping above
+		synchronized (csvWriter) {
+			csvWriter.write(mappedRow);
+		}
 	}
 
 	private static void getRowFromTables(
