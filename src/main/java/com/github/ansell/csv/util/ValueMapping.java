@@ -123,7 +123,8 @@ public class ValueMapping {
 			outputValues.put(nextMapping.getOutputField(), mappedValue);
 		});
 
-		List<String> outputHeaders = map.stream().map(k -> k.getOutputField()).collect(Collectors.toList());
+		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(k -> k.getOutputField())
+				.collect(Collectors.toList());
 		outputHeaders.forEach(nextOutput -> result.add(outputValues.getOrDefault(nextOutput, "")));
 
 		return result;
@@ -148,9 +149,9 @@ public class ValueMapping {
 		} else {
 			nextMapping = nextLanguage.getDefaultMapping();
 		}
-		
+
 		boolean shown = true;
-		
+
 		ValueMapping result = new ValueMapping(nextLanguage, input, output, nextMapping, shown);
 
 		result.init();
@@ -167,7 +168,7 @@ public class ValueMapping {
 	private final String mapping;
 
 	private final boolean shown;
-	
+
 	private transient ScriptEngine scriptEngine;
 	private transient CompiledScript compiledScript;
 
