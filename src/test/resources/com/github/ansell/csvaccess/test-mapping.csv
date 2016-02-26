@@ -1,25 +1,31 @@
 OldField,NewField,Language,Mapping
-tblData.VisitSampleDataPK,tblData.VisitSampleDataPK,,
+tblData.VisitSampleDataPK,eventID,,
 tblData.ProjectID,tblData.ProjectID,,
 tblData.ProjectDescription,tblData.ProjectDescription,,
-tblData.SampleDate,tblData.SampleDate,,
-tblData.SiteFK,SitePK,Access,tblSite.SitePK
-tblData.Trap,tblData.Trap,,
-tblData.SpeciesCount,tblData.SpeciesCount,,
-tblData.PercentageOfSample,tblData.PercentageOfSample,,
-tblData.FinalCount,tblData.FinalCount,,
-tblData.MethodFK,MethodPK,Access,tblMethod.MethodPK
-tblData.SpeciesPK,DataSpeciesPK,Access,tblSpecies.SpeciesPK
-tblSpecies.SpeciesClassFK,SpeciesClassPK,Access,tblClass.ClassPK
-tblSpecies.SpeciesOrderFK,OrderPK,Access,tblOrder.OrderPK
-tblSpecies.SpeciesFamilyPK,FamilyPK,Access,tblFamily.FamilyPK
-tblSpecies.SpeciesTaxaLevel,tblSpecies.SpeciesTaxaLevel,,
-tblSpecies.SpeciesDescription,tblSpecies.SpeciesDescription,,
-tblClass.ClassDescription,tblClass.ClassDescription,,
-tblSite.SiteDescription,tblSite.SiteDescription,,
-tblSite.River,tblSite.River,,
-tblSite.Location,tblSite.Location,,
-tblSite.Catchment,tblSite.Catchment,,
-tblSite.Latitude,tblSite.Latitude,,
-tblSite.Longitude,tblSite.Longitude,,
-tblMethod.MethodDescription,tblMethod.MethodDescription,,
+tblData.SampleDate,eventDate,,
+tblData.SiteFK,tblSite.SitePK,Access,tblSite.SitePK
+tblData.SpeciesPK,tblSpecies.SpeciesPK,Access,tblSpecies.SpeciesPK
+tblSpecies.SpeciesClassFK,tblClass.ClassPK,Access,tblClass.ClassPK
+tblClass.ClassDescription,class,,
+tblSpecies.SpeciesOrderFK,tblOrder.OrderPK,Access,tblOrder.OrderPK
+tblOrder.OrderDescription,order,,
+tblSpecies.SpeciesFamilyFK,tblFamily.FamilyPK,Access,tblFamily.FamilyPK
+tblFamily.FamilyDescription,family,,
+tblSpecies.SpeciesTaxaLevel,verbatimTaxonRank,,
+tblSpecies.SpeciesDescription,scientificName,,
+tblData.SpeciesCount,verbatimSampleSizeValue,,
+tblData.PercentageOfSample,verbatimMeasurementAccuracy,,
+tblData.PercentageOfSample,measurementAccuracy,Javascript,"return inputValue == """" ? """" : ""Percentage of sample surveyed (0-1) was "" + inputValue;"
+tblData.FinalCount,sampleSizeValue,,
+tblSite.SiteDescription,locationID,,
+tblSite.River,waterBody,,
+tblSite.Location,locality,,
+tblSite.Catchment,higherGeography,,
+tblSite.Latitude,verbatimLatitude,,
+tblSite.Longitude,verbatimLongitude,,
+tblSite.Latitude,latitude,Javascript,"var Double = Java.type('java.lang.Double');
+return Double.toString(-1.0 * Double.parseDouble(inputValue));"
+tblSite.Longitude,longitude,,
+tblData.MethodFK,tblMethod.MethodPK,Access,tblMethod.MethodPK
+tblMethod.MethodDescription,samplingProtocol,,
+tblData.Trap,eventRemarks,Javascript,"return inputValue == """" ? """" : ""Caught in trap no. "" + inputValue;"
