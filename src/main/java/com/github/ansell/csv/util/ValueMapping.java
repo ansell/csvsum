@@ -49,11 +49,6 @@ import javax.script.ScriptException;
  */
 public class ValueMapping {
 
-	/**
-	 * The default mapping if none is specified in the mapping file.
-	 */
-	protected static final String DEFAULT_MAPPING = "inputValue";
-
 	public enum ValueMappingLanguage {
 		DEFAULT(ValueMapping.DEFAULT_MAPPING),
 
@@ -79,6 +74,11 @@ public class ValueMapping {
 			return this.getDefaultMapping().equals(mapping);
 		}
 	}
+
+	/**
+	 * The default mapping if none is specified in the mapping file.
+	 */
+	protected static final String DEFAULT_MAPPING = "inputValue";
 
 	public static final String OLD_FIELD = "OldField";
 	public static final String NEW_FIELD = "NewField";
@@ -175,6 +175,8 @@ public class ValueMapping {
 
 	private final String mapping;
 
+	private final boolean shown;
+	
 	private transient ScriptEngine scriptEngine;
 	private transient CompiledScript compiledScript;
 
@@ -187,6 +189,7 @@ public class ValueMapping {
 		this.input = input;
 		this.output = output;
 		this.mapping = mapping;
+		this.shown = true;
 	}
 
 	private String apply(List<String> inputHeaders, List<String> line) {
@@ -267,6 +270,9 @@ public class ValueMapping {
 		} else if (!output.equals(other.output)) {
 			return false;
 		}
+		if (shown != other.shown) {
+			return false;
+		}
 		return true;
 	}
 
@@ -294,6 +300,7 @@ public class ValueMapping {
 		result = prime * result + ((language == null) ? 0 : language.hashCode());
 		result = prime * result + ((mapping == null) ? 0 : mapping.hashCode());
 		result = prime * result + ((output == null) ? 0 : output.hashCode());
+		result = prime * result + (shown ? 1231 : 1237);
 		return result;
 	}
 
