@@ -294,6 +294,10 @@ public class ValueMapping {
 		return this.output;
 	}
 
+	public boolean getShown() {
+		return this.shown;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
