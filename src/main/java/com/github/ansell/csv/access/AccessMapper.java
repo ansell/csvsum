@@ -154,7 +154,8 @@ public class AccessMapper {
 			Table originTable = parseTableMappings(map, db, foreignKeyMapping, joiners);
 			// There may have been no mappings...
 			if (originTable != null) {
-				List<String> headers = map.stream().map(m -> m.getOutputField()).collect(Collectors.toList());
+				List<String> headers = map.stream().filter(k -> k.getShown()).map(m -> m.getOutputField())
+						.collect(Collectors.toList());
 				final CsvSchema schema = CSVUtil.buildSchema(headers);
 
 				try (final Writer csv = Files
@@ -220,6 +221,10 @@ public class AccessMapper {
 			String[] splitDBFieldSource = DOT_PATTERN.split(nextValueMapping.getInputField());
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
 				String[] splitDBFieldDest = DOT_PATTERN.split(nextValueMapping.getMapping());
+				if (splitDBFieldDest.length != 2) {
+					throw new RuntimeException(
+							"Destination mapping was not in the 'table.column' format: " + nextValueMapping);
+				}
 				if (!componentRowsForThisRow.containsKey(splitDBFieldDest[0])) {
 					// If we have a mapping to another table for the input
 					// field, then use it
@@ -233,6 +238,10 @@ public class AccessMapper {
 					}
 				}
 			} else {
+				if (splitDBFieldSource.length != 2) {
+					throw new RuntimeException(
+							"Source mapping was not in the 'table.column' format: " + nextValueMapping);
+				}
 				// Else we use the current table to populate the output rows
 				if (!componentRowsForThisRow.containsKey(splitDBFieldSource[0])) {
 					componentRowsForThisRow.put(splitDBFieldSource[0], nextRow);
