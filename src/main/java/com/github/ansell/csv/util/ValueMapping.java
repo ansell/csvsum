@@ -80,11 +80,10 @@ public class ValueMapping {
 		}
 	}
 
-	public static final String LANGUAGE = "Language";
-
 	public static final String OLD_FIELD = "OldField";
-
 	public static final String NEW_FIELD = "NewField";
+	public static final String SHOWN = "Shown";
+	public static final String LANGUAGE = "Language";
 	public static final String MAPPING = "Mapping";
 	private static final ScriptEngineManager SCRIPT_MANAGER = new ScriptEngineManager();
 	private static final boolean DEBUG = false;
