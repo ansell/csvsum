@@ -111,18 +111,6 @@ public class ValueMapping {
 
 	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<ValueMapping> map) {
 
-		// if (outputHeaders.size() != map.size()) {
-		// throw new IllegalArgumentException("The number of mappings must match
-		// the number of output headers");
-		// }
-		//
-		List<String> outputHeaders = map.stream().map(k -> k.getOutputField()).collect(Collectors.toList());
-		//
-		// if (!outputHeadersFromMap.equals(outputHeaders)) {
-		// throw new IllegalArgumentException("Mappings contain different output
-		// headers to the given output headers");
-		// }
-
 		Map<String, String> outputValues = new ConcurrentHashMap<>();
 		List<String> result = new ArrayList<>();
 
@@ -135,6 +123,7 @@ public class ValueMapping {
 			outputValues.put(nextMapping.getOutputField(), mappedValue);
 		});
 
+		List<String> outputHeaders = map.stream().map(k -> k.getOutputField()).collect(Collectors.toList());
 		outputHeaders.forEach(nextOutput -> result.add(outputValues.getOrDefault(nextOutput, "")));
 
 		return result;
