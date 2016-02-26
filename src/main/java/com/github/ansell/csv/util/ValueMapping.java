@@ -103,7 +103,7 @@ public class ValueMapping {
 
 		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
 			return newMapping(l.get(h.indexOf(LANGUAGE)), l.get(h.indexOf(OLD_FIELD)), l.get(h.indexOf(NEW_FIELD)),
-					l.get(h.indexOf(MAPPING)));
+					l.get(h.indexOf(MAPPING)), l.get(h.indexOf(SHOWN)));
 		} , l -> result.add(l));
 
 		return result;
@@ -130,7 +130,7 @@ public class ValueMapping {
 		return result;
 	}
 
-	public static final ValueMapping newMapping(String language, String input, String output, String mapping) {
+	public static final ValueMapping newMapping(String language, String input, String output, String mapping, String shownString) {
 		if (output == null || output.isEmpty()) {
 			throw new IllegalArgumentException("Output field must not be empty");
 		}
@@ -150,7 +150,7 @@ public class ValueMapping {
 			nextMapping = nextLanguage.getDefaultMapping();
 		}
 
-		boolean shown = true;
+		boolean shown = !"no".equalsIgnoreCase(shownString);
 
 		ValueMapping result = new ValueMapping(nextLanguage, input, output, nextMapping, shown);
 

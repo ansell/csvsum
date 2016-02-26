@@ -26,11 +26,11 @@ public class ValueMappingTest {
 
 	@Before
 	public void setUp() throws Exception {
-		testDefaultMapping = ValueMapping.newMapping("Default", "anInput", "anotherField", "");
-		testDefaultMapping2 = ValueMapping.newMapping("Default", "anInput", "anotherField", "inputValue");
-		testDefaultMapping3 = ValueMapping.newMapping("Default", "anInput3", "anotherField3", "inputValue");
+		testDefaultMapping = ValueMapping.newMapping("Default", "anInput", "anotherField", "", "");
+		testDefaultMapping2 = ValueMapping.newMapping("Default", "anInput", "anotherField", "inputValue", "");
+		testDefaultMapping3 = ValueMapping.newMapping("Default", "anInput3", "anotherField3", "inputValue", "");
 		testJavascriptMapping = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
-				"return inputValue.substring(0, 1);");
+				"return inputValue.substring(0, 1);", "");
 	}
 
 	@After
@@ -45,8 +45,8 @@ public class ValueMappingTest {
 
 	@Test
 	public final void testExtractMappingsDefault() throws Exception {
-		List<ValueMapping> extractMappings = ValueMapping
-				.extractMappings(new StringReader("OldField,NewField,Language,Mapping\ninputField,outputField,,\n"));
+		List<ValueMapping> extractMappings = ValueMapping.extractMappings(
+				new StringReader("OldField,NewField,Shown,Language,Mapping\ninputField,outputField,,,\n"));
 
 		assertEquals(1, extractMappings.size());
 		assertEquals("inputField", extractMappings.get(0).getInputField());
@@ -58,7 +58,7 @@ public class ValueMappingTest {
 	@Test
 	public final void testExtractMappingsJavascript() throws Exception {
 		List<ValueMapping> extractMappings = ValueMapping.extractMappings(new StringReader(
-				"OldField,NewField,Language,Mapping\ninputField2,outputField2,Javascript,\"return inputValue.trim();\"\n"));
+				"OldField,NewField,Shown,Language,Mapping\ninputField2,outputField2,,Javascript,\"return inputValue.trim();\"\n"));
 
 		assertEquals(1, extractMappings.size());
 		assertEquals("inputField2", extractMappings.get(0).getInputField());
@@ -70,7 +70,7 @@ public class ValueMappingTest {
 	@Test
 	public final void testExtractMappingsMultiple() throws Exception {
 		List<ValueMapping> extractMappings = ValueMapping.extractMappings(new StringReader(
-				"OldField,NewField,Language,Mapping\ninputField2,outputField2,Javascript,\"return inputValue.trim();\"\ninputField,outputField,,\n"));
+				"OldField,NewField,Shown,Language,Mapping\ninputField2,outputField2,,Javascript,\"return inputValue.trim();\"\ninputField,outputField,,,\n"));
 
 		assertEquals(2, extractMappings.size());
 
