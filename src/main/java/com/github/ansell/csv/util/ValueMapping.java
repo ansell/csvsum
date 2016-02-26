@@ -159,8 +159,10 @@ public class ValueMapping {
 		} else {
 			nextMapping = nextLanguage.getDefaultMapping();
 		}
-
-		ValueMapping result = new ValueMapping(nextLanguage, input, output, nextMapping);
+		
+		boolean shown = true;
+		
+		ValueMapping result = new ValueMapping(nextLanguage, input, output, nextMapping, shown);
 
 		result.init();
 
@@ -184,12 +186,12 @@ public class ValueMapping {
 	 * All creation of ValueMapping objects must be done through the
 	 * {@link #newMapping(String, String, String, String)} method.
 	 */
-	private ValueMapping(ValueMappingLanguage language, String input, String output, String mapping) {
+	private ValueMapping(ValueMappingLanguage language, String input, String output, String mapping, boolean shown) {
 		this.language = language;
 		this.input = input;
 		this.output = output;
 		this.mapping = mapping;
-		this.shown = true;
+		this.shown = shown;
 	}
 
 	private String apply(List<String> inputHeaders, List<String> line) {
