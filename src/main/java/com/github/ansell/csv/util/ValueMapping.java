@@ -112,7 +112,6 @@ public class ValueMapping {
 	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<ValueMapping> map) {
 
 		Map<String, String> outputValues = new ConcurrentHashMap<>();
-		List<String> result = new ArrayList<>();
 
 		// Note, empirically, it seems about 50% faster with a limited number of
 		// cores to do a serial mapping, not a parallel mapping
@@ -125,6 +124,7 @@ public class ValueMapping {
 
 		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(k -> k.getOutputField())
 				.collect(Collectors.toList());
+		List<String> result = new ArrayList<>(outputHeaders.size());
 		outputHeaders.forEach(nextOutput -> result.add(outputValues.getOrDefault(nextOutput, "")));
 
 		return result;
