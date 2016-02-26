@@ -28,11 +28,9 @@ package com.github.ansell.csv.util;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.script.Bindings;
@@ -43,8 +41,6 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-
-import com.healthmarketscience.jackcess.Row;
 
 /**
  * A mapping definition from an original CSV field to an output CSV field.
@@ -114,18 +110,18 @@ public class ValueMapping {
 		return result;
 	}
 
-	public static List<String> mapLine(List<String> inputHeaders, List<String> outputHeaders, List<String> line,
+	public static List<String> mapLine(List<String> inputHeaders, List<String> line,
 			List<ValueMapping> map) {
 
-		if (outputHeaders.size() != map.size()) {
-			throw new IllegalArgumentException("The number of mappings must match the number of output headers");
-		}
-
-		List<String> outputHeadersFromMap = map.stream().map(k -> k.getOutputField()).collect(Collectors.toList());
-
-		if (!outputHeadersFromMap.equals(outputHeaders)) {
-			throw new IllegalArgumentException("Mappings contain different output headers to the given output headers");
-		}
+//		if (outputHeaders.size() != map.size()) {
+//			throw new IllegalArgumentException("The number of mappings must match the number of output headers");
+//		}
+//
+		List<String> outputHeaders = map.stream().map(k -> k.getOutputField()).collect(Collectors.toList());
+//
+//		if (!outputHeadersFromMap.equals(outputHeaders)) {
+//			throw new IllegalArgumentException("Mappings contain different output headers to the given output headers");
+//		}
 
 		Map<String, String> outputValues = new ConcurrentHashMap<>();
 		List<String> result = new ArrayList<>();

@@ -3,7 +3,6 @@ package com.github.ansell.csv.util;
 import static org.junit.Assert.*;
 
 import java.io.StringReader;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -89,7 +88,6 @@ public class ValueMappingTest {
 	@Test
 	public final void testMapLine() {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("anInput", "anInput3", "aDifferentInput"),
-				Arrays.asList("anotherField", "anotherField3", "aDifferentField"),
 				Arrays.asList("testValue1", "testValue2", "xyzabc"),
 				Arrays.asList(testDefaultMapping, testDefaultMapping3, testJavascriptMapping));
 
@@ -130,21 +128,4 @@ public class ValueMappingTest {
 		assertEquals("anotherField", testDefaultMapping2.getOutputField());
 		assertEquals("aDifferentField", testJavascriptMapping.getOutputField());
 	}
-
-	@Test
-	public final void testErrorOutputHeadersLessThanMappings() {
-		thrown.expect(IllegalArgumentException.class);
-		thrown.expectMessage("The number of mappings must match the number of output headers");
-		ValueMapping.mapLine(Arrays.asList(""), new ArrayList<>(), Arrays.asList(""),
-				Arrays.asList(testDefaultMapping));
-	}
-
-	@Test
-	public final void testErrorOutputHeadersDifferentToMappings() {
-		thrown.expect(IllegalArgumentException.class);
-		thrown.expectMessage("Mappings contain different output headers to the given output headers");
-		ValueMapping.mapLine(Arrays.asList(""), Arrays.asList("DifferentField"), Arrays.asList(""),
-				Arrays.asList(testDefaultMapping));
-	}
-
 }
