@@ -354,8 +354,7 @@ public class ValueMapping {
 
 	@Override
 	public String toString() {
-		return "ValueMapping [input=" + input + ", output=" + output + ", language=" + language + ", mapping=" + mapping
-				+ "]";
+		return "ValueMapping [language=" + language + ", input=" + input + ", output=" + output + ", mapping=" + mapping
+				+ ", shown=" + shown + "]";
 	}
-
 }
