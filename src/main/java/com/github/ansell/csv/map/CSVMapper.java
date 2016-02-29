@@ -124,14 +124,14 @@ public final class CSVMapper {
 
 		Function<ValueMapping, String> outputFields = e -> e.getOutputField();
 
-		List<String> outputHeaders = map.stream().map(outputFields).collect(Collectors.toList());
-
+		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(outputFields)
+				.collect(Collectors.toList());
 		final CsvSchema schema = CSVUtil.buildSchema(outputHeaders);
 
 		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);) {
 			List<String> inputHeaders = new ArrayList<>();
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
-				return ValueMapping.mapLine(inputHeaders, outputHeaders, l, map);
+				return ValueMapping.mapLine(inputHeaders, l, map);
 			} , Unchecked.consumer(l -> csvWriter.write(l)));
 
 		}

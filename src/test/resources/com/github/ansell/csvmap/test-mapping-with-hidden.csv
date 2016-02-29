@@ -6,4 +6,4 @@ Field3,Field3,,,
 Field3,naturalised,,Groovy,"inputValue.equalsIgnoreCase(""Y"") ? ""naturalised"" : """" "
 Field4,Field4,,,
 Field4,unrelatedField,,Javascript,"return (!line.get(inputHeaders.indexOf(""Field3"")).trim().isEmpty() && !line.get(inputHeaders.indexOf(""Field4"")).trim().isEmpty() ? ""Useful"" : """");"
-Field5,Field5,,Lua,"return inputValue .. ""a"""
+Field5,Field5,no,Lua,"return inputValue .. ""a"""

@@ -37,7 +37,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,7 +49,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.jooq.lambda.Unchecked;
 import org.jooq.lambda.tuple.Tuple;
@@ -59,11 +57,9 @@ import org.jooq.lambda.tuple.Tuple2;
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.util.CSVUtil;
-import com.github.ansell.csv.util.JSONUtil;
 import com.github.ansell.csv.util.ValueMapping;
 import com.github.ansell.csv.util.ValueMapping.ValueMappingLanguage;
 import com.github.ansell.jdefaultdict.JDefaultDict;
-import com.github.jsonldjava.utils.JsonUtils;
 import com.healthmarketscience.jackcess.Column;
 import com.healthmarketscience.jackcess.Cursor;
 import com.healthmarketscience.jackcess.Database;
@@ -158,7 +154,8 @@ public class AccessMapper {
 			Table originTable = parseTableMappings(map, db, foreignKeyMapping, joiners);
 			// There may have been no mappings...
 			if (originTable != null) {
-				List<String> headers = map.stream().map(m -> m.getOutputField()).collect(Collectors.toList());
+				List<String> headers = map.stream().filter(k -> k.getShown()).map(m -> m.getOutputField())
+						.collect(Collectors.toList());
 				final CsvSchema schema = CSVUtil.buildSchema(headers);
 
 				try (final Writer csv = Files
@@ -224,6 +221,10 @@ public class AccessMapper {
 			String[] splitDBFieldSource = DOT_PATTERN.split(nextValueMapping.getInputField());
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
 				String[] splitDBFieldDest = DOT_PATTERN.split(nextValueMapping.getMapping());
+				if (splitDBFieldDest.length != 2) {
+					throw new RuntimeException(
+							"Destination mapping was not in the 'table.column' format: " + nextValueMapping);
+				}
 				if (!componentRowsForThisRow.containsKey(splitDBFieldDest[0])) {
 					// If we have a mapping to another table for the input
 					// field, then use it
@@ -237,6 +238,10 @@ public class AccessMapper {
 					}
 				}
 			} else {
+				if (splitDBFieldSource.length != 2) {
+					throw new RuntimeException(
+							"Source mapping was not in the 'table.column' format: " + nextValueMapping);
+				}
 				// Else we use the current table to populate the output rows
 				if (!componentRowsForThisRow.containsKey(splitDBFieldSource[0])) {
 					componentRowsForThisRow.put(splitDBFieldSource[0], nextRow);
@@ -247,8 +252,6 @@ public class AccessMapper {
 
 		// Populate the foreign row values
 		ConcurrentMap<String, String> output = new ConcurrentHashMap<>();
-		List<String> outputHeaders = new CopyOnWriteArrayList<>();
-		List<String> inputHeaders = new CopyOnWriteArrayList<>();
 		// for (final ValueMapping nextValueMapping : map) {
 		map.parallelStream().forEach(Unchecked.consumer(nextValueMapping -> {
 			String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
@@ -274,13 +277,13 @@ public class AccessMapper {
 
 		List<String> nextEmittedRow = new ArrayList<>(map.size());
 		// Then after all are filled, emit the row
+		List<String> inputHeaders = new CopyOnWriteArrayList<>();
 		for (final ValueMapping nextValueMapping : map) {
 			inputHeaders.add(nextValueMapping.getInputField());
-			outputHeaders.add(nextValueMapping.getOutputField());
 			nextEmittedRow.add(output.getOrDefault(nextValueMapping.getOutputField(), ""));
 		}
 
-		List<String> mappedRow = ValueMapping.mapLine(inputHeaders, outputHeaders, nextEmittedRow, map);
+		List<String> mappedRow = ValueMapping.mapLine(inputHeaders, nextEmittedRow, map);
 
 		// TODO: Delegate this quick process to a single thread and parallelise
 		// the mapping above

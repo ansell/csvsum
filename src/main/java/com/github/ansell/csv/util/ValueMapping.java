@@ -28,11 +28,9 @@ package com.github.ansell.csv.util;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.script.Bindings;
@@ -44,19 +42,12 @@ import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
-import com.healthmarketscience.jackcess.Row;
-
 /**
  * A mapping definition from an original CSV field to an output CSV field.
  * 
  * @author Peter Ansell p_ansell@yahoo.com
  */
 public class ValueMapping {
-
-	/**
-	 * The default mapping if none is specified in the mapping file.
-	 */
-	protected static final String DEFAULT_MAPPING = "inputValue";
 
 	public enum ValueMappingLanguage {
 		DEFAULT(ValueMapping.DEFAULT_MAPPING),
@@ -84,11 +75,15 @@ public class ValueMapping {
 		}
 	}
 
-	public static final String LANGUAGE = "Language";
+	/**
+	 * The default mapping if none is specified in the mapping file.
+	 */
+	protected static final String DEFAULT_MAPPING = "inputValue";
 
 	public static final String OLD_FIELD = "OldField";
-
 	public static final String NEW_FIELD = "NewField";
+	public static final String SHOWN = "Shown";
+	public static final String LANGUAGE = "Language";
 	public static final String MAPPING = "Mapping";
 	private static final ScriptEngineManager SCRIPT_MANAGER = new ScriptEngineManager();
 	private static final boolean DEBUG = false;
@@ -108,27 +103,15 @@ public class ValueMapping {
 
 		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
 			return newMapping(l.get(h.indexOf(LANGUAGE)), l.get(h.indexOf(OLD_FIELD)), l.get(h.indexOf(NEW_FIELD)),
-					l.get(h.indexOf(MAPPING)));
+					l.get(h.indexOf(MAPPING)), l.get(h.indexOf(SHOWN)));
 		} , l -> result.add(l));
 
 		return result;
 	}
 
-	public static List<String> mapLine(List<String> inputHeaders, List<String> outputHeaders, List<String> line,
-			List<ValueMapping> map) {
-
-		if (outputHeaders.size() != map.size()) {
-			throw new IllegalArgumentException("The number of mappings must match the number of output headers");
-		}
-
-		List<String> outputHeadersFromMap = map.stream().map(k -> k.getOutputField()).collect(Collectors.toList());
-
-		if (!outputHeadersFromMap.equals(outputHeaders)) {
-			throw new IllegalArgumentException("Mappings contain different output headers to the given output headers");
-		}
+	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<ValueMapping> map) {
 
 		Map<String, String> outputValues = new ConcurrentHashMap<>();
-		List<String> result = new ArrayList<>();
 
 		// Note, empirically, it seems about 50% faster with a limited number of
 		// cores to do a serial mapping, not a parallel mapping
@@ -139,13 +122,16 @@ public class ValueMapping {
 			outputValues.put(nextMapping.getOutputField(), mappedValue);
 		});
 
+		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(k -> k.getOutputField())
+				.collect(Collectors.toList());
+		List<String> result = new ArrayList<>(outputHeaders.size());
 		outputHeaders.forEach(nextOutput -> result.add(outputValues.getOrDefault(nextOutput, "")));
 
 		return result;
 	}
 
-	public static final ValueMapping newMapping(String language, String input, String output, String mapping) {
-		if(output == null || output.isEmpty()) {
+	public static final ValueMapping newMapping(String language, String input, String output, String mapping, String shownString) {
+		if (output == null || output.isEmpty()) {
 			throw new IllegalArgumentException("Output field must not be empty");
 		}
 		ValueMappingLanguage nextLanguage;
@@ -164,7 +150,9 @@ public class ValueMapping {
 			nextMapping = nextLanguage.getDefaultMapping();
 		}
 
-		ValueMapping result = new ValueMapping(nextLanguage, input, output, nextMapping);
+		boolean shown = !"no".equalsIgnoreCase(shownString);
+
+		ValueMapping result = new ValueMapping(nextLanguage, input, output, nextMapping, shown);
 
 		result.init();
 
@@ -179,6 +167,8 @@ public class ValueMapping {
 
 	private final String mapping;
 
+	private final boolean shown;
+
 	private transient ScriptEngine scriptEngine;
 	private transient CompiledScript compiledScript;
 
@@ -186,11 +176,12 @@ public class ValueMapping {
 	 * All creation of ValueMapping objects must be done through the
 	 * {@link #newMapping(String, String, String, String)} method.
 	 */
-	private ValueMapping(ValueMappingLanguage language, String input, String output, String mapping) {
+	private ValueMapping(ValueMappingLanguage language, String input, String output, String mapping, boolean shown) {
 		this.language = language;
 		this.input = input;
 		this.output = output;
 		this.mapping = mapping;
+		this.shown = shown;
 	}
 
 	private String apply(List<String> inputHeaders, List<String> line) {
@@ -271,6 +262,9 @@ public class ValueMapping {
 		} else if (!output.equals(other.output)) {
 			return false;
 		}
+		if (shown != other.shown) {
+			return false;
+		}
 		return true;
 	}
 
@@ -290,6 +284,10 @@ public class ValueMapping {
 		return this.output;
 	}
 
+	public boolean getShown() {
+		return this.shown;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -298,6 +296,7 @@ public class ValueMapping {
 		result = prime * result + ((language == null) ? 0 : language.hashCode());
 		result = prime * result + ((mapping == null) ? 0 : mapping.hashCode());
 		result = prime * result + ((output == null) ? 0 : output.hashCode());
+		result = prime * result + (shown ? 1231 : 1237);
 		return result;
 	}
 
@@ -345,8 +344,7 @@ public class ValueMapping {
 
 	@Override
 	public String toString() {
-		return "ValueMapping [input=" + input + ", output=" + output + ", language=" + language + ", mapping=" + mapping
-				+ "]";
+		return "ValueMapping [language=" + language + ", input=" + input + ", output=" + output + ", mapping=" + mapping
+				+ ", shown=" + shown + "]";
 	}
-
 }

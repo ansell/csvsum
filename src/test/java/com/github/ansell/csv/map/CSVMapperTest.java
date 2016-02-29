@@ -25,10 +25,17 @@
  */
 package com.github.ansell.csv.map;
 
+import static org.junit.Assert.assertEquals;
+
+import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -37,6 +44,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import com.github.ansell.csv.map.CSVMapper;
+import com.github.ansell.csv.util.CSVUtil;
 
 import joptsimple.OptionException;
 
@@ -55,6 +63,8 @@ public class CSVMapperTest {
 
 	private Path testMapping;
 
+	private Path testMappingHidden;
+
 	private Path testFile;
 
 	@Before
@@ -62,6 +72,9 @@ public class CSVMapperTest {
 		testMapping = tempDir.newFile("test-mapping.csv").toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-mapping.csv"), testMapping,
 				StandardCopyOption.REPLACE_EXISTING);
+		testMappingHidden = tempDir.newFile("test-mapping-with-hidden.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-mapping-with-hidden.csv"),
+				testMappingHidden, StandardCopyOption.REPLACE_EXISTING);
 		testFile = tempDir.newFile("test-source.csv").toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-source.csv"), testFile,
 				StandardCopyOption.REPLACE_EXISTING);
@@ -149,5 +162,44 @@ public class CSVMapperTest {
 		CSVMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
 				testMapping.toAbsolutePath().toString(), "--output",
 				testDirectory.resolve("test-output.csv").toString());
+
+		List<String> headers = new ArrayList<>();
+		List<List<String>> lines = new ArrayList<>();
+		try (BufferedReader reader = Files.newBufferedReader(testDirectory.resolve("test-output.csv"));) {
+			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+		}
+		assertEquals(8, headers.size());
+		assertEquals(6, lines.size());
+		lines.sort(Comparator.comparing(l -> l.get(0)));
+
+		lines.get(0).forEach(k -> System.out.print("\"" + k + "\", "));
+
+		assertEquals(Arrays.asList("A1", "A2", "", "A3", "", "A4", "Useful", "A5a"), lines.get(0));
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainCompleteWithOutputFileHidden() throws Exception {
+		Path testDirectory = tempDir.newFolder("test").toPath();
+
+		CSVMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
+				testMappingHidden.toAbsolutePath().toString(), "--output",
+				testDirectory.resolve("test-output.csv").toString());
+
+		List<String> headers = new ArrayList<>();
+		List<List<String>> lines = new ArrayList<>();
+		try (BufferedReader reader = Files.newBufferedReader(testDirectory.resolve("test-output.csv"));) {
+			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+		}
+		assertEquals(7, headers.size());
+		assertEquals(6, lines.size());
+		lines.sort(Comparator.comparing(l -> l.get(0)));
+
+		lines.get(0).forEach(k -> System.out.print("\"" + k + "\", "));
+
+		assertEquals(Arrays.asList("A1", "A2", "", "A3", "", "A4", "Useful"), lines.get(0));
 	}
 }

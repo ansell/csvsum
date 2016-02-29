@@ -27,10 +27,16 @@ package com.github.ansell.csv.access;
 
 import static org.junit.Assert.*;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.junit.After;
 import org.junit.Before;
@@ -39,7 +45,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-import com.github.ansell.csv.map.CSVMapper;
+import com.github.ansell.csv.util.CSVUtil;
 
 import joptsimple.OptionException;
 
@@ -58,6 +64,8 @@ public class AccessMapperTest {
 
 	private Path testMapping;
 
+	private Path testMappingWithHidden;
+
 	private Path testFile;
 
 	private Path testOutput;
@@ -70,6 +78,9 @@ public class AccessMapperTest {
 		testMapping = tempDir.newFile("test-mapping.csv").toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvaccess/test-mapping.csv"), testMapping,
 				StandardCopyOption.REPLACE_EXISTING);
+		testMappingWithHidden = tempDir.newFile("test-mapping-with-hidden.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvaccess/test-mapping-with-hidden.csv"),
+				testMappingWithHidden, StandardCopyOption.REPLACE_EXISTING);
 		testFile = tempDir.newFile("test-source.accdb").toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvaccess/test-source.accdb"), testFile,
 				StandardCopyOption.REPLACE_EXISTING);
@@ -113,6 +124,68 @@ public class AccessMapperTest {
 	public final void testMain() throws Exception {
 		AccessMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
 				testMapping.toAbsolutePath().toString(), "--output", testOutput.toAbsolutePath().toString());
+
+		List<String> headers = new ArrayList<>();
+		List<List<String>> lines = new ArrayList<>();
+		try (BufferedReader reader = Files.newBufferedReader(testOutput.resolve("Mapped-Single-tblData.csv"));) {
+			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+		}
+		assertEquals(29, headers.size());
+		assertEquals(85519, lines.size());
+		lines.sort(Comparator.comparing(l -> l.get(0)));
+
+		lines.get(0).forEach(k -> System.out.print("\"" + k + "\", "));
+
+		assertEquals(Arrays.asList("1", "1", "Murray Monitoring", "2006-06-29T00:00:00", "812", "27101014", "27",
+				"Insecta", "2710", "Diptera", "271010", "sf. Tanypodinae", "Genus", "Paramerina", "20", "1.0",
+				"Percentage of sample surveyed (0-1) was 1.0", "20.0", "812 - Murtho", "Murray", "Murtho", "Murray",
+				"34.0684", "140.8111", "-34.0684", "140.8111", "SN", "Murray sweep net (SM512)",
+				"Caught in trap no. 2"), lines.get(0));
+
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.access.AccessMapper#main(java.lang.String[])}
+	 * .
+	 */
+	@Test
+	public final void testMainWithHidden() throws Exception {
+		AccessMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
+				testMappingWithHidden.toAbsolutePath().toString(), "--output", testOutput.toAbsolutePath().toString());
+
+		List<String> headers = new ArrayList<>();
+		List<List<String>> lines = new ArrayList<>();
+		try (BufferedReader reader = Files.newBufferedReader(testOutput.resolve("Mapped-Single-tblData.csv"));) {
+			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+		}
+		assertEquals(28, headers.size());
+		assertEquals(85519, lines.size());
+		lines.sort(Comparator.comparing(l -> l.get(0)));
+
+		lines.get(0).forEach(k -> System.out.print("\"" + k + "\", "));
+
+		assertEquals(Arrays.asList("1", "1"
+				// , "Murray Monitoring"
+				, "2006-06-29T00:00:00", "812", "27101014", "27", "Insecta", "2710", "Diptera", "271010",
+				"sf. Tanypodinae", "Genus", "Paramerina", "20", "1.0", "Percentage of sample surveyed (0-1) was 1.0",
+				"20.0", "812 - Murtho", "Murray", "Murtho", "Murray", "34.0684", "140.8111", "-34.0684", "140.8111",
+				"SN", "Murray sweep net (SM512)", "Caught in trap no. 2"), lines.get(0));
+
+		// Trace showing that the headers were not changed correctly
+		// java.lang.AssertionError: expected:
+		// <[1, 1, 2006-06-29T00:00:00, 812, 27101014, 27, Insecta, 2710,
+		// Diptera, 271010, sf. Tanypodinae, Genus, Paramerina, 20, 1.0,
+		// Percentage of sample surveyed (0-1) was 1.0, 20.0, 812 - Murtho,
+		// Murray, Murtho, Murray, 34.0684, 140.8111, -34.0684, 140.8111, SN,
+		// Murray sweep net (SM512), Caught in trap no. 2]>
+		// but was:
+		// <[1, 1, 2006-06-29T00:00:00, 812, 27101014, 27, Insecta, 2710,
+		// Diptera, 271010, sf. Tanypodinae, Genus, Paramerina, 20, 1.0,
+		// Percentage of sample surveyed (0-1) was 1.0, 20.0, 812 - Murtho,
+		// Murray, Murtho, Murray, 34.0684, 140.8111, -34.0684, 140.8111, SN,
+		// Murray sweep net (SM512), Caught in trap no. 2, ]>
+
 	}
 
 	/**
@@ -125,6 +198,14 @@ public class AccessMapperTest {
 		AccessMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
 				testMapping.toAbsolutePath().toString(), "--output", testOutput.toAbsolutePath().toString(), "--debug",
 				Boolean.TRUE.toString());
+
+		List<String> headers = new ArrayList<>();
+		List<List<String>> lines = new ArrayList<>();
+		try (BufferedReader reader = Files.newBufferedReader(testOutput.resolve("Mapped-Single-tblData.csv"));) {
+			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+		}
+		assertEquals(29, headers.size());
+		assertEquals(85519, lines.size());
 	}
 
 	/**

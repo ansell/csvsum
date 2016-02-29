@@ -3,7 +3,6 @@ package com.github.ansell.csv.util;
 import static org.junit.Assert.*;
 
 import java.io.StringReader;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -27,11 +26,11 @@ public class ValueMappingTest {
 
 	@Before
 	public void setUp() throws Exception {
-		testDefaultMapping = ValueMapping.newMapping("Default", "anInput", "anotherField", "");
-		testDefaultMapping2 = ValueMapping.newMapping("Default", "anInput", "anotherField", "inputValue");
-		testDefaultMapping3 = ValueMapping.newMapping("Default", "anInput3", "anotherField3", "inputValue");
+		testDefaultMapping = ValueMapping.newMapping("Default", "anInput", "anotherField", "", "");
+		testDefaultMapping2 = ValueMapping.newMapping("Default", "anInput", "anotherField", "inputValue", "");
+		testDefaultMapping3 = ValueMapping.newMapping("Default", "anInput3", "anotherField3", "inputValue", "");
 		testJavascriptMapping = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
-				"return inputValue.substring(0, 1);");
+				"return inputValue.substring(0, 1);", "");
 	}
 
 	@After
@@ -46,8 +45,8 @@ public class ValueMappingTest {
 
 	@Test
 	public final void testExtractMappingsDefault() throws Exception {
-		List<ValueMapping> extractMappings = ValueMapping
-				.extractMappings(new StringReader("OldField,NewField,Language,Mapping\ninputField,outputField,,\n"));
+		List<ValueMapping> extractMappings = ValueMapping.extractMappings(
+				new StringReader("OldField,NewField,Shown,Language,Mapping\ninputField,outputField,,,\n"));
 
 		assertEquals(1, extractMappings.size());
 		assertEquals("inputField", extractMappings.get(0).getInputField());
@@ -59,7 +58,7 @@ public class ValueMappingTest {
 	@Test
 	public final void testExtractMappingsJavascript() throws Exception {
 		List<ValueMapping> extractMappings = ValueMapping.extractMappings(new StringReader(
-				"OldField,NewField,Language,Mapping\ninputField2,outputField2,Javascript,\"return inputValue.trim();\"\n"));
+				"OldField,NewField,Shown,Language,Mapping\ninputField2,outputField2,,Javascript,\"return inputValue.trim();\"\n"));
 
 		assertEquals(1, extractMappings.size());
 		assertEquals("inputField2", extractMappings.get(0).getInputField());
@@ -71,7 +70,7 @@ public class ValueMappingTest {
 	@Test
 	public final void testExtractMappingsMultiple() throws Exception {
 		List<ValueMapping> extractMappings = ValueMapping.extractMappings(new StringReader(
-				"OldField,NewField,Language,Mapping\ninputField2,outputField2,Javascript,\"return inputValue.trim();\"\ninputField,outputField,,\n"));
+				"OldField,NewField,Shown,Language,Mapping\ninputField2,outputField2,,Javascript,\"return inputValue.trim();\"\ninputField,outputField,,,\n"));
 
 		assertEquals(2, extractMappings.size());
 
@@ -89,7 +88,6 @@ public class ValueMappingTest {
 	@Test
 	public final void testMapLine() {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("anInput", "anInput3", "aDifferentInput"),
-				Arrays.asList("anotherField", "anotherField3", "aDifferentField"),
 				Arrays.asList("testValue1", "testValue2", "xyzabc"),
 				Arrays.asList(testDefaultMapping, testDefaultMapping3, testJavascriptMapping));
 
@@ -130,21 +128,4 @@ public class ValueMappingTest {
 		assertEquals("anotherField", testDefaultMapping2.getOutputField());
 		assertEquals("aDifferentField", testJavascriptMapping.getOutputField());
 	}
-
-	@Test
-	public final void testErrorOutputHeadersLessThanMappings() {
-		thrown.expect(IllegalArgumentException.class);
-		thrown.expectMessage("The number of mappings must match the number of output headers");
-		ValueMapping.mapLine(Arrays.asList(""), new ArrayList<>(), Arrays.asList(""),
-				Arrays.asList(testDefaultMapping));
-	}
-
-	@Test
-	public final void testErrorOutputHeadersDifferentToMappings() {
-		thrown.expect(IllegalArgumentException.class);
-		thrown.expectMessage("Mappings contain different output headers to the given output headers");
-		ValueMapping.mapLine(Arrays.asList(""), Arrays.asList("DifferentField"), Arrays.asList(""),
-				Arrays.asList(testDefaultMapping));
-	}
-
 }
