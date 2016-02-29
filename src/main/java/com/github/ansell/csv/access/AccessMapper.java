@@ -44,9 +44,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -57,6 +60,7 @@ import org.jooq.lambda.tuple.Tuple2;
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.util.CSVUtil;
+import com.github.ansell.csv.util.ConsumerRunnable;
 import com.github.ansell.csv.util.ValueMapping;
 import com.github.ansell.csv.util.ValueMapping.ValueMappingLanguage;
 import com.github.ansell.jdefaultdict.JDefaultDict;
@@ -161,6 +165,17 @@ public class AccessMapper {
 				try (final Writer csv = Files
 						.newBufferedWriter(csvPath.resolve(csvPrefix + originTable.getName() + ".csv"));
 						final SequenceWriter csvWriter = CSVUtil.newCSVWriter(new BufferedWriter(csv), schema);) {
+					BlockingQueue<List<String>> queue = new ArrayBlockingQueue<>(
+							Runtime.getRuntime().availableProcessors() == 1 ? 1
+									: Runtime.getRuntime().availableProcessors() - 1);
+					Consumer<List<String>> consumer = l -> Unchecked.consumer({
+						synchronized (csvWriter) {
+							csvWriter.write(l);
+						}
+					});
+
+					List<String> sentinel = new ArrayList<>();
+					Thread writerThread = new Thread(ConsumerRunnable.from(queue, consumer, sentinel));
 					// Run through the fields on the origin table joining them
 					// as necessary before running the other non-access mappings
 					// on the resulting list of strings

@@ -58,8 +58,8 @@ public class ConsumerRunnable<T> implements Runnable, Consumer<T> {
 			try {
 				T take = queue.take();
 
-				// If the item on the queue was a sentinel then we return
-				if (sentinel.equals(take)) {
+				// If the item on the queue was the same object as the sentinel then we return
+				if (sentinel == take) {
 					return;
 				}
 				
