@@ -252,7 +252,6 @@ public class AccessMapper {
 
 		// Populate the foreign row values
 		ConcurrentMap<String, String> output = new ConcurrentHashMap<>();
-		List<String> inputHeaders = new CopyOnWriteArrayList<>();
 		// for (final ValueMapping nextValueMapping : map) {
 		map.parallelStream().forEach(Unchecked.consumer(nextValueMapping -> {
 			String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
@@ -278,6 +277,7 @@ public class AccessMapper {
 
 		List<String> nextEmittedRow = new ArrayList<>(map.size());
 		// Then after all are filled, emit the row
+		List<String> inputHeaders = new CopyOnWriteArrayList<>();
 		for (final ValueMapping nextValueMapping : map) {
 			inputHeaders.add(nextValueMapping.getInputField());
 			nextEmittedRow.add(output.getOrDefault(nextValueMapping.getOutputField(), ""));
