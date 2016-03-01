@@ -1,0 +1,31 @@
+OldField,NewField,Shown,Language,Mapping
+tblData.VisitSampleDataPK,eventID,,,
+tblData.ProjectID,tblData.ProjectID,,,
+tblData.ProjectDescription,tblData.ProjectDescription,,,
+tblData.SampleDate,eventDate,,,
+tblData.SiteFK,tblSite.SitePK,,Access,tblSite.SitePK
+tblData.SpeciesPK,tblSpecies.SpeciesPK,,Access,tblSpecies.SpeciesPK
+tblData.ClassPK,tblClass.ClassPK,,Access,tblClass.ClassPK
+tblClass.ClassDescription,class,,,
+tblSpecies.SpeciesOrderFK,tblOrder.OrderPK,,Access,tblOrder.OrderPK
+tblOrder.OrderDescription,order,,,
+tblSpecies.SpeciesFamilyFK,tblFamily.FamilyPK,,Access,tblFamily.FamilyPK
+tblFamily.FamilyDescription,family,,,
+tblSpecies.SpeciesTaxaLevel,verbatimTaxonRank,,,
+tblSpecies.SpeciesDescription,scientificName,,,
+tblData.SpeciesCount,verbatimSampleSizeValue,,,
+tblData.PercentageOfSample,verbatimMeasurementAccuracy,,,
+tblData.PercentageOfSample,measurementAccuracy,,Javascript,"return inputValue == """" ? """" : ""Percentage of sample surveyed (0-1) was "" + inputValue;"
+tblData.FinalCount,sampleSizeValue,,,
+tblSite.SiteDescription,locationID,,,
+tblSite.River,waterBody,,,
+tblSite.Location,locality,,,
+tblSite.Catchment,higherGeography,,,
+tblSite.Latitude,verbatimLatitude,,,
+tblSite.Longitude,verbatimLongitude,,,
+tblSite.Latitude,latitude,,Javascript,"var Double = Java.type('java.lang.Double');
+return Double.toString(-1.0 * Double.parseDouble(inputValue));"
+tblSite.Longitude,longitude,,,
+tblData.MethodFK,tblMethod.MethodPK,,Access,tblMethod.MethodPK
+tblMethod.MethodDescription,samplingProtocol,,,
+tblData.Trap,eventRemarks,,Javascript,"return inputValue == """" ? """" : ""Caught in trap no. "" + inputValue;"

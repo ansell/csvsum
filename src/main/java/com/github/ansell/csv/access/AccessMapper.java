@@ -156,7 +156,7 @@ public class AccessMapper {
 
 		// Ordered mappings so that the first table in the mapping is the
 		// one to perform the base joins on
-		final ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping = new JDefaultDict<>(
+		final JDefaultDict<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping = new JDefaultDict<>(
 				k -> new ConcurrentHashMap<>());
 		final ConcurrentMap<ValueMapping, Joiner> joiners = new ConcurrentHashMap<>();
 
@@ -171,15 +171,12 @@ public class AccessMapper {
 			try (final Writer csv = Files.newBufferedWriter(csvPath.resolve(csvPrefix + originTable + ".csv"));
 					final SequenceWriter csvWriter = CSVUtil.newCSVWriter(new BufferedWriter(csv), schema);) {
 
+				// Setup the writer first
 				final Queue<List<String>> writerQueue = new ConcurrentLinkedQueue<>();
 				final List<String> writerSentinel = new ArrayList<>();
 				final Consumer<List<String>> writerConsumer = Unchecked.consumer(l -> {
 					csvWriter.write(l);
 				});
-
-				Queue<Map<String, Object>> originRowQueue = new ConcurrentLinkedQueue<>();
-				final Map<String, Object> originRowSentinel = new HashMap<String, Object>();
-
 				final Thread writerThread = new Thread(
 						ConsumerRunnable.from(writerQueue, writerConsumer, writerSentinel));
 				writerThread.start();
@@ -188,6 +185,8 @@ public class AccessMapper {
 				List<Thread> mapThreads = new ArrayList<>(mapThreadCount);
 				List<Database> dbCopies = new ArrayList<>(mapThreadCount);
 
+				Queue<Map<String, Object>> originRowQueue = new ConcurrentLinkedQueue<>();
+				final Map<String, Object> originRowSentinel = new HashMap<String, Object>();
 				try {
 					final Thread originRowThread = new Thread(() -> {
 						try {
@@ -214,7 +213,7 @@ public class AccessMapper {
 						// each thread to avoid any underlying issues with
 						// threadsafety since it isn't guaranteed at any level
 						// of the Jackcess API
-						final ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMappingForThread = new JDefaultDict<>(
+						final JDefaultDict<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMappingForThread = new JDefaultDict<>(
 								k -> new ConcurrentHashMap<>());
 						final ConcurrentMap<ValueMapping, Joiner> joinersForThread = new ConcurrentHashMap<>();
 						final Path tempDBFileForThread = Files.createTempFile("Source-accessdb-mapthread-" + i + "-",
@@ -263,18 +262,16 @@ public class AccessMapper {
 	}
 
 	private static String mapAndGetOriginTable(Path tempDBPath, List<ValueMapping> map,
-			final ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
+			final JDefaultDict<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
 			final ConcurrentMap<ValueMapping, Joiner> joiners) throws IOException {
-		String originTable = null;
 		try (final Database db = DatabaseBuilder.open(tempDBPath.toFile());) {
 			// Populate the table mapping for each value mapping
-			originTable = parseTableMappings(map, db, foreignKeyMapping, joiners);
+			return parseTableMappings(map, db, foreignKeyMapping, joiners);
 		}
-		return originTable;
 	}
 
 	private static String parseTableMappings(List<ValueMapping> map, final Database db,
-			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
+			JDefaultDict<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
 			ConcurrentMap<ValueMapping, Joiner> joiners) throws IOException {
 		String originTable = map.isEmpty() ? null
 				: db.getTable(DOT_PATTERN.split(map.get(0).getInputField())[0]).getName();
@@ -442,8 +439,7 @@ public class AccessMapper {
 				// absence of a primary key index
 				if (false) {
 					// If the fast index cursor did not work fall back to the
-					// slow
-					// default cursor
+					// slow default cursor
 					for (Index index : dest.getIndexes()) {
 						// break out if we have already found the row
 						if (findFirstRowOtherIndexes) {
@@ -451,8 +447,7 @@ public class AccessMapper {
 						}
 
 						// Already checked the primary key index above as a
-						// priority
-						// for performance
+						// priority for performance
 						if (index.getName() != null && index.getName().equals(primaryKeyIndexName)) {
 							continue;
 						}
@@ -485,9 +480,8 @@ public class AccessMapper {
 	}
 
 	private static Map<String, Object> buildMatchMap(ValueMapping mapping, Map<String, Object> originRow) {
+		//System.out.println("Building match map for: " + mapping + " row=" + originRow);
 		Map<String, Object> result = new HashMap<>();
-
-		// System.out.println("Building match map for: " + mapping);
 
 		String[] destFields = COMMA_PATTERN.split(mapping.getMapping());
 		String[] sourceFields = COMMA_PATTERN.split(mapping.getInputField());
