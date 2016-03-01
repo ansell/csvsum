@@ -43,10 +43,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
@@ -144,7 +146,7 @@ public class AccessMapper {
 	}
 
 	private static void mapDBToSingleCSV(InputStream readerDB, List<ValueMapping> map, Path csvPath, String csvPrefix)
-			throws IOException {
+			throws IOException, InterruptedException {
 		Path tempFile = Files.createTempFile("Source-accessdb", ".accdb");
 		Files.copy(readerDB, tempFile, StandardCopyOption.REPLACE_EXISTING);
 
@@ -165,25 +167,40 @@ public class AccessMapper {
 				try (final Writer csv = Files
 						.newBufferedWriter(csvPath.resolve(csvPrefix + originTable.getName() + ".csv"));
 						final SequenceWriter csvWriter = CSVUtil.newCSVWriter(new BufferedWriter(csv), schema);) {
-					BlockingQueue<List<String>> queue = new ArrayBlockingQueue<>(
-							Runtime.getRuntime().availableProcessors() == 1 ? 1
-									: Runtime.getRuntime().availableProcessors() - 1);
-					Consumer<List<String>> consumer = l -> Unchecked.consumer({
-						synchronized (csvWriter) {
-							csvWriter.write(l);
-						}
+					int parallelThreads = Runtime.getRuntime().availableProcessors() == 1 ? 1
+							: Runtime.getRuntime().availableProcessors() - 1;
+					Queue<List<String>> queue = new ConcurrentLinkedQueue<>();
+					Consumer<List<String>> consumer = Unchecked.consumer(l -> {
+						// With only one writing thread we don't need to
+						// synchronize on the writer
+						// synchronized (csvWriter) {
+						csvWriter.write(l);
+						// }
 					});
 
 					List<String> sentinel = new ArrayList<>();
 					Thread writerThread = new Thread(ConsumerRunnable.from(queue, consumer, sentinel));
-					// Run through the fields on the origin table joining them
-					// as necessary before running the other non-access mappings
-					// on the resulting list of strings
-					for (Row nextRow : originTable) {
-						// StreamSupport.stream(originTable.spliterator(),
-						// true).forEach(Unchecked.consumer(nextRow -> {
-						writeNextRow(map, foreignKeyMapping, joiners, csvWriter, nextRow);
-						// }));
+					writerThread.start();
+
+					try {
+						// Run through the fields on the origin table joining
+						// them
+						// as necessary before running the other non-access
+						// mappings
+						// on the resulting list of strings
+						for (Row nextRow : originTable) {
+							// StreamSupport.stream(originTable.spliterator(),
+							// true).forEach(Unchecked.consumer(nextRow -> {
+							queue.add(writeNextRow(map, foreignKeyMapping, joiners, nextRow));
+							// }));
+						}
+					} finally {
+						// Add a sentinel to the end of the queue to signal the
+						// writer thread can finish
+						queue.add(sentinel);
+
+						// Wait for the writer to finish
+						writerThread.join();
 					}
 				}
 			}
@@ -224,10 +241,9 @@ public class AccessMapper {
 		return originTable;
 	}
 
-	private static void writeNextRow(List<ValueMapping> map,
+	private static List<String> writeNextRow(List<ValueMapping> map,
 			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<Table, Table>>> foreignKeyMapping,
-			ConcurrentMap<ValueMapping, Joiner> joiners, final SequenceWriter csvWriter, Row nextRow)
-					throws IOException {
+			ConcurrentMap<ValueMapping, Joiner> joiners, Row nextRow) throws IOException {
 		// Rows, indexed by the table that they came from
 		ConcurrentMap<String, Row> componentRowsForThisRow = new ConcurrentHashMap<>();
 		for (final ValueMapping nextValueMapping : map) {
@@ -299,12 +315,7 @@ public class AccessMapper {
 		}
 
 		List<String> mappedRow = ValueMapping.mapLine(inputHeaders, nextEmittedRow, map);
-
-		// TODO: Delegate this quick process to a single thread and parallelise
-		// the mapping above
-		synchronized (csvWriter) {
-			csvWriter.write(mappedRow);
-		}
+		return mappedRow;
 	}
 
 	private static void getRowFromTables(

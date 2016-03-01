@@ -25,7 +25,7 @@
  */
 package com.github.ansell.csv.util;
 
-import java.util.concurrent.BlockingQueue;
+import java.util.Queue;
 import java.util.function.Consumer;
 
 /**
@@ -38,17 +38,17 @@ import java.util.function.Consumer;
  */
 public class ConsumerRunnable<T> implements Runnable, Consumer<T> {
 
-	private final BlockingQueue<T> queue;
+	private final Queue<T> queue;
 	private final Consumer<T> consumer;
 	private final T sentinel;
 
-	private ConsumerRunnable(BlockingQueue<T> queue, Consumer<T> consumer, T sentinel) {
+	private ConsumerRunnable(Queue<T> queue, Consumer<T> consumer, T sentinel) {
 		this.queue = queue;
 		this.consumer = consumer;
 		this.sentinel = sentinel;
 	}
 
-	public static <T> ConsumerRunnable<T> from(BlockingQueue<T> queue, Consumer<T> consumer, T sentinel) {
+	public static <T> ConsumerRunnable<T> from(Queue<T> queue, Consumer<T> consumer, T sentinel) {
 		return new ConsumerRunnable<>(queue, consumer, sentinel);
 	}
 
@@ -56,8 +56,13 @@ public class ConsumerRunnable<T> implements Runnable, Consumer<T> {
 	public void run() {
 		while (true) {
 			try {
-				T take = queue.take();
+				T take = queue.poll();
 
+				if(take == null) {
+					Thread.sleep(50);
+					continue;
+				}
+				
 				// If the item on the queue was the same object as the sentinel then we return
 				if (sentinel == take) {
 					return;
