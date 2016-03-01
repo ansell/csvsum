@@ -225,7 +225,8 @@ public class AccessMapper {
 						final String nextOriginTable = parseTableMappings(map, db, foreignKeyMappingForThread,
 								joinersForThread);
 						final Consumer<Map<String, Object>> originRowConsumer = Unchecked.consumer(r -> {
-							writerQueue.add(writeNextRow(map, foreignKeyMappingForThread, joinersForThread, r, db));
+							writerQueue.add(writeNextRow(map, foreignKeyMappingForThread, joinersForThread,
+									nextOriginTable, r, db));
 						});
 						final Thread mapThread = new Thread(
 								ConsumerRunnable.from(originRowQueue, originRowConsumer, originRowSentinel));
@@ -308,13 +309,12 @@ public class AccessMapper {
 
 	private static List<String> writeNextRow(List<ValueMapping> map,
 			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
-			ConcurrentMap<ValueMapping, Joiner> joiners, Map<String, Object> nextRow, Database database)
-					throws IOException {
+			ConcurrentMap<ValueMapping, Joiner> joiners, String originTable, Map<String, Object> nextRow,
+			Database database) throws IOException {
 		// Rows, indexed by the table that they came from
 		ConcurrentMap<String, Map<String, Object>> componentRowsForThisRow = new ConcurrentHashMap<>();
+		componentRowsForThisRow.put(originTable, nextRow);
 		for (final ValueMapping nextValueMapping : map) {
-			// map.parallelStream().forEach(Unchecked.consumer(nextValueMapping
-			// -> {
 			String[] splitDBFieldSource = DOT_PATTERN.split(nextValueMapping.getInputField());
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
 				String[] splitDBFieldDest = DOT_PATTERN.split(nextValueMapping.getMapping());
@@ -334,17 +334,7 @@ public class AccessMapper {
 						}
 					}
 				}
-			} else {
-				if (splitDBFieldSource.length != 2) {
-					throw new RuntimeException(
-							"Source mapping was not in the 'table.column' format: " + nextValueMapping);
-				}
-				// Else we use the current table to populate the output rows
-				if (!componentRowsForThisRow.containsKey(splitDBFieldSource[0])) {
-					componentRowsForThisRow.put(splitDBFieldSource[0], nextRow);
-				}
 			}
-			// }));
 		}
 
 		// Populate the foreign row values
@@ -400,7 +390,8 @@ public class AccessMapper {
 			Map<String, Object> originRow = componentRowsForThisRow.get(origin);
 			if (originRow == null) {
 				throw new RuntimeException(
-						"Could not find row: Maybe the order of the mapping file needs changing: " + nextMapping);
+						"Could not find row: Maybe the order of the mapping file needs changing: origin=" + origin
+								+ " mapping=" + nextMapping);
 
 			}
 			Map<String, Object> singletonMap = buildMatchMap(nextMapping, originRow);
