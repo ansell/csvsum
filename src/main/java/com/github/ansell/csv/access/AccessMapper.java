@@ -398,8 +398,9 @@ public class AccessMapper {
 
 			Map<String, Object> originRow = componentRowsForThisRow.get(origin);
 			if (originRow == null) {
-				System.out.println(
+				throw new RuntimeException(
 						"Could not find row: Maybe the order of the mapping file needs changing: " + nextMapping);
+				
 			}
 			Map<String, Object> singletonMap = buildMatchMap(nextMapping, originRow);
 
