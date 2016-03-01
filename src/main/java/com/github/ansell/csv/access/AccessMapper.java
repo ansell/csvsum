@@ -169,7 +169,7 @@ public class AccessMapper {
 						final SequenceWriter csvWriter = CSVUtil.newCSVWriter(new BufferedWriter(csv), schema);) {
 					int parallelThreads = Runtime.getRuntime().availableProcessors() == 1 ? 1
 							: Runtime.getRuntime().availableProcessors() - 1;
-					Queue<List<String>> queue = new ConcurrentLinkedQueue<>();
+					Queue<List<String>> writerQueue = new ConcurrentLinkedQueue<>();
 					Consumer<List<String>> consumer = Unchecked.consumer(l -> {
 						// With only one writing thread we don't need to
 						// synchronize on the writer
@@ -179,7 +179,7 @@ public class AccessMapper {
 					});
 
 					List<String> sentinel = new ArrayList<>();
-					Thread writerThread = new Thread(ConsumerRunnable.from(queue, consumer, sentinel));
+					Thread writerThread = new Thread(ConsumerRunnable.from(writerQueue, consumer, sentinel));
 					writerThread.start();
 
 					try {
@@ -191,13 +191,13 @@ public class AccessMapper {
 						for (Row nextRow : originTable) {
 							// StreamSupport.stream(originTable.spliterator(),
 							// true).forEach(Unchecked.consumer(nextRow -> {
-							queue.add(writeNextRow(map, foreignKeyMapping, joiners, nextRow));
+							writerQueue.add(writeNextRow(map, foreignKeyMapping, joiners, nextRow));
 							// }));
 						}
 					} finally {
 						// Add a sentinel to the end of the queue to signal the
 						// writer thread can finish
-						queue.add(sentinel);
+						writerQueue.add(sentinel);
 
 						// Wait for the writer to finish
 						writerThread.join();

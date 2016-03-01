@@ -59,7 +59,7 @@ public class ConsumerRunnable<T> implements Runnable, Consumer<T> {
 				T take = queue.poll();
 
 				if(take == null) {
-					Thread.sleep(50);
+					Thread.sleep(100);
 					continue;
 				}
 				
