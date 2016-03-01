@@ -387,6 +387,12 @@ public class AccessMapper {
 			String origin = entry.getValue().v1();
 			String destName = entry.getValue().v2();
 
+			if (componentRowsForThisRow.containsKey(destName)) {
+				// Short circuit as we have mapped this destination table
+				// already
+				continue;
+			}
+
 			Map<String, Object> originRow = componentRowsForThisRow.get(origin);
 			if (originRow == null) {
 				throw new RuntimeException(
