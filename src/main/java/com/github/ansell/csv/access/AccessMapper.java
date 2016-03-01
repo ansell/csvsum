@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -400,7 +401,7 @@ public class AccessMapper {
 			if (originRow == null) {
 				throw new RuntimeException(
 						"Could not find row: Maybe the order of the mapping file needs changing: " + nextMapping);
-				
+
 			}
 			Map<String, Object> singletonMap = buildMatchMap(nextMapping, originRow);
 
@@ -481,7 +482,8 @@ public class AccessMapper {
 	}
 
 	private static Map<String, Object> buildMatchMap(ValueMapping mapping, Map<String, Object> originRow) {
-		//System.out.println("Building match map for: " + mapping + " row=" + originRow);
+		// System.out.println("Building match map for: " + mapping + " row=" +
+		// originRow);
 		Map<String, Object> result = new HashMap<>();
 
 		String[] destFields = COMMA_PATTERN.split(mapping.getMapping());
@@ -491,10 +493,28 @@ public class AccessMapper {
 			throw new RuntimeException("Source and destination mapping fields must be equal size: " + mapping);
 		}
 
+		Set<String> destFieldsSet = new LinkedHashSet<>(Arrays.asList(destFields));
+
+		if (destFieldsSet.size() != destFields.length) {
+			throw new RuntimeException("Destination mapping contained duplicates: " + mapping);
+		}
+
 		for (int i = 0; i < destFields.length; i++) {
 			String[] destField = DOT_PATTERN.split(destFields[i]);
 			String[] sourceField = DOT_PATTERN.split(sourceFields[i]);
+			if (!originRow.containsKey(sourceField[1])) {
+				throw new RuntimeException("Origin row did not contain a field required for mapping: field="
+						+ sourceFields[i] + " mapping=" + mapping);
+			}
 			Object nextFKValue = originRow.get(sourceField[1]);
+			if (nextFKValue == null) {
+				throw new RuntimeException("Origin row contained a null value for a field required for mapping: field="
+						+ sourceFields[i] + " mapping=" + mapping);
+			}
+			if (result.containsKey(destField[1])) {
+				throw new RuntimeException("Destination row contained a duplicate field name: field=" + destFields[i]
+						+ " mapping=" + mapping);
+			}
 			result.put(destField[1], nextFKValue);
 		}
 
