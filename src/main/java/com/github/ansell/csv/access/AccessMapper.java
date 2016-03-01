@@ -315,8 +315,8 @@ public class AccessMapper {
 		ConcurrentMap<String, Map<String, Object>> componentRowsForThisRow = new ConcurrentHashMap<>();
 		componentRowsForThisRow.put(originTable, nextRow);
 		for (final ValueMapping nextValueMapping : map) {
-			String[] splitDBFieldSource = DOT_PATTERN.split(nextValueMapping.getInputField());
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
+				String[] splitDBFieldSource = DOT_PATTERN.split(nextValueMapping.getInputField());
 				String[] splitDBFieldDest = DOT_PATTERN.split(nextValueMapping.getMapping());
 				if (splitDBFieldDest.length < 2) {
 					throw new RuntimeException(
@@ -496,9 +496,14 @@ public class AccessMapper {
 			throw new RuntimeException("Destination mapping contained duplicates: " + mapping);
 		}
 
+		Set<String> sourceTables = new LinkedHashSet<>();
+		Set<String> destTables = new LinkedHashSet<>();
+
 		for (int i = 0; i < destFields.length; i++) {
 			String[] destField = DOT_PATTERN.split(destFields[i]);
+			destTables.add(destField[0]);
 			String[] sourceField = DOT_PATTERN.split(sourceFields[i]);
+			sourceTables.add(sourceField[0]);
 			if (!originRow.containsKey(sourceField[1])) {
 				throw new RuntimeException("Origin row did not contain a field required for mapping: field="
 						+ sourceFields[i] + " mapping=" + mapping);
@@ -513,6 +518,14 @@ public class AccessMapper {
 						+ " mapping=" + mapping);
 			}
 			result.put(destField[1], nextFKValue);
+		}
+
+		if (sourceTables.size() != 1) {
+			throw new RuntimeException("Cannot map from multiple source tables: " + mapping);
+		}
+
+		if (destTables.size() != 1) {
+			throw new RuntimeException("Cannot map to multiple destination tables: " + mapping);
 		}
 
 		return result;
