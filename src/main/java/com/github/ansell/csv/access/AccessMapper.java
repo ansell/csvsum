@@ -153,7 +153,7 @@ public class AccessMapper {
 
 		final Path tempDBPath = Files.createTempFile("Source-accessdb", ".accdb");
 		Files.copy(readerDB, tempDBPath, StandardCopyOption.REPLACE_EXISTING);
-		
+
 		// Ordered mappings so that the first table in the mapping is the
 		// one to perform the base joins on
 		final ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping = new JDefaultDict<>(
@@ -186,11 +186,15 @@ public class AccessMapper {
 
 				int mapThreadCount = 2;
 				List<Thread> mapThreads = new ArrayList<>(mapThreadCount);
+				List<Database> dbCopies = new ArrayList<>(mapThreadCount);
 
 				try {
 					final Thread originRowThread = new Thread(() -> {
 						try {
-							try (final Database db = DatabaseBuilder.open(tempDBFile.toFile());) {
+							final Path tempDBFileForThread = Files.createTempFile("Source-accessdb-originrows-",
+									".accdb");
+							Files.copy(tempDBPath, tempDBFileForThread, StandardCopyOption.REPLACE_EXISTING);
+							try (final Database db = DatabaseBuilder.open(tempDBFileForThread.toFile());) {
 								for (Map<String, Object> nextRow : db.getTable(originTable)) {
 									originRowQueue.add(nextRow);
 								}
@@ -206,11 +210,22 @@ public class AccessMapper {
 					});
 
 					for (int i = 0; i < mapThreadCount; i++) {
-						final Path tempDBFile = Files.createTempFile("Source-accessdb", ".accdb");
-						Files.copy(readerDB, tempDBFile, StandardCopyOption.REPLACE_EXISTING);
-						final Database db = DatabaseBuilder.open(tempDBFile.toFile());
+						// Take a separate physical copy of the database for
+						// each thread to avoid any underlying issues with
+						// threadsafety since it isn't guaranteed at any level
+						// of the Jackcess API
+						final ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMappingForThread = new JDefaultDict<>(
+								k -> new ConcurrentHashMap<>());
+						final ConcurrentMap<ValueMapping, Joiner> joinersForThread = new ConcurrentHashMap<>();
+						final Path tempDBFileForThread = Files.createTempFile("Source-accessdb-mapthread-" + i + "-",
+								".accdb");
+						Files.copy(tempDBPath, tempDBFileForThread, StandardCopyOption.REPLACE_EXISTING);
+						final Database db = DatabaseBuilder.open(tempDBFileForThread.toFile());
+						dbCopies.add(db);
+						final String nextOriginTable = parseTableMappings(map, db, foreignKeyMappingForThread,
+								joinersForThread);
 						final Consumer<Map<String, Object>> originRowConsumer = Unchecked.consumer(r -> {
-							writerQueue.add(writeNextRow(map, foreignKeyMapping, joiners, r, db));
+							writerQueue.add(writeNextRow(map, foreignKeyMappingForThread, joinersForThread, r, db));
 						});
 						final Thread mapThread = new Thread(
 								ConsumerRunnable.from(originRowQueue, originRowConsumer, originRowSentinel));
@@ -227,12 +242,19 @@ public class AccessMapper {
 						}
 					} finally {
 						try {
-							// Add a sentinel to the end of the queue to signal
-							// the writer thread can finish
-							writerQueue.add(writerSentinel);
+							for (Database nextDBCopy : dbCopies) {
+								nextDBCopy.close();
+							}
 						} finally {
-							// Wait for the writer to finish
-							writerThread.join();
+							try {
+								// Add a sentinel to the end of the queue to
+								// signal
+								// the writer thread can finish
+								writerQueue.add(writerSentinel);
+							} finally {
+								// Wait for the writer to finish
+								writerThread.join();
+							}
 						}
 					}
 				}
