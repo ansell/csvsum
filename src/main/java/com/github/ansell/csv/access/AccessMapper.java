@@ -252,7 +252,7 @@ public class AccessMapper {
 			String[] splitDBFieldSource = DOT_PATTERN.split(nextValueMapping.getInputField());
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
 				String[] splitDBFieldDest = DOT_PATTERN.split(nextValueMapping.getMapping());
-				if (splitDBFieldDest.length != 2) {
+				if (splitDBFieldDest.length < 2) {
 					throw new RuntimeException(
 							"Destination mapping was not in the 'table.column' format: " + nextValueMapping);
 				}
