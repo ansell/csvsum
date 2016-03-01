@@ -137,16 +137,56 @@ public class AccessMapper {
 		}
 
 		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);) {
-			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
 			try (final InputStream readerDB = Files.newInputStream(inputPath);) {
 				dumpToCSVs(readerDB, output.value(options).toPath(), outputPrefix.value(options), debug.value(options));
 			}
 			// Read the database again to map it to a single CSV
+			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
+			
+			// Do sanity check on the access mappings
+			List<ValueMapping> accessMappings = checkAccessMappings(map);
 			try (final InputStream readerDB = Files.newInputStream(inputPath);) {
 				mapDBToSingleCSV(readerDB, map, output.value(options).toPath(),
 						outputPrefix.value(options) + "Single-");
 			}
 		}
+	}
+
+	private static List<ValueMapping> checkAccessMappings(List<ValueMapping> map) {
+		return map.stream().filter(m -> m.getLanguage() == ValueMappingLanguage.ACCESS).map(m -> {
+			String[] destFields = COMMA_PATTERN.split(m.getMapping());
+			String[] sourceFields = COMMA_PATTERN.split(m.getInputField());
+
+			if (destFields.length != sourceFields.length) {
+				throw new RuntimeException("Source and destination mapping fields must be equal size: " + m);
+			}
+
+			Set<String> destFieldsSet = new LinkedHashSet<>(Arrays.asList(destFields));
+
+			if (destFieldsSet.size() != destFields.length) {
+				throw new RuntimeException("Destination mapping contained duplicates: " + m);
+			}
+
+			Set<String> sourceTables = new LinkedHashSet<>();
+			Set<String> destTables = new LinkedHashSet<>();
+			
+			for (int i = 0; i < destFields.length; i++) {
+				String[] destField = DOT_PATTERN.split(destFields[i]);
+				destTables.add(destField[0]);
+				String[] sourceField = DOT_PATTERN.split(sourceFields[i]);
+				sourceTables.add(sourceField[0]);
+			}
+
+			if (sourceTables.size() != 1) {
+				throw new RuntimeException("Cannot map from multiple source tables: " + m);
+			}
+
+			if (destTables.size() != 1) {
+				throw new RuntimeException("Cannot map to multiple destination tables: " + m);
+			}
+			
+			return m;
+		}).collect(Collectors.toList());
 	}
 
 	private static void mapDBToSingleCSV(InputStream readerDB, List<ValueMapping> map, Path csvPath, String csvPrefix)
@@ -486,24 +526,9 @@ public class AccessMapper {
 		String[] destFields = COMMA_PATTERN.split(mapping.getMapping());
 		String[] sourceFields = COMMA_PATTERN.split(mapping.getInputField());
 
-		if (destFields.length != sourceFields.length) {
-			throw new RuntimeException("Source and destination mapping fields must be equal size: " + mapping);
-		}
-
-		Set<String> destFieldsSet = new LinkedHashSet<>(Arrays.asList(destFields));
-
-		if (destFieldsSet.size() != destFields.length) {
-			throw new RuntimeException("Destination mapping contained duplicates: " + mapping);
-		}
-
-		Set<String> sourceTables = new LinkedHashSet<>();
-		Set<String> destTables = new LinkedHashSet<>();
-
 		for (int i = 0; i < destFields.length; i++) {
 			String[] destField = DOT_PATTERN.split(destFields[i]);
-			destTables.add(destField[0]);
 			String[] sourceField = DOT_PATTERN.split(sourceFields[i]);
-			sourceTables.add(sourceField[0]);
 			if (!originRow.containsKey(sourceField[1])) {
 				throw new RuntimeException("Origin row did not contain a field required for mapping: field="
 						+ sourceFields[i] + " mapping=" + mapping);
@@ -518,14 +543,6 @@ public class AccessMapper {
 						+ " mapping=" + mapping);
 			}
 			result.put(destField[1], nextFKValue);
-		}
-
-		if (sourceTables.size() != 1) {
-			throw new RuntimeException("Cannot map from multiple source tables: " + mapping);
-		}
-
-		if (destTables.size() != 1) {
-			throw new RuntimeException("Cannot map to multiple destination tables: " + mapping);
 		}
 
 		return result;
