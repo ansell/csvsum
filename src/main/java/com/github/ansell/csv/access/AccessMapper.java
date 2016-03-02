@@ -571,8 +571,8 @@ public class AccessMapper {
 			}
 			Object nextFKValue = originRow.get(sourceField[1]);
 			if (nextFKValue == null) {
-				throw new RuntimeException("Origin row contained a null value for a field required for mapping: field="
-						+ sourceFields[i] + " mapping=" + mapping);
+				// Return an empty result if one of the source fields was null
+				return new HashMap<>();
 			}
 			if (result.containsKey(destField[1])) {
 				throw new RuntimeException("Destination row contained a duplicate field name: field=" + destFields[i]
@@ -591,7 +591,8 @@ public class AccessMapper {
 		Map<String, Object> fromRow = componentRowsForThisRow.get(key);
 
 		if (fromRow == null) {
-			System.out.println("Could not find any linked rows with the key: " + key);
+			// System.out.println("Could not find any linked rows with the key:
+			// " + key);
 		} else {
 			Map<String, Object> findFirstRow = joiners.get(nextValueMapping).findFirstRow(fromRow);
 			if (findFirstRow != null) {
