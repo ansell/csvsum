@@ -66,6 +66,7 @@ import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.util.CSVUtil;
 import com.github.ansell.csv.util.ConsumerRunnable;
+import com.github.ansell.csv.util.LineFilteredException;
 import com.github.ansell.csv.util.ValueMapping;
 import com.github.ansell.csv.util.ValueMapping.ValueMappingLanguage;
 import com.github.ansell.jdefaultdict.JDefaultDict;
@@ -439,8 +440,15 @@ public class AccessMapper {
 			nextEmittedRow.add(output.getOrDefault(nextValueMapping.getOutputField(), ""));
 		}
 
-		List<String> mappedRow = ValueMapping.mapLine(inputHeaders, nextEmittedRow, map);
-		return mappedRow;
+		try {
+			List<String> mappedRow = ValueMapping.mapLine(inputHeaders, nextEmittedRow, map);
+			return mappedRow;
+		} catch (final LineFilteredException e) {
+			// Swallow line filtered exception and return null below to
+			// eliminate it
+		}
+
+		return null;
 	}
 
 	private static void getRowFromTables(

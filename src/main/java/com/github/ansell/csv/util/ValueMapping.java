@@ -130,7 +130,8 @@ public class ValueMapping {
 		return result;
 	}
 
-	public static final ValueMapping newMapping(String language, String input, String output, String mapping, String shownString) {
+	public static final ValueMapping newMapping(String language, String input, String output, String mapping,
+			String shownString) {
 		if (output == null || output.isEmpty()) {
 			throw new IllegalArgumentException("Output field must not be empty");
 		}
@@ -313,7 +314,7 @@ public class ValueMapping {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("javascript");
 
 				scriptEngine
-						.eval("var columnFunction = function(searchHeader, inputHeaders, line) { return line.get(inputHeaders.indexOf(searchHeader)); };\nvar mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) { var col = function(searchHeader) { \n return columnFunction(searchHeader, inputHeaders, line); }; \n "
+						.eval("var LFE = Java.type(\"com.github.ansell.csv.util.LineFilteredException\"); \n var filter = function() { throw new LFE();} \n var columnFunction = function(searchHeader, inputHeaders, line) { return line.get(inputHeaders.indexOf(searchHeader)); };\nvar mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) { var col = function(searchHeader) { \n return columnFunction(searchHeader, inputHeaders, line); }; \n "
 								+ this.mapping + " };");
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
