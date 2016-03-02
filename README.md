@@ -53,6 +53,11 @@ If the Mapping field contains a script, it is executed in the context of the fol
 * outputField : The label of the output field that the results of this row will be assigned to.
 * line : The values from the current line being processed from the input file, in the same order as the inputHeaders list.
 
+The scripts also have access to two helper functions to get a specific column and to filter an entire line:
+
+* col : Called using the syntax col('columnName'), and returns the value for that column on the current line
+* filter : Called using the syntax filter(), and will make the line not appear in the results and short-circuit processing of the line for mapping purposes
+
 # Access Mapper
 
 ## Usage
@@ -74,6 +79,12 @@ Run accessmap with a sample access file:
     </dependency>
 
 # Changelog
+
+## 2016-03-02
+* Add ability to filter lines in Javascript using a new function, "filter()"
+* Add helper function for getting the value for a column in the current line, "col('columnName')"
+* Add parallel processing of Access lines in different threads to take advantage of multiple cores available
+* Write lines for Access using a different thread to reduce bottlenecks in the main thread
 
 ## 2016-02-24
 * Add mapper for Microsoft Access databases to CSV files
