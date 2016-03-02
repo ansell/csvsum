@@ -434,11 +434,16 @@ public class AccessMapper {
 
 	private static void getRowFromTables(
 			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
-			Map<String, Map<String, Object>> componentRowsForThisRow, String[] splitDBFieldOutput, Database database)
+			Map<String, Map<String, Object>> componentRowsForThisRow, String[] splitDBFieldDest, Database database)
 					throws IOException {
+		
+		if(!foreignKeyMapping.containsKey(splitDBFieldDest[0])) {
+			throw new RuntimeException("No mappings found to the destination table: " + splitDBFieldDest);
+		}
+		
 		// A joiner could not be created for this case as the original database
 		// did not setup an actual foreign key for the relationship
-		ConcurrentMap<ValueMapping, Tuple2<String, String>> mapping = foreignKeyMapping.get(splitDBFieldOutput[0]);
+		ConcurrentMap<ValueMapping, Tuple2<String, String>> mapping = foreignKeyMapping.get(splitDBFieldDest[0]);
 
 		for (Entry<ValueMapping, Tuple2<String, String>> entry : mapping.entrySet()) {
 			ValueMapping nextMapping = entry.getKey();
@@ -451,6 +456,11 @@ public class AccessMapper {
 				continue;
 			}
 
+			if(!splitDBFieldDest[0].equals(destName)) {
+				// We are not doing this mapping yet
+				continue;
+			}
+			
 			Map<String, Object> originRow = componentRowsForThisRow.get(origin);
 			if (originRow == null) {
 				throw new RuntimeException(
@@ -487,7 +497,7 @@ public class AccessMapper {
 
 			if (cursor != null && findFirstRow) {
 				Row currentRow = cursor.getCurrentRow();
-				componentRowsForThisRow.put(splitDBFieldOutput[0], currentRow);
+				componentRowsForThisRow.put(splitDBFieldDest[0], currentRow);
 			} else {
 				boolean findFirstRowOtherIndexes = false;
 
@@ -515,7 +525,7 @@ public class AccessMapper {
 
 						if (findFirstRowOtherIndexes) {
 							Row currentIndexRow = indexCursor.getCurrentRow();
-							componentRowsForThisRow.put(splitDBFieldOutput[0], currentIndexRow);
+							componentRowsForThisRow.put(splitDBFieldDest[0], currentIndexRow);
 						}
 					}
 				}
@@ -529,7 +539,7 @@ public class AccessMapper {
 
 					if (slowFindFirstRow) {
 						Row currentRow = slowCursor.getCurrentRow();
-						componentRowsForThisRow.put(splitDBFieldOutput[0], currentRow);
+						componentRowsForThisRow.put(splitDBFieldDest[0], currentRow);
 					}
 				}
 			}
