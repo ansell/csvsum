@@ -204,6 +204,13 @@ public class AccessMapper {
 					return m;
 				}).collect(Collectors.toList());
 
+		if (overallDestTables.size() != accessMappings.size()) {
+			throw new RuntimeException(
+					"There is not a unique mapping for each destination table in the access mappings: "
+							+ accessMappings.size() + " mappings but only " + overallDestTables.size()
+							+ " destination tables.");
+		}
+
 		return accessMappings;
 	}
 
@@ -436,11 +443,11 @@ public class AccessMapper {
 			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
 			Map<String, Map<String, Object>> componentRowsForThisRow, String[] splitDBFieldDest, Database database)
 					throws IOException {
-		
-		if(!foreignKeyMapping.containsKey(splitDBFieldDest[0])) {
+
+		if (!foreignKeyMapping.containsKey(splitDBFieldDest[0])) {
 			throw new RuntimeException("No mappings found to the destination table: " + splitDBFieldDest);
 		}
-		
+
 		// A joiner could not be created for this case as the original database
 		// did not setup an actual foreign key for the relationship
 		ConcurrentMap<ValueMapping, Tuple2<String, String>> mapping = foreignKeyMapping.get(splitDBFieldDest[0]);
@@ -456,18 +463,19 @@ public class AccessMapper {
 				continue;
 			}
 
-			if(!splitDBFieldDest[0].equals(destName)) {
+			if (!splitDBFieldDest[0].equals(destName)) {
 				// We are not doing this mapping yet
 				continue;
 			}
-			
+
 			Map<String, Object> originRow = componentRowsForThisRow.get(origin);
 			if (originRow == null) {
-				throw new RuntimeException(
-						"Could not find row: Maybe the order of the mapping file needs changing: origin=" + origin
-								+ " mapping=" + nextMapping);
-
+				// System.out.println("Could not find row: Maybe the order of
+				// the mapping file needs changing: origin="
+				// + origin + " mapping=" + nextMapping);
+				continue;
 			}
+
 			Map<String, Object> singletonMap = buildMatchMap(nextMapping, originRow);
 
 			// Cursor cursor = dest.getDefaultCursor();
