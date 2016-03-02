@@ -291,7 +291,7 @@ public class AccessMapper {
 						final String nextOriginTable = parseTableMappings(map, db, foreignKeyMappingForThread,
 								joinersForThread);
 						final Consumer<Map<String, Object>> originRowConsumer = Unchecked.consumer(r -> {
-							List<String> mappedRow = writeNextRow(map, foreignKeyMappingForThread, joinersForThread,
+							List<String> mappedRow = mapNextRow(map, foreignKeyMappingForThread, joinersForThread,
 									nextOriginTable, r, db);
 							if (mappedRow != null) {
 								writerQueue.add(mappedRow);
@@ -376,7 +376,7 @@ public class AccessMapper {
 		return originTable;
 	}
 
-	private static List<String> writeNextRow(List<ValueMapping> map,
+	private static List<String> mapNextRow(List<ValueMapping> map,
 			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
 			ConcurrentMap<ValueMapping, Joiner> joiners, String originTable, Map<String, Object> nextRow,
 			Database database) throws IOException {
