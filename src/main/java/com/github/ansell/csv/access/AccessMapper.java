@@ -142,7 +142,7 @@ public class AccessMapper {
 			}
 			// Read the database again to map it to a single CSV
 			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
-			
+
 			// Do sanity check on the access mappings
 			List<ValueMapping> accessMappings = checkAccessMappings(map);
 			try (final InputStream readerDB = Files.newInputStream(inputPath);) {
@@ -153,40 +153,58 @@ public class AccessMapper {
 	}
 
 	private static List<ValueMapping> checkAccessMappings(List<ValueMapping> map) {
-		return map.stream().filter(m -> m.getLanguage() == ValueMappingLanguage.ACCESS).map(m -> {
-			String[] destFields = COMMA_PATTERN.split(m.getMapping());
-			String[] sourceFields = COMMA_PATTERN.split(m.getInputField());
 
-			if (destFields.length != sourceFields.length) {
-				throw new RuntimeException("Source and destination mapping fields must be equal size: " + m);
-			}
+		// Check that there are unique destination tables across all of the
+		// mappings
+		// There will be no consistency if a destination table is mapped
+		// multiple times, as we require a DAG to be sure that we can start at
+		// the origin table and reach other tables uniquely
+		Set<String> overallDestTables = new LinkedHashSet<>();
 
-			Set<String> destFieldsSet = new LinkedHashSet<>(Arrays.asList(destFields));
+		List<ValueMapping> accessMappings = map.stream().filter(m -> m.getLanguage() == ValueMappingLanguage.ACCESS)
+				.map(m -> {
+					String[] destFields = COMMA_PATTERN.split(m.getMapping());
+					String[] sourceFields = COMMA_PATTERN.split(m.getInputField());
 
-			if (destFieldsSet.size() != destFields.length) {
-				throw new RuntimeException("Destination mapping contained duplicates: " + m);
-			}
+					if (destFields.length != sourceFields.length) {
+						throw new RuntimeException("Source and destination mapping fields must be equal size: " + m);
+					}
 
-			Set<String> sourceTables = new LinkedHashSet<>();
-			Set<String> destTables = new LinkedHashSet<>();
-			
-			for (int i = 0; i < destFields.length; i++) {
-				String[] destField = DOT_PATTERN.split(destFields[i]);
-				destTables.add(destField[0]);
-				String[] sourceField = DOT_PATTERN.split(sourceFields[i]);
-				sourceTables.add(sourceField[0]);
-			}
+					Set<String> destFieldsSet = new LinkedHashSet<>(Arrays.asList(destFields));
 
-			if (sourceTables.size() != 1) {
-				throw new RuntimeException("Cannot map from multiple source tables: " + m);
-			}
+					if (destFieldsSet.size() != destFields.length) {
+						throw new RuntimeException("Destination mapping contained duplicates: " + m);
+					}
 
-			if (destTables.size() != 1) {
-				throw new RuntimeException("Cannot map to multiple destination tables: " + m);
-			}
-			
-			return m;
-		}).collect(Collectors.toList());
+					Set<String> sourceTables = new LinkedHashSet<>();
+					Set<String> destTables = new LinkedHashSet<>();
+
+					for (int i = 0; i < destFields.length; i++) {
+						String[] destField = DOT_PATTERN.split(destFields[i]);
+						destTables.add(destField[0]);
+						String[] sourceField = DOT_PATTERN.split(sourceFields[i]);
+						sourceTables.add(sourceField[0]);
+					}
+
+					if (sourceTables.size() != 1) {
+						throw new RuntimeException("Cannot map from multiple source tables: " + m);
+					}
+
+					if (destTables.size() != 1) {
+						throw new RuntimeException("Cannot map to multiple destination tables: " + m);
+					}
+
+					if (overallDestTables.contains(destTables.iterator().next())) {
+						throw new RuntimeException(
+								"Cannot map to a destination table from multiple Access mappings: " + m);
+					}
+
+					overallDestTables.add(destTables.iterator().next());
+
+					return m;
+				}).collect(Collectors.toList());
+
+		return accessMappings;
 	}
 
 	private static void mapDBToSingleCSV(InputStream readerDB, List<ValueMapping> map, Path csvPath, String csvPrefix)
@@ -382,7 +400,7 @@ public class AccessMapper {
 		// for (final ValueMapping nextValueMapping : map) {
 		map.parallelStream().forEach(Unchecked.consumer(nextValueMapping -> {
 			String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
-			if (splitDBField.length == 2) {
+			if (splitDBField.length >= 2) {
 				if (componentRowsForThisRow.containsKey(splitDBField[0])) {
 					Map<String, Object> findFirstRow = componentRowsForThisRow.get(splitDBField[0]);
 					Object nextColumnValue = findFirstRow.get(splitDBField[1]);
