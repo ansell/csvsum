@@ -291,8 +291,11 @@ public class AccessMapper {
 						final String nextOriginTable = parseTableMappings(map, db, foreignKeyMappingForThread,
 								joinersForThread);
 						final Consumer<Map<String, Object>> originRowConsumer = Unchecked.consumer(r -> {
-							writerQueue.add(writeNextRow(map, foreignKeyMappingForThread, joinersForThread,
-									nextOriginTable, r, db));
+							List<String> mappedRow = writeNextRow(map, foreignKeyMappingForThread, joinersForThread,
+									nextOriginTable, r, db);
+							if (mappedRow != null) {
+								writerQueue.add(mappedRow);
+							}
 						});
 						final Thread mapThread = new Thread(
 								ConsumerRunnable.from(originRowQueue, originRowConsumer, originRowSentinel));
