@@ -1,5 +1,5 @@
 OldField,NewField,Shown,Language,Mapping
-tblData.VisitSampleDataPK,eventID,,,
+tblData.VisitSampleDataPK,eventID,,Access,tblData.VisitSampleDataPK
 tblData.ProjectID,tblData.ProjectID,,,
 tblData.ProjectDescription,tblData.ProjectDescription,no,,
 tblData.SampleDate,eventDate,,,

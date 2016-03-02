@@ -40,13 +40,21 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -57,6 +65,7 @@ import org.jooq.lambda.tuple.Tuple2;
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.util.CSVUtil;
+import com.github.ansell.csv.util.ConsumerRunnable;
 import com.github.ansell.csv.util.ValueMapping;
 import com.github.ansell.csv.util.ValueMapping.ValueMappingLanguage;
 import com.github.ansell.jdefaultdict.JDefaultDict;
@@ -65,6 +74,7 @@ import com.healthmarketscience.jackcess.Cursor;
 import com.healthmarketscience.jackcess.Database;
 import com.healthmarketscience.jackcess.DatabaseBuilder;
 import com.healthmarketscience.jackcess.Index;
+import com.healthmarketscience.jackcess.IndexCursor;
 import com.healthmarketscience.jackcess.Row;
 import com.healthmarketscience.jackcess.Table;
 import com.healthmarketscience.jackcess.util.Joiner;
@@ -127,11 +137,14 @@ public class AccessMapper {
 		}
 
 		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);) {
-			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
 			try (final InputStream readerDB = Files.newInputStream(inputPath);) {
 				dumpToCSVs(readerDB, output.value(options).toPath(), outputPrefix.value(options), debug.value(options));
 			}
 			// Read the database again to map it to a single CSV
+			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
+
+			// Do sanity check on the access mappings
+			List<ValueMapping> accessMappings = checkAccessMappings(map);
 			try (final InputStream readerDB = Files.newInputStream(inputPath);) {
 				mapDBToSingleCSV(readerDB, map, output.value(options).toPath(),
 						outputPrefix.value(options) + "Single-");
@@ -139,46 +152,196 @@ public class AccessMapper {
 		}
 	}
 
+	private static List<ValueMapping> checkAccessMappings(List<ValueMapping> map) {
+
+		// Check that there are unique destination tables across all of the
+		// mappings
+		// There will be no consistency if a destination table is mapped
+		// multiple times, as we require a DAG to be sure that we can start at
+		// the origin table and reach other tables uniquely
+		Set<String> overallDestTables = new LinkedHashSet<>();
+
+		List<ValueMapping> accessMappings = map.stream().filter(m -> m.getLanguage() == ValueMappingLanguage.ACCESS)
+				.map(m -> {
+					String[] destFields = COMMA_PATTERN.split(m.getMapping());
+					String[] sourceFields = COMMA_PATTERN.split(m.getInputField());
+
+					if (destFields.length != sourceFields.length) {
+						throw new RuntimeException("Source and destination mapping fields must be equal size: " + m);
+					}
+
+					Set<String> destFieldsSet = new LinkedHashSet<>(Arrays.asList(destFields));
+
+					if (destFieldsSet.size() != destFields.length) {
+						throw new RuntimeException("Destination mapping contained duplicates: " + m);
+					}
+
+					Set<String> sourceTables = new LinkedHashSet<>();
+					Set<String> destTables = new LinkedHashSet<>();
+
+					for (int i = 0; i < destFields.length; i++) {
+						String[] destField = DOT_PATTERN.split(destFields[i]);
+						destTables.add(destField[0]);
+						String[] sourceField = DOT_PATTERN.split(sourceFields[i]);
+						sourceTables.add(sourceField[0]);
+					}
+
+					if (sourceTables.size() != 1) {
+						throw new RuntimeException("Cannot map from multiple source tables: " + m);
+					}
+
+					if (destTables.size() != 1) {
+						throw new RuntimeException("Cannot map to multiple destination tables: " + m);
+					}
+
+					if (overallDestTables.contains(destTables.iterator().next())) {
+						throw new RuntimeException(
+								"Cannot map to a destination table from multiple Access mappings: " + m);
+					}
+
+					overallDestTables.add(destTables.iterator().next());
+
+					return m;
+				}).collect(Collectors.toList());
+
+		if (overallDestTables.size() != accessMappings.size()) {
+			throw new RuntimeException(
+					"There is not a unique mapping for each destination table in the access mappings: "
+							+ accessMappings.size() + " mappings but only " + overallDestTables.size()
+							+ " destination tables.");
+		}
+
+		return accessMappings;
+	}
+
 	private static void mapDBToSingleCSV(InputStream readerDB, List<ValueMapping> map, Path csvPath, String csvPrefix)
-			throws IOException {
-		Path tempFile = Files.createTempFile("Source-accessdb", ".accdb");
-		Files.copy(readerDB, tempFile, StandardCopyOption.REPLACE_EXISTING);
+			throws IOException, InterruptedException {
 
-		try (final Database db = DatabaseBuilder.open(tempFile.toFile());) {
-			// Ordered mappings so that the first table in the mapping is the
-			// one to perform the base joins on
-			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<Table, Table>>> foreignKeyMapping = new JDefaultDict<>(
-					k -> new ConcurrentHashMap<>());
-			ConcurrentMap<ValueMapping, Joiner> joiners = new ConcurrentHashMap<>();
-			// Populate the table mapping for each value mapping
-			Table originTable = parseTableMappings(map, db, foreignKeyMapping, joiners);
-			// There may have been no mappings...
-			if (originTable != null) {
-				List<String> headers = map.stream().filter(k -> k.getShown()).map(m -> m.getOutputField())
-						.collect(Collectors.toList());
-				final CsvSchema schema = CSVUtil.buildSchema(headers);
+		final Path tempDBPath = Files.createTempFile("Source-accessdb", ".accdb");
+		Files.copy(readerDB, tempDBPath, StandardCopyOption.REPLACE_EXISTING);
 
-				try (final Writer csv = Files
-						.newBufferedWriter(csvPath.resolve(csvPrefix + originTable.getName() + ".csv"));
-						final SequenceWriter csvWriter = CSVUtil.newCSVWriter(new BufferedWriter(csv), schema);) {
-					// Run through the fields on the origin table joining them
-					// as necessary before running the other non-access mappings
-					// on the resulting list of strings
-					for (Row nextRow : originTable) {
-						// StreamSupport.stream(originTable.spliterator(),
-						// true).forEach(Unchecked.consumer(nextRow -> {
-						writeNextRow(map, foreignKeyMapping, joiners, csvWriter, nextRow);
-						// }));
+		// Ordered mappings so that the first table in the mapping is the
+		// one to perform the base joins on
+		final JDefaultDict<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping = new JDefaultDict<>(
+				k -> new ConcurrentHashMap<>());
+		final ConcurrentMap<ValueMapping, Joiner> joiners = new ConcurrentHashMap<>();
+
+		final String originTable = mapAndGetOriginTable(tempDBPath, map, foreignKeyMapping, joiners);
+
+		// There may have been no mappings...
+		if (originTable != null) {
+			List<String> headers = map.stream().filter(k -> k.getShown()).map(m -> m.getOutputField())
+					.collect(Collectors.toList());
+			final CsvSchema schema = CSVUtil.buildSchema(headers);
+
+			try (final Writer csv = Files.newBufferedWriter(csvPath.resolve(csvPrefix + originTable + ".csv"));
+					final SequenceWriter csvWriter = CSVUtil.newCSVWriter(new BufferedWriter(csv), schema);) {
+
+				// Setup the writer first
+				final Queue<List<String>> writerQueue = new ConcurrentLinkedQueue<>();
+				final List<String> writerSentinel = new ArrayList<>();
+				final Consumer<List<String>> writerConsumer = Unchecked.consumer(l -> {
+					csvWriter.write(l);
+				});
+				final Thread writerThread = new Thread(
+						ConsumerRunnable.from(writerQueue, writerConsumer, writerSentinel));
+				writerThread.start();
+
+				int mapThreadCount = 2;
+				List<Thread> mapThreads = new ArrayList<>(mapThreadCount);
+				List<Database> dbCopies = new ArrayList<>(mapThreadCount);
+
+				Queue<Map<String, Object>> originRowQueue = new ConcurrentLinkedQueue<>();
+				final Map<String, Object> originRowSentinel = new HashMap<String, Object>();
+				try {
+					final Thread originRowThread = new Thread(() -> {
+						try {
+							final Path tempDBFileForThread = Files.createTempFile("Source-accessdb-originrows-",
+									".accdb");
+							Files.copy(tempDBPath, tempDBFileForThread, StandardCopyOption.REPLACE_EXISTING);
+							try (final Database db = DatabaseBuilder.open(tempDBFileForThread.toFile());) {
+								for (Map<String, Object> nextRow : db.getTable(originTable)) {
+									originRowQueue.add(nextRow);
+								}
+							}
+						} catch (IOException e) {
+							throw new RuntimeException(e);
+						} finally {
+							// Add a sentinel for each of the map threads
+							for (int i = 0; i < mapThreadCount; i++) {
+								originRowQueue.add(originRowSentinel);
+							}
+						}
+					});
+
+					for (int i = 0; i < mapThreadCount; i++) {
+						// Take a separate physical copy of the database for
+						// each thread to avoid any underlying issues with
+						// threadsafety since it isn't guaranteed at any level
+						// of the Jackcess API
+						final JDefaultDict<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMappingForThread = new JDefaultDict<>(
+								k -> new ConcurrentHashMap<>());
+						final ConcurrentMap<ValueMapping, Joiner> joinersForThread = new ConcurrentHashMap<>();
+						final Path tempDBFileForThread = Files.createTempFile("Source-accessdb-mapthread-" + i + "-",
+								".accdb");
+						Files.copy(tempDBPath, tempDBFileForThread, StandardCopyOption.REPLACE_EXISTING);
+						final Database db = DatabaseBuilder.open(tempDBFileForThread.toFile());
+						dbCopies.add(db);
+						final String nextOriginTable = parseTableMappings(map, db, foreignKeyMappingForThread,
+								joinersForThread);
+						final Consumer<Map<String, Object>> originRowConsumer = Unchecked.consumer(r -> {
+							writerQueue.add(writeNextRow(map, foreignKeyMappingForThread, joinersForThread,
+									nextOriginTable, r, db));
+						});
+						final Thread mapThread = new Thread(
+								ConsumerRunnable.from(originRowQueue, originRowConsumer, originRowSentinel));
+						mapThreads.add(mapThread);
+						mapThread.start();
+					}
+
+					originRowThread.start();
+
+				} finally {
+					try {
+						for (Thread nextMapThread : mapThreads) {
+							nextMapThread.join();
+						}
+					} finally {
+						try {
+							for (Database nextDBCopy : dbCopies) {
+								nextDBCopy.close();
+							}
+						} finally {
+							try {
+								// Add a sentinel to the end of the queue to
+								// signal
+								// the writer thread can finish
+								writerQueue.add(writerSentinel);
+							} finally {
+								// Wait for the writer to finish
+								writerThread.join();
+							}
+						}
 					}
 				}
 			}
 		}
 	}
 
-	private static Table parseTableMappings(List<ValueMapping> map, final Database db,
-			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<Table, Table>>> foreignKeyMapping,
+	private static String mapAndGetOriginTable(Path tempDBPath, List<ValueMapping> map,
+			final JDefaultDict<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
+			final ConcurrentMap<ValueMapping, Joiner> joiners) throws IOException {
+		try (final Database db = DatabaseBuilder.open(tempDBPath.toFile());) {
+			// Populate the table mapping for each value mapping
+			return parseTableMappings(map, db, foreignKeyMapping, joiners);
+		}
+	}
+
+	private static String parseTableMappings(List<ValueMapping> map, final Database db,
+			JDefaultDict<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
 			ConcurrentMap<ValueMapping, Joiner> joiners) throws IOException {
-		Table originTable = map.isEmpty() ? null : db.getTable(DOT_PATTERN.split(map.get(0).getInputField())[0]);
+		String originTable = map.isEmpty() ? null
+				: db.getTable(DOT_PATTERN.split(map.get(0).getInputField())[0]).getName();
 		// for (final ValueMapping nextValueMapping : map) {
 		// Must be a sequential mapping as ordering is important
 		map.stream().sequential().forEach(Unchecked.consumer(nextValueMapping -> {
@@ -194,7 +357,7 @@ public class AccessMapper {
 							"Could not find table referenced by access mapping: " + nextValueMapping.getMapping());
 				}
 				foreignKeyMapping.get(splitForeignDBField[0]).put(nextValueMapping,
-						Tuple.tuple(nextTable, nextForeignTable));
+						Tuple.tuple(nextTable.getName(), nextForeignTable.getName()));
 				try {
 					final Joiner create = Joiner.create(nextTable, nextForeignTable);
 					if (create != null) {
@@ -209,19 +372,18 @@ public class AccessMapper {
 		return originTable;
 	}
 
-	private static void writeNextRow(List<ValueMapping> map,
-			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<Table, Table>>> foreignKeyMapping,
-			ConcurrentMap<ValueMapping, Joiner> joiners, final SequenceWriter csvWriter, Row nextRow)
-					throws IOException {
+	private static List<String> writeNextRow(List<ValueMapping> map,
+			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
+			ConcurrentMap<ValueMapping, Joiner> joiners, String originTable, Map<String, Object> nextRow,
+			Database database) throws IOException {
 		// Rows, indexed by the table that they came from
-		ConcurrentMap<String, Row> componentRowsForThisRow = new ConcurrentHashMap<>();
+		ConcurrentMap<String, Map<String, Object>> componentRowsForThisRow = new ConcurrentHashMap<>();
+		componentRowsForThisRow.put(originTable, nextRow);
 		for (final ValueMapping nextValueMapping : map) {
-			// map.parallelStream().forEach(Unchecked.consumer(nextValueMapping
-			// -> {
-			String[] splitDBFieldSource = DOT_PATTERN.split(nextValueMapping.getInputField());
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
+				String[] splitDBFieldSource = DOT_PATTERN.split(nextValueMapping.getInputField());
 				String[] splitDBFieldDest = DOT_PATTERN.split(nextValueMapping.getMapping());
-				if (splitDBFieldDest.length != 2) {
+				if (splitDBFieldDest.length < 2) {
 					throw new RuntimeException(
 							"Destination mapping was not in the 'table.column' format: " + nextValueMapping);
 				}
@@ -233,21 +395,11 @@ public class AccessMapper {
 							getRowFromJoiner(joiners, componentRowsForThisRow, nextValueMapping, splitDBFieldSource,
 									splitDBFieldDest);
 						} else {
-							getRowFromTables(foreignKeyMapping, componentRowsForThisRow, splitDBFieldDest);
+							getRowFromTables(foreignKeyMapping, componentRowsForThisRow, splitDBFieldDest, database);
 						}
 					}
 				}
-			} else {
-				if (splitDBFieldSource.length != 2) {
-					throw new RuntimeException(
-							"Source mapping was not in the 'table.column' format: " + nextValueMapping);
-				}
-				// Else we use the current table to populate the output rows
-				if (!componentRowsForThisRow.containsKey(splitDBFieldSource[0])) {
-					componentRowsForThisRow.put(splitDBFieldSource[0], nextRow);
-				}
 			}
-			// }));
 		}
 
 		// Populate the foreign row values
@@ -255,9 +407,9 @@ public class AccessMapper {
 		// for (final ValueMapping nextValueMapping : map) {
 		map.parallelStream().forEach(Unchecked.consumer(nextValueMapping -> {
 			String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
-			if (splitDBField.length == 2) {
+			if (splitDBField.length >= 2) {
 				if (componentRowsForThisRow.containsKey(splitDBField[0])) {
-					Row findFirstRow = componentRowsForThisRow.get(splitDBField[0]);
+					Map<String, Object> findFirstRow = componentRowsForThisRow.get(splitDBField[0]);
 					Object nextColumnValue = findFirstRow.get(splitDBField[1]);
 					if (nextColumnValue != null) {
 						if (nextColumnValue instanceof Date) {
@@ -284,31 +436,46 @@ public class AccessMapper {
 		}
 
 		List<String> mappedRow = ValueMapping.mapLine(inputHeaders, nextEmittedRow, map);
-
-		// TODO: Delegate this quick process to a single thread and parallelise
-		// the mapping above
-		synchronized (csvWriter) {
-			csvWriter.write(mappedRow);
-		}
+		return mappedRow;
 	}
 
 	private static void getRowFromTables(
-			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<Table, Table>>> foreignKeyMapping,
-			Map<String, Row> componentRowsForThisRow, String[] splitDBFieldOutput) throws IOException {
+			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
+			Map<String, Map<String, Object>> componentRowsForThisRow, String[] splitDBFieldDest, Database database)
+					throws IOException {
+
+		if (!foreignKeyMapping.containsKey(splitDBFieldDest[0])) {
+			throw new RuntimeException("No mappings found to the destination table: " + splitDBFieldDest);
+		}
+
 		// A joiner could not be created for this case as the original database
 		// did not setup an actual foreign key for the relationship
-		ConcurrentMap<ValueMapping, Tuple2<Table, Table>> mapping = foreignKeyMapping.get(splitDBFieldOutput[0]);
+		ConcurrentMap<ValueMapping, Tuple2<String, String>> mapping = foreignKeyMapping.get(splitDBFieldDest[0]);
 
-		for (Entry<ValueMapping, Tuple2<Table, Table>> entry : mapping.entrySet()) {
+		for (Entry<ValueMapping, Tuple2<String, String>> entry : mapping.entrySet()) {
 			ValueMapping nextMapping = entry.getKey();
-			Table origin = entry.getValue().v1();
-			Table dest = entry.getValue().v2();
+			String origin = entry.getValue().v1();
+			String destName = entry.getValue().v2();
 
-			Row originRow = componentRowsForThisRow.get(origin.getName());
-			if (originRow == null) {
-				System.out.println(
-						"Could not find row: Maybe the order of the mapping file needs changing: " + nextMapping);
+			if (componentRowsForThisRow.containsKey(destName)) {
+				// Short circuit as we have mapped this destination table
+				// already
+				continue;
 			}
+
+			if (!splitDBFieldDest[0].equals(destName)) {
+				// We are not doing this mapping yet
+				continue;
+			}
+
+			Map<String, Object> originRow = componentRowsForThisRow.get(origin);
+			if (originRow == null) {
+				// System.out.println("Could not find row: Maybe the order of
+				// the mapping file needs changing: origin="
+				// + origin + " mapping=" + nextMapping);
+				continue;
+			}
+
 			Map<String, Object> singletonMap = buildMatchMap(nextMapping, originRow);
 
 			// Cursor cursor = dest.getDefaultCursor();
@@ -316,9 +483,16 @@ public class AccessMapper {
 			// HACK: This will not work if they are not looking for the primary
 			// key on the destination
 			Cursor cursor = null;
+			String primaryKeyIndexName = null;
 
+			Table dest = database.getTable(destName);
 			try {
-				cursor = dest.getPrimaryKeyIndex().newCursor().toIndexCursor();
+				Index primaryKeyIndex = dest.getPrimaryKeyIndex();
+
+				if (primaryKeyIndex != null) {
+					cursor = primaryKeyIndex.newCursor().toIndexCursor();
+					primaryKeyIndexName = primaryKeyIndex.getName();
+				}
 			} catch (IllegalArgumentException e) {
 				cursor = null;
 			}
@@ -331,43 +505,79 @@ public class AccessMapper {
 
 			if (cursor != null && findFirstRow) {
 				Row currentRow = cursor.getCurrentRow();
-				componentRowsForThisRow.put(splitDBFieldOutput[0], currentRow);
+				componentRowsForThisRow.put(splitDBFieldDest[0], currentRow);
 			} else {
-				// If the fast index cursor did not work fall back to the slow
-				// default cursor
-				Cursor slowCursor = dest.getDefaultCursor();
+				boolean findFirstRowOtherIndexes = false;
 
-				boolean slowFindFirstRow = slowCursor.findFirstRow(singletonMap);
+				// Note, keeping the following code for reference, but it is
+				// much slower than just looking through the table, in the
+				// absence of a primary key index
+				if (false) {
+					// If the fast index cursor did not work fall back to the
+					// slow default cursor
+					for (Index index : dest.getIndexes()) {
+						// break out if we have already found the row
+						if (findFirstRowOtherIndexes) {
+							break;
+						}
 
-				if (slowFindFirstRow) {
-					Row currentRow = slowCursor.getCurrentRow();
-					componentRowsForThisRow.put(splitDBFieldOutput[0], currentRow);
-				} else {
-					// System.out.println("Could not match proposed foreign key
-					// from " + nextMapping.getInputField()
-					// + " to " + nextMapping.getMapping() + " (no joiner) based
-					// on the key: " + nextFKValue);
+						// Already checked the primary key index above as a
+						// priority for performance
+						if (index.getName() != null && index.getName().equals(primaryKeyIndexName)) {
+							continue;
+						}
+
+						Cursor indexCursor = index.newCursor().toIndexCursor();
+
+						findFirstRowOtherIndexes = indexCursor.findFirstRow(singletonMap);
+
+						if (findFirstRowOtherIndexes) {
+							Row currentIndexRow = indexCursor.getCurrentRow();
+							componentRowsForThisRow.put(splitDBFieldDest[0], currentIndexRow);
+						}
+					}
+				}
+
+				// Only resort to the default, non-indexed, cursor if we didn't
+				// find it on any of the indexes
+				if (!findFirstRowOtherIndexes) {
+					Cursor slowCursor = dest.getDefaultCursor();
+
+					boolean slowFindFirstRow = slowCursor.findFirstRow(singletonMap);
+
+					if (slowFindFirstRow) {
+						Row currentRow = slowCursor.getCurrentRow();
+						componentRowsForThisRow.put(splitDBFieldDest[0], currentRow);
+					}
 				}
 			}
 		}
 	}
 
-	private static Map<String, Object> buildMatchMap(ValueMapping mapping, Row originRow) {
+	private static Map<String, Object> buildMatchMap(ValueMapping mapping, Map<String, Object> originRow) {
+		// System.out.println("Building match map for: " + mapping + " row=" +
+		// originRow);
 		Map<String, Object> result = new HashMap<>();
-
-		// System.out.println("Building match map for: " + mapping);
 
 		String[] destFields = COMMA_PATTERN.split(mapping.getMapping());
 		String[] sourceFields = COMMA_PATTERN.split(mapping.getInputField());
 
-		if (destFields.length != sourceFields.length) {
-			throw new RuntimeException("Source and destination mapping fields must be equal size: " + mapping);
-		}
-
 		for (int i = 0; i < destFields.length; i++) {
 			String[] destField = DOT_PATTERN.split(destFields[i]);
 			String[] sourceField = DOT_PATTERN.split(sourceFields[i]);
+			if (!originRow.containsKey(sourceField[1])) {
+				throw new RuntimeException("Origin row did not contain a field required for mapping: field="
+						+ sourceFields[i] + " mapping=" + mapping);
+			}
 			Object nextFKValue = originRow.get(sourceField[1]);
+			if (nextFKValue == null) {
+				// Return an empty result if one of the source fields was null
+				return new HashMap<>();
+			}
+			if (result.containsKey(destField[1])) {
+				throw new RuntimeException("Destination row contained a duplicate field name: field=" + destFields[i]
+						+ " mapping=" + mapping);
+			}
 			result.put(destField[1], nextFKValue);
 		}
 
@@ -375,15 +585,16 @@ public class AccessMapper {
 	}
 
 	private static void getRowFromJoiner(ConcurrentMap<ValueMapping, Joiner> joiners,
-			Map<String, Row> componentRowsForThisRow, final ValueMapping nextValueMapping, String[] splitDBField,
-			String[] splitDBFieldOutput) throws IOException {
+			Map<String, Map<String, Object>> componentRowsForThisRow, final ValueMapping nextValueMapping,
+			String[] splitDBField, String[] splitDBFieldOutput) throws IOException {
 		String key = splitDBField[0];
-		Row fromRow = componentRowsForThisRow.get(key);
+		Map<String, Object> fromRow = componentRowsForThisRow.get(key);
 
 		if (fromRow == null) {
-			System.out.println("Could not find any linked rows with the key: " + key);
+			// System.out.println("Could not find any linked rows with the key:
+			// " + key);
 		} else {
-			Row findFirstRow = joiners.get(nextValueMapping).findFirstRow(fromRow);
+			Map<String, Object> findFirstRow = joiners.get(nextValueMapping).findFirstRow(fromRow);
 			if (findFirstRow != null) {
 				componentRowsForThisRow.put(splitDBFieldOutput[0], findFirstRow);
 			}

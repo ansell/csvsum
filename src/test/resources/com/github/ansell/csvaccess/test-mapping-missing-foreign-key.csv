@@ -5,7 +5,7 @@ tblData.ProjectDescription,tblData.ProjectDescription,,,
 tblData.SampleDate,eventDate,,,
 tblData.SiteFK,tblSite.SitePK,,Access,tblSite.SitePK
 tblData.SpeciesPK,tblSpecies.SpeciesPK,,Access,tblSpecies.SpeciesPK
-tblSpecies.SpeciesClassFK,tblClass.ClassPK,,Access,tblClass.ClassPK
+tblData.ClassPK,tblClass.ClassPK,,Access,tblClass.ClassPK
 tblClass.ClassDescription,class,,,
 tblSpecies.SpeciesOrderFK,tblOrder.OrderPK,,Access,tblOrder.OrderPK
 tblOrder.OrderDescription,order,,,

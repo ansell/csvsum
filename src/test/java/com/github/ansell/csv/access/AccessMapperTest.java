@@ -66,6 +66,10 @@ public class AccessMapperTest {
 
 	private Path testMappingWithHidden;
 
+	private Path testMappingMultipleRoutes;
+
+	private Path testMappingMissingForeignKey;
+
 	private Path testFile;
 
 	private Path testOutput;
@@ -78,12 +82,25 @@ public class AccessMapperTest {
 		testMapping = tempDir.newFile("test-mapping.csv").toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvaccess/test-mapping.csv"), testMapping,
 				StandardCopyOption.REPLACE_EXISTING);
+
 		testMappingWithHidden = tempDir.newFile("test-mapping-with-hidden.csv").toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvaccess/test-mapping-with-hidden.csv"),
 				testMappingWithHidden, StandardCopyOption.REPLACE_EXISTING);
+
+		testMappingMultipleRoutes = tempDir.newFile("test-mapping-multiple-routes.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvaccess/test-mapping-multiple-routes.csv"),
+				testMappingMultipleRoutes, StandardCopyOption.REPLACE_EXISTING);
+
+		testMappingMissingForeignKey = tempDir.newFile("test-mapping-missing-foreign-key.csv").toPath();
+		Files.copy(
+				this.getClass()
+						.getResourceAsStream("/com/github/ansell/csvaccess/test-mapping-missing-foreign-key.csv"),
+				testMappingMissingForeignKey, StandardCopyOption.REPLACE_EXISTING);
+
 		testFile = tempDir.newFile("test-source.accdb").toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvaccess/test-source.accdb"), testFile,
 				StandardCopyOption.REPLACE_EXISTING);
+
 		testOutput = tempDir.newFolder("test-output").toPath();
 	}
 
@@ -171,6 +188,64 @@ public class AccessMapperTest {
 				"sf. Tanypodinae", "Genus", "Paramerina", "20", "1.0", "Percentage of sample surveyed (0-1) was 1.0",
 				"20.0", "812 - Murtho", "Murray", "Murtho", "Murray", "34.0684", "140.8111", "-34.0684", "140.8111",
 				"SN", "Murray sweep net (SM512)", "Caught in trap no. 2"), lines.get(0));
+
+		// Trace showing that the headers were not changed correctly
+		// java.lang.AssertionError: expected:
+		// <[1, 1, 2006-06-29T00:00:00, 812, 27101014, 27, Insecta, 2710,
+		// Diptera, 271010, sf. Tanypodinae, Genus, Paramerina, 20, 1.0,
+		// Percentage of sample surveyed (0-1) was 1.0, 20.0, 812 - Murtho,
+		// Murray, Murtho, Murray, 34.0684, 140.8111, -34.0684, 140.8111, SN,
+		// Murray sweep net (SM512), Caught in trap no. 2]>
+		// but was:
+		// <[1, 1, 2006-06-29T00:00:00, 812, 27101014, 27, Insecta, 2710,
+		// Diptera, 271010, sf. Tanypodinae, Genus, Paramerina, 20, 1.0,
+		// Percentage of sample surveyed (0-1) was 1.0, 20.0, 812 - Murtho,
+		// Murray, Murtho, Murray, 34.0684, 140.8111, -34.0684, 140.8111, SN,
+		// Murray sweep net (SM512), Caught in trap no. 2, ]>
+
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.access.AccessMapper#main(java.lang.String[])}
+	 * .
+	 */
+	@Test
+	public final void testMainMultipleRoutes() throws Exception {
+		thrown.expect(RuntimeException.class);
+		thrown.expectMessage("Cannot map to a destination table from multiple Access mappings: ");
+		AccessMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
+				testMappingMultipleRoutes.toAbsolutePath().toString(), "--output",
+				testOutput.toAbsolutePath().toString());
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.access.AccessMapper#main(java.lang.String[])}
+	 * .
+	 */
+	@Test
+	public final void testMainMissingForeignKey() throws Exception {
+		AccessMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
+				testMappingMissingForeignKey.toAbsolutePath().toString(), "--output",
+				testOutput.toAbsolutePath().toString());
+
+		List<String> headers = new ArrayList<>();
+		List<List<String>> lines = new ArrayList<>();
+		try (BufferedReader reader = Files.newBufferedReader(testOutput.resolve("Mapped-Single-tblData.csv"));) {
+			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+		}
+		assertEquals(29, headers.size());
+		assertEquals(85519, lines.size());
+		lines.sort(Comparator.comparing(l -> l.get(0)));
+
+		lines.get(0).forEach(k -> System.out.print("\"" + k + "\", "));
+
+		assertEquals(Arrays.asList("1", "1", "Murray Monitoring", "2006-06-29T00:00:00", "812", "27101014", "27",
+				"Insecta", "2710", "Diptera", "271010", "sf. Tanypodinae", "Genus", "Paramerina", "20", "1.0",
+				"Percentage of sample surveyed (0-1) was 1.0", "20.0", "812 - Murtho", "Murray", "Murtho", "Murray",
+				"34.0684", "140.8111", "-34.0684", "140.8111", "SN", "Murray sweep net (SM512)",
+				"Caught in trap no. 2"), lines.get(0));
 
 		// Trace showing that the headers were not changed correctly
 		// java.lang.AssertionError: expected:
