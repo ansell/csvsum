@@ -109,7 +109,8 @@ public class ValueMapping {
 		return result;
 	}
 
-	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<ValueMapping> map) {
+	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<ValueMapping> map)
+			throws LineFilteredException {
 
 		Map<String, String> outputValues = new ConcurrentHashMap<>();
 
@@ -215,7 +216,14 @@ public class ValueMapping {
 					throw new UnsupportedOperationException(
 							"Cannot handle results from ScriptEngine.eval that are not Invocable or CompiledScript");
 				}
-			} catch (ScriptException | NoSuchMethodException e) {
+			} catch (ScriptException e) {
+				if (e.getCause() != null) {
+					if (e.getCause().getMessage().contains(LineFilteredException.class.getCanonicalName())) {
+						throw new LineFilteredException(e);
+					}
+				}
+				throw new RuntimeException(e);
+			} catch (NoSuchMethodException e) {
 				throw new RuntimeException(e);
 			}
 		} else if (this.language == ValueMappingLanguage.ACCESS) {

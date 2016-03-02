@@ -441,13 +441,11 @@ public class AccessMapper {
 		}
 
 		try {
-			List<String> mappedRow = ValueMapping.mapLine(inputHeaders, nextEmittedRow, map);
-			return mappedRow;
+			return ValueMapping.mapLine(inputHeaders, nextEmittedRow, map);
 		} catch (final LineFilteredException e) {
 			// Swallow line filtered exception and return null below to
 			// eliminate it
 		}
-
 		return null;
 	}
 

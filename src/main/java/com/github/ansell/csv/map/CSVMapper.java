@@ -47,6 +47,7 @@ import org.jooq.lambda.Unchecked;
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.util.CSVUtil;
+import com.github.ansell.csv.util.LineFilteredException;
 import com.github.ansell.csv.util.ValueMapping;
 
 import joptsimple.OptionException;
@@ -131,7 +132,13 @@ public final class CSVMapper {
 		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);) {
 			List<String> inputHeaders = new ArrayList<>();
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
-				return ValueMapping.mapLine(inputHeaders, l, map);
+				try {
+					return ValueMapping.mapLine(inputHeaders, l, map);
+				} catch (final LineFilteredException e) {
+					// Swallow line filtered exception and return null below to
+					// eliminate it
+				}
+				return null;
 			} , Unchecked.consumer(l -> csvWriter.write(l)));
 
 		}

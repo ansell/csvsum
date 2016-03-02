@@ -5,5 +5,5 @@ Field2,varietyOrSubspecies,,Javascript,"return inputValue.equalsIgnoreCase(""var
 Field3,Field3,,,
 Field3,naturalised,,Groovy,"inputValue.equalsIgnoreCase(""Y"") ? ""naturalised"" : """" "
 Field4,Field4,,,
-Field4,unrelatedField,,Javascript,"return (!col(""Field3"").trim().isEmpty() && !col(""Field4"").trim().isEmpty() ? ""Useful"" : """");"
+Field4,unrelatedField,,Javascript,"return (!col(""Field3"").trim().isEmpty() && !col(""Field4"").trim().isEmpty() ? ""Useful"" : filter());"
 Field5,Field5,,Lua,"return inputValue .. ""a"""

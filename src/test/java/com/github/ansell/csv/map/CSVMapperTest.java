@@ -169,7 +169,7 @@ public class CSVMapperTest {
 			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
 		}
 		assertEquals(8, headers.size());
-		assertEquals(6, lines.size());
+		assertEquals(4, lines.size());
 		lines.sort(Comparator.comparing(l -> l.get(0)));
 
 		lines.get(0).forEach(k -> System.out.print("\"" + k + "\", "));
