@@ -114,12 +114,8 @@ public class ValueMapping {
 
 		Map<String, String> outputValues = new ConcurrentHashMap<>();
 
-		// Note, empirically, it seems about 50% faster with a limited number of
-		// cores to do a serial mapping, not a parallel mapping
-		// map.parallelStream().forEach(nextMapping -> {
-		// for (ValueMapping nextMapping : map) {
 		map.forEach(nextMapping -> {
-			String mappedValue = nextMapping.apply(inputHeaders, line);
+			String mappedValue = nextMapping.apply(inputHeaders, line, outputValues);
 			outputValues.put(nextMapping.getOutputField(), mappedValue);
 		});
 
@@ -186,7 +182,7 @@ public class ValueMapping {
 		this.shown = shown;
 	}
 
-	private String apply(List<String> inputHeaders, List<String> line) {
+	private String apply(List<String> inputHeaders, List<String> line, Map<String, String> mappedLine) {
 		String nextInputValue = line.get(inputHeaders.indexOf(getInputField()));
 
 		// Short circuit if the mapping is a default mapping
@@ -202,7 +198,7 @@ public class ValueMapping {
 					// evaluate script code and access the variable that results
 					// from the mapping
 					return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", inputHeaders,
-							this.getInputField(), nextInputValue, this.getOutputField(), line);
+							this.getInputField(), nextInputValue, this.getOutputField(), line, mappedLine);
 				} else if (compiledScript != null) {
 					Bindings bindings = scriptEngine.createBindings();
 					// inputHeaders, inputField, inputValue, outputField, line
@@ -211,6 +207,7 @@ public class ValueMapping {
 					bindings.put("inputValue", nextInputValue);
 					bindings.put("outputField", this.getOutputField());
 					bindings.put("line", line);
+					bindings.put("mappedLine", mappedLine);
 					return (String) compiledScript.eval(bindings);
 				} else {
 					throw new UnsupportedOperationException(
@@ -321,9 +318,24 @@ public class ValueMapping {
 			try {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("javascript");
 
-				scriptEngine
-						.eval("var LFE = Java.type(\"com.github.ansell.csv.util.LineFilteredException\"); \n var filter = function() { throw new LFE();} \n var columnFunction = function(searchHeader, inputHeaders, line) { return line.get(inputHeaders.indexOf(searchHeader)); };\nvar mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) { var col = function(searchHeader) { \n return columnFunction(searchHeader, inputHeaders, line); }; \n "
-								+ this.mapping + " };");
+				StringBuilder javascriptFunction = new StringBuilder();
+				javascriptFunction
+						.append("var LFE = Java.type(\"com.github.ansell.csv.util.LineFilteredException\"); \n");
+				javascriptFunction.append("var filter = function() { throw new LFE(); } \n");
+				javascriptFunction.append(
+						"var columnFunction = function(searchHeader, inputHeaders, line) { return line.get(inputHeaders.indexOf(searchHeader)); };\n");
+				javascriptFunction.append(
+						"var columnFunctionMap = function(searchHeader, mapLine) { return mapLine.get(searchHeader); };\n");
+				javascriptFunction.append(
+						"var mapFunction = function(inputHeaders, inputField, inputValue, outputField, line, mappedLine) { ");
+				javascriptFunction.append(
+						"    var col = function(searchHeader) { \n return columnFunction(searchHeader, inputHeaders, line); }; \n ");
+				javascriptFunction.append(
+						"    var outCol = function(searchHeader) { \n return columnFunctionMap(searchHeader, mapLine); }; \n ");
+				javascriptFunction.append(this.mapping);
+				javascriptFunction.append(" };");
+
+				scriptEngine.eval(javascriptFunction.toString());
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
 			}
@@ -331,8 +343,9 @@ public class ValueMapping {
 			try {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("groovy");
 
-				scriptEngine.eval("def mapFunction(inputHeaders, inputField, inputValue, outputField, line) {  "
-						+ this.mapping + " }");
+				scriptEngine
+						.eval("def mapFunction(inputHeaders, inputField, inputValue, outputField, line, outputHeaders, mapLine) {  "
+								+ this.mapping + " }");
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
 			}
