@@ -110,6 +110,8 @@ public class AccessMapper {
 				.defaultsTo("Mapped-").describedAs("The prefix to use to name the mapped files.");
 		final OptionSpec<Boolean> debug = parser.accepts("debug").withOptionalArg().ofType(Boolean.class)
 				.defaultsTo(Boolean.FALSE).describedAs("Set to true to debug the table structures");
+		final OptionSpec<Integer> threads = parser.accepts("threads").withOptionalArg().ofType(Integer.class)
+				.defaultsTo(2).describedAs("The number of parallel threads to use for mapping.");
 
 		OptionSet options = null;
 
@@ -146,8 +148,8 @@ public class AccessMapper {
 			// Do sanity check on the access mappings
 			List<ValueMapping> accessMappings = checkAccessMappings(map);
 			try (final InputStream readerDB = Files.newInputStream(inputPath);) {
-				mapDBToSingleCSV(readerDB, map, output.value(options).toPath(),
-						outputPrefix.value(options) + "Single-");
+				mapDBToSingleCSV(readerDB, map, output.value(options).toPath(), outputPrefix.value(options) + "Single-",
+						threads.value(options));
 			}
 		}
 	}
@@ -214,8 +216,8 @@ public class AccessMapper {
 		return accessMappings;
 	}
 
-	private static void mapDBToSingleCSV(InputStream readerDB, List<ValueMapping> map, Path csvPath, String csvPrefix)
-			throws IOException, InterruptedException {
+	private static void mapDBToSingleCSV(InputStream readerDB, List<ValueMapping> map, Path csvPath, String csvPrefix,
+			int parallelism) throws IOException, InterruptedException {
 
 		final Path tempDBPath = Files.createTempFile("Source-accessdb", ".accdb");
 		Files.copy(readerDB, tempDBPath, StandardCopyOption.REPLACE_EXISTING);
@@ -247,9 +249,8 @@ public class AccessMapper {
 						ConsumerRunnable.from(writerQueue, writerConsumer, writerSentinel));
 				writerThread.start();
 
-				int mapThreadCount = 2;
-				List<Thread> mapThreads = new ArrayList<>(mapThreadCount);
-				List<Database> dbCopies = new ArrayList<>(mapThreadCount);
+				List<Thread> mapThreads = new ArrayList<>(parallelism);
+				List<Database> dbCopies = new ArrayList<>(parallelism);
 
 				Queue<Map<String, Object>> originRowQueue = new ConcurrentLinkedQueue<>();
 				final Map<String, Object> originRowSentinel = new HashMap<String, Object>();
@@ -268,13 +269,13 @@ public class AccessMapper {
 							throw new RuntimeException(e);
 						} finally {
 							// Add a sentinel for each of the map threads
-							for (int i = 0; i < mapThreadCount; i++) {
+							for (int i = 0; i < parallelism; i++) {
 								originRowQueue.add(originRowSentinel);
 							}
 						}
 					});
 
-					for (int i = 0; i < mapThreadCount; i++) {
+					for (int i = 0; i < parallelism; i++) {
 						// Take a separate physical copy of the database for
 						// each thread to avoid any underlying issues with
 						// threadsafety since it isn't guaranteed at any level
