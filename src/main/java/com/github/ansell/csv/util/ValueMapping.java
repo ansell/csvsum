@@ -313,7 +313,7 @@ public class ValueMapping {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("javascript");
 
 				scriptEngine
-						.eval("var mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) { "
+						.eval("var columnFunction = function(searchHeader, inputHeaders, line) { return line.get(inputHeaders.indexOf(searchHeader)); };\nvar mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) { var col = function(searchHeader) { \n return columnFunction(searchHeader, inputHeaders, line); }; \n "
 								+ this.mapping + " };");
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);

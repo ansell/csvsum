@@ -26,6 +26,7 @@ tblSite.Longitude,verbatimLongitude,,,
 tblSite.Latitude,latitude,,Javascript,"var Double = Java.type('java.lang.Double');
 return Double.toString(-1.0 * Double.parseDouble(inputValue));"
 tblSite.Longitude,longitude,,,
+,geoPoint,,Javascript,"return ""POINT("" + col(""tblSite.Latitude"") + "" "" + col(""tblSite.Longitude"") + "")"";"
 tblData.MethodFK,tblMethod.MethodPK,,Access,tblMethod.MethodPK
 tblMethod.MethodDescription,samplingProtocol,,,
 tblData.Trap,eventRemarks,,Javascript,"return inputValue == """" ? """" : ""Caught in trap no. "" + inputValue;"
