@@ -52,10 +52,12 @@ If the Mapping field contains a script, it is executed in the context of the fol
 * inputValue : The value of the field from inputField.
 * outputField : The label of the output field that the results of this row will be assigned to.
 * line : The values from the current line being processed from the input file, in the same order as the inputHeaders list.
+* mapLine : The mapped values for the current line so far
 
 The scripts also have access to two helper functions to get a specific column and to filter an entire line:
 
 * col : Called using the syntax col('columnName'), and returns the value for that column on the current line
+* outCol : Called using the syntax outCol('outputColumnName'), and returns the value that has been mapped so far for that column on the current line.
 * filter : Called using the syntax filter(), and will make the line not appear in the results and short-circuit processing of the line for mapping purposes
 
 # Access Mapper

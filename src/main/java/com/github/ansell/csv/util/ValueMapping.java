@@ -49,6 +49,8 @@ import javax.script.ScriptException;
  */
 public class ValueMapping {
 
+	private static final String NO = "no";
+
 	public enum ValueMappingLanguage {
 		DEFAULT(ValueMapping.DEFAULT_MAPPING),
 
@@ -148,7 +150,7 @@ public class ValueMapping {
 			nextMapping = nextLanguage.getDefaultMapping();
 		}
 
-		boolean shown = !"no".equalsIgnoreCase(shownString);
+		boolean shown = !NO.equalsIgnoreCase(shownString);
 
 		ValueMapping result = new ValueMapping(nextLanguage, input, output, nextMapping, shown);
 
@@ -327,7 +329,7 @@ public class ValueMapping {
 				javascriptFunction.append(
 						"var columnFunctionMap = function(searchHeader, mapLine) { return mapLine.get(searchHeader); };\n");
 				javascriptFunction.append(
-						"var mapFunction = function(inputHeaders, inputField, inputValue, outputField, line, mappedLine) { ");
+						"var mapFunction = function(inputHeaders, inputField, inputValue, outputField, line, mapLine) { ");
 				javascriptFunction.append(
 						"    var col = function(searchHeader) { \n return columnFunction(searchHeader, inputHeaders, line); }; \n ");
 				javascriptFunction.append(
