@@ -209,7 +209,7 @@ public class ValueMapping {
 					bindings.put("inputValue", nextInputValue);
 					bindings.put("outputField", this.getOutputField());
 					bindings.put("line", line);
-					bindings.put("mappedLine", mappedLine);
+					bindings.put("mapLine", mappedLine);
 					return (String) compiledScript.eval(bindings);
 				} else {
 					throw new UnsupportedOperationException(
@@ -346,7 +346,7 @@ public class ValueMapping {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("groovy");
 
 				scriptEngine
-						.eval("def mapFunction(inputHeaders, inputField, inputValue, outputField, line, outputHeaders, mapLine) {  "
+						.eval("def mapFunction(inputHeaders, inputField, inputValue, outputField, line, mapLine) {  "
 								+ this.mapping + " }");
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
