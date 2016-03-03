@@ -82,6 +82,9 @@ Run accessmap with a sample access file:
 
 # Changelog
 
+## 2016-03-04
+* Add helper function for getting the mapped value for a column in the current line, "outCol('outputColumnName')"
+
 ## 2016-03-02
 * Add ability to filter lines in Javascript using a new function, "filter()"
 * Add helper function for getting the value for a column in the current line, "col('columnName')"
