@@ -215,12 +215,13 @@ public class CSVMergerTest {
 		try (BufferedReader reader = Files.newBufferedReader(testDirectory.resolve("test-output.csv"));) {
 			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
 		}
-		assertEquals(7, headers.size());
+		assertEquals(11, headers.size());
 		assertEquals(6, lines.size());
 		lines.sort(Comparator.comparing(l -> l.get(0)));
 
 		lines.get(0).forEach(k -> System.out.print("\"" + k + "\", "));
 
-		assertEquals(Arrays.asList("A1", "A2", "", "A3", "", "A4", "Useful"), lines.get(0));
+		assertEquals(Arrays.asList("A1", "A1", "A2", "", "A3", "", "A4", "Useful", "ZZ1", "A1", "Interesting"),
+				lines.get(0));
 	}
 }
