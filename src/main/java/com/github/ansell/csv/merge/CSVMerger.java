@@ -79,7 +79,7 @@ public final class CSVMerger {
 		final OptionSpec<Void> help = parser.accepts("help").forHelp();
 		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
 				.describedAs("The input CSV file to be mapped.");
-		final OptionSpec<File> otherInput = parser.accepts("otherInput").withRequiredArg().ofType(File.class).required()
+		final OptionSpec<File> otherInput = parser.accepts("other-input").withRequiredArg().ofType(File.class).required()
 				.describedAs("The other input CSV file to be merged.");
 		final OptionSpec<File> mapping = parser.accepts("mapping").withRequiredArg().ofType(File.class).required()
 				.describedAs("The mapping file.");

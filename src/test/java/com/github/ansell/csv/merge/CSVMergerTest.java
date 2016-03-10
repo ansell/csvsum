@@ -112,7 +112,7 @@ public class CSVMergerTest {
 		Path testDirectory = tempDir.newFolder("test-does-not-exist").toPath();
 
 		thrown.expect(FileNotFoundException.class);
-		CSVMerger.main("--input", testDirectory.resolve("test-does-not-exist.csv").toString(), "--otherInput",
+		CSVMerger.main("--input", testDirectory.resolve("test-does-not-exist.csv").toString(), "--other-input",
 				testOtherFile.toAbsolutePath().toString(), "--mapping", testMapping.toAbsolutePath().toString());
 	}
 
@@ -125,7 +125,7 @@ public class CSVMergerTest {
 		Path testDirectory = tempDir.newFolder("test-does-not-exist").toPath();
 
 		thrown.expect(FileNotFoundException.class);
-		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--otherInput",
+		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--other-input",
 				testDirectory.resolve("test-does-not-exist.csv").toString(), "--mapping",
 				testMapping.toAbsolutePath().toString());
 	}
@@ -139,7 +139,7 @@ public class CSVMergerTest {
 		Path testDirectory = tempDir.newFolder("test-does-not-exist").toPath();
 
 		thrown.expect(FileNotFoundException.class);
-		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--otherInput",
+		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--other-input",
 				testOtherFile.toAbsolutePath().toString(), "--mapping",
 				testDirectory.resolve("test-does-not-exist.csv").toString());
 	}
@@ -156,7 +156,7 @@ public class CSVMergerTest {
 
 		thrown.expect(RuntimeException.class);
 		thrown.expectMessage("CSV file did not contain a valid header line");
-		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--otherInput",
+		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--other-input",
 				testOtherFile.toAbsolutePath().toString(), "--mapping", testMapping.toAbsolutePath().toString());
 	}
 
@@ -166,7 +166,7 @@ public class CSVMergerTest {
 	 */
 	@Test
 	public final void testMainComplete() throws Exception {
-		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--otherInput",
+		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--other-input",
 				testOtherFile.toAbsolutePath().toString(), "--mapping", testMapping.toAbsolutePath().toString());
 	}
 
@@ -178,7 +178,7 @@ public class CSVMergerTest {
 	public final void testMainCompleteWithOutputFile() throws Exception {
 		Path testDirectory = tempDir.newFolder("test").toPath();
 
-		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--otherInput",
+		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--other-input",
 				testOtherFile.toAbsolutePath().toString(), "--mapping", testMapping.toAbsolutePath().toString(),
 				"--output", testDirectory.resolve("test-output.csv").toString());
 
@@ -213,7 +213,7 @@ public class CSVMergerTest {
 		Path testDirectory = tempDir.newFolder("test").toPath();
 
 		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
-				testMappingHidden.toAbsolutePath().toString(), "--otherInput",
+				testMappingHidden.toAbsolutePath().toString(), "--other-input",
 				testOtherFile.toAbsolutePath().toString(), "--output",
 				testDirectory.resolve("test-output.csv").toString());
 
