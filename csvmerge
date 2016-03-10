@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script runs the CSV Mapping code.
+# This script runs the CSV Merge code.
 # Before running this script for the first time 
 # you may need to run:
 #     chmod +x csvmap
@@ -12,4 +12,4 @@ if [ ! -d "${DIR}/target/appassembler/bin" ]; then
 fi
 
 chmod u+x `ls ${DIR}/target/appassembler/bin/*`
-$DIR/target/appassembler/bin/csvmap "$@"
+$DIR/target/appassembler/bin/csvmerge "$@"
