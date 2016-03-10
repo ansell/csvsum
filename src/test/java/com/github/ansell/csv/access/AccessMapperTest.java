@@ -112,6 +112,11 @@ public class AccessMapperTest {
 		// Allow time for travis to recover after each test, it tends towards
 		// wrecking the joint otherwise
 		Thread.sleep(1000);
+		// Also suggest a GC occur before returning
+		System.gc();
+		// Then sleep again to give the GC a chance to succeed before Travis
+		// kills it
+		Thread.sleep(1000);
 	}
 
 	/**
