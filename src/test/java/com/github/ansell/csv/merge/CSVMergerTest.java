@@ -195,6 +195,13 @@ public class CSVMergerTest {
 
 		assertEquals(Arrays.asList("A1", "A1", "A2", "", "A3", "", "A4", "Useful", "A5a", "ZZ1", "A1", "Interesting"),
 				lines.get(0));
+		assertEquals(Arrays.asList("B1", "B1", "var.", "varietas", "B3", "", "B4", "Useful", "B5a", "ZZ2", "B1",
+				"Not at all"), lines.get(1));
+		assertEquals(Arrays.asList("C1", "C1", "subsp.", "subspecies", "C3", "", "C4", "Useful", "C5a", "ZZ3", "C1",
+				"Enlightening"), lines.get(2));
+		assertEquals(
+				Arrays.asList("D1", "D1", "D2", "", "y", "naturalised", "D4", "Useful", "D5a", "ZZ4", "D1", "Sporadic"),
+				lines.get(3));
 	}
 
 	/**
