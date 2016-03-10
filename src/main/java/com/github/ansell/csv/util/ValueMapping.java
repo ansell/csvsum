@@ -60,7 +60,9 @@ public class ValueMapping {
 
 		LUA("return inputValue"),
 
-		ACCESS("");
+		ACCESS(""),
+
+		CSVMERGE("");
 
 		private final String defaultMapping;
 

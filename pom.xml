@@ -206,6 +206,10 @@
 							<id>csvmap</id>
 						</program>
 						<program>
+							<mainClass>com.github.ansell.csv.merge.CSVMerger</mainClass>
+							<id>csvmerge</id>
+						</program>
+						<program>
 							<mainClass>com.github.ansell.csv.access.AccessMapper</mainClass>
 							<id>accessmap</id>
 						</program>
