@@ -314,13 +314,15 @@ public class AccessMapper {
 					} finally {
 						try {
 							for (Database nextDBCopy : dbCopies) {
-								nextDBCopy.close();
+								try {
+									nextDBCopy.close();
+								} catch (Throwable e) {
+								}
 							}
 						} finally {
 							try {
 								// Add a sentinel to the end of the queue to
-								// signal
-								// the writer thread can finish
+								// signal so the writer thread can finish
 								writerQueue.add(writerSentinel);
 							} finally {
 								// Wait for the writer to finish

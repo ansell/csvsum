@@ -109,6 +109,9 @@ public class AccessMapperTest {
 	 */
 	@After
 	public void tearDown() throws Exception {
+		// Allow time for travis to recover after each test, it tends towards
+		// wrecking the joint otherwise
+		Thread.sleep(1000);
 	}
 
 	/**
@@ -156,8 +159,8 @@ public class AccessMapperTest {
 		assertEquals(Arrays.asList("1", "1", "Murray Monitoring", "2006-06-29T00:00:00", "812", "27101014", "27",
 				"Insecta", "2710", "Diptera", "271010", "sf. Tanypodinae", "Genus", "Paramerina", "20", "1.0",
 				"Percentage of sample surveyed (0-1) was 1.0", "20.0", "812 - Murtho", "Murray", "Murtho", "Murray",
-				"34.0684", "140.8111", "-34.0684", "140.8111", "POINT(34.0684 140.8111)", "SN", "Murray sweep net (SM512)",
-				"Caught in trap no. 2"), lines.get(0));
+				"34.0684", "140.8111", "-34.0684", "140.8111", "POINT(34.0684 140.8111)", "SN",
+				"Murray sweep net (SM512)", "Caught in trap no. 2"), lines.get(0));
 	}
 
 	/**
