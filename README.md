@@ -10,10 +10,12 @@ Install Maven and Git
 
 Download the Git repository.
 
-Set the csvsum and csvmap programs to be executable.
+Set the relevant programs to be executable.
 
     chmod a+x ./csvsum
     chmod a+x ./csvmap
+    chmod a+x ./csvmerge
+    chmod a+x ./accessmap
 
 # CSV Summariser
 
@@ -60,7 +62,28 @@ The scripts also have access to two helper functions to get a specific column an
 * outCol : Called using the syntax outCol('outputColumnName'), and returns the value that has been mapped so far for that column on the current line.
 * filter : Called using the syntax filter(), and will make the line not appear in the results and short-circuit processing of the line for mapping purposes
 
+# CSV Merger
+
+CSV Merger inherits the functionality of CSV Mapper, so all of the functions and languages available to the CSV Mapper program are available here.
+
+In addition, it adds another supported language, CsvMerge. Keys from the primary input are linked using a row in the mapping column that point from either 1-1 or Many-1 relationships to the other input. 1-Many relationships are not supported due to the way rows are generated based on a base file. The base file is always the first input, which has rows from other-input merged into it using a left outer join pattern.
+
+## Usage
+
+Run csvmerge with --help to get usage details:
+
+    ./csvmerge --help
+
+Run csvmap with a sample csv file:
+
+    ./csvmerge --input src/test/resources/com/github/ansell/csvmerge/test-source.csv --other-input src/test/resources/com/github/ansell/csvmerge/test-source-other.csv --mapping src/test/resources/com/github/ansell/csvmerge/test-mapping.csv
+
+
 # Access Mapper
+
+Access Mapper inherits the functionality of CSV Mapper, so all of the functions and languages available to the CSV Mapper program are available here.
+
+In addition, it adds another supported language, Access. Primary and foreign keys are linked using rows in the mapping column that point from either 1-1 or Many-1 relationships. 1-Many relationships are not supported due to the way each output row is generated based on a single base row from the base table. The base table is chosen based on the table referenced in the first mapping row of the mapping CSV file. Tables are merged based on the Left Outer Join pattern.
 
 ## Usage
 
@@ -81,6 +104,9 @@ Run accessmap with a sample access file:
     </dependency>
 
 # Changelog
+
+## 2016-03-11
+* Add csvmerge program to merge two CSV files
 
 ## 2016-03-04
 * Add helper function for getting the mapped value for a column in the current line, "outCol('outputColumnName')"

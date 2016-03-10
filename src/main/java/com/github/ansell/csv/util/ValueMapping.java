@@ -60,7 +60,9 @@ public class ValueMapping {
 
 		LUA("return inputValue"),
 
-		ACCESS("");
+		ACCESS(""),
+
+		CSVMERGE("");
 
 		private final String defaultMapping;
 
@@ -185,7 +187,12 @@ public class ValueMapping {
 	}
 
 	private String apply(List<String> inputHeaders, List<String> line, Map<String, String> mappedLine) {
-		String nextInputValue = line.get(inputHeaders.indexOf(getInputField()));
+		int indexOf = inputHeaders.indexOf(getInputField());
+		if (indexOf < 0) {
+			throw new RuntimeException(
+					"Could not find field in line: inputHeaders=" + inputHeaders + " mapping=" + this.toString());
+		}
+		String nextInputValue = line.get(indexOf);
 
 		// Short circuit if the mapping is a default mapping
 		if (this.language == ValueMappingLanguage.DEFAULT || this.language.matchesDefaultMapping(this.mapping)) {
@@ -228,6 +235,10 @@ public class ValueMapping {
 		} else if (this.language == ValueMappingLanguage.ACCESS) {
 			// Access is currently handled separately, before these mappings are
 			// applied, so make this a noop
+			return nextInputValue;
+		} else if (this.language == ValueMappingLanguage.CSVMERGE) {
+			// CSVMerge is currently handled separately, before these mappings
+			// are applied, so make this a noop
 			return nextInputValue;
 		} else {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
@@ -360,6 +371,8 @@ public class ValueMapping {
 				throw new RuntimeException(e);
 			}
 		} else if (this.language == ValueMappingLanguage.ACCESS) {
+
+		} else if (this.language == ValueMappingLanguage.CSVMERGE) {
 
 		} else {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);

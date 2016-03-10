@@ -109,6 +109,14 @@ public class AccessMapperTest {
 	 */
 	@After
 	public void tearDown() throws Exception {
+		// Allow time for travis to recover after each test, it tends towards
+		// wrecking the joint otherwise
+		Thread.sleep(1000);
+		// Also suggest a GC occur before returning
+		System.gc();
+		// Then sleep again to give the GC a chance to succeed before Travis
+		// kills it
+		Thread.sleep(1000);
 	}
 
 	/**
@@ -156,8 +164,8 @@ public class AccessMapperTest {
 		assertEquals(Arrays.asList("1", "1", "Murray Monitoring", "2006-06-29T00:00:00", "812", "27101014", "27",
 				"Insecta", "2710", "Diptera", "271010", "sf. Tanypodinae", "Genus", "Paramerina", "20", "1.0",
 				"Percentage of sample surveyed (0-1) was 1.0", "20.0", "812 - Murtho", "Murray", "Murtho", "Murray",
-				"34.0684", "140.8111", "-34.0684", "140.8111", "POINT(34.0684 140.8111)", "SN", "Murray sweep net (SM512)",
-				"Caught in trap no. 2"), lines.get(0));
+				"34.0684", "140.8111", "-34.0684", "140.8111", "POINT(34.0684 140.8111)", "SN",
+				"Murray sweep net (SM512)", "Caught in trap no. 2"), lines.get(0));
 	}
 
 	/**
@@ -271,7 +279,7 @@ public class AccessMapperTest {
 	public final void testMainDebug() throws Exception {
 		AccessMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
 				testMapping.toAbsolutePath().toString(), "--output", testOutput.toAbsolutePath().toString(), "--debug",
-				Boolean.TRUE.toString());
+				Boolean.TRUE.toString(), "--add-table-prefix", Boolean.FALSE.toString());
 
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
