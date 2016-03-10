@@ -1,5 +1,6 @@
 OldField,NewField,Shown,Language,Mapping
 Field1,anotherfield,,,
+Field1,Field1ToOtherField2,,CsvMerge,OtherField2
 Field2,Field2,,,
 Field2,varietyOrSubspecies,,Javascript,"return inputValue.equalsIgnoreCase(""var."") ? ""varietas"" : inputValue.equalsIgnoreCase(""subsp."") ? ""subspecies"" : """";"
 Field3,Field3,,,

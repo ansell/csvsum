@@ -231,6 +231,10 @@ public class ValueMapping {
 			// Access is currently handled separately, before these mappings are
 			// applied, so make this a noop
 			return nextInputValue;
+		} else if (this.language == ValueMappingLanguage.CSVMERGE) {
+			// CSVMerge is currently handled separately, before these mappings
+			// are applied, so make this a noop
+			return nextInputValue;
 		} else {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);
 		}
@@ -362,6 +366,8 @@ public class ValueMapping {
 				throw new RuntimeException(e);
 			}
 		} else if (this.language == ValueMappingLanguage.ACCESS) {
+
+		} else if (this.language == ValueMappingLanguage.CSVMERGE) {
 
 		} else {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);

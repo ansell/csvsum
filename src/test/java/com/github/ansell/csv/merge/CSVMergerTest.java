@@ -43,7 +43,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-import com.github.ansell.csv.map.CSVMapper;
 import com.github.ansell.csv.util.CSVUtil;
 
 import joptsimple.OptionException;
@@ -87,53 +86,67 @@ public class CSVMergerTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainNoArgs() throws Exception {
 		thrown.expect(OptionException.class);
-		CSVMapper.main();
+		CSVMerger.main();
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainHelp() throws Exception {
-		CSVMapper.main("--help");
+		CSVMerger.main("--help");
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainFileDoesNotExist() throws Exception {
 		Path testDirectory = tempDir.newFolder("test-does-not-exist").toPath();
 
 		thrown.expect(FileNotFoundException.class);
-		CSVMapper.main("--input", testDirectory.resolve("test-does-not-exist.csv").toString(), "--mapping",
+		CSVMerger.main("--input", testDirectory.resolve("test-does-not-exist.csv").toString(), "--otherInput",
+				testOtherFile.toAbsolutePath().toString(), "--mapping", testMapping.toAbsolutePath().toString());
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainOtherFileDoesNotExist() throws Exception {
+		Path testDirectory = tempDir.newFolder("test-does-not-exist").toPath();
+
+		thrown.expect(FileNotFoundException.class);
+		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--otherInput",
+				testDirectory.resolve("test-does-not-exist.csv").toString(), "--mapping",
 				testMapping.toAbsolutePath().toString());
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainMappingDoesNotExist() throws Exception {
 		Path testDirectory = tempDir.newFolder("test-does-not-exist").toPath();
 
 		thrown.expect(FileNotFoundException.class);
-		CSVMapper.main("--input", testFile.toAbsolutePath().toString(), "--otherInput",
+		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--otherInput",
 				testOtherFile.toAbsolutePath().toString(), "--mapping",
 				testDirectory.resolve("test-does-not-exist.csv").toString());
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainEmpty() throws Exception {
@@ -143,29 +156,29 @@ public class CSVMergerTest {
 
 		thrown.expect(RuntimeException.class);
 		thrown.expectMessage("CSV file did not contain a valid header line");
-		CSVMapper.main("--input", testFile.toAbsolutePath().toString(), "--otherInput",
+		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--otherInput",
 				testOtherFile.toAbsolutePath().toString(), "--mapping", testMapping.toAbsolutePath().toString());
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainComplete() throws Exception {
-		CSVMapper.main("--input", testFile.toAbsolutePath().toString(), "--otherInput",
+		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--otherInput",
 				testOtherFile.toAbsolutePath().toString(), "--mapping", testMapping.toAbsolutePath().toString());
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainCompleteWithOutputFile() throws Exception {
 		Path testDirectory = tempDir.newFolder("test").toPath();
 
-		CSVMapper.main("--input", testFile.toAbsolutePath().toString(), "--otherInput",
+		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--otherInput",
 				testOtherFile.toAbsolutePath().toString(), "--mapping", testMapping.toAbsolutePath().toString(),
 				"--output", testDirectory.resolve("test-output.csv").toString());
 
@@ -174,24 +187,25 @@ public class CSVMergerTest {
 		try (BufferedReader reader = Files.newBufferedReader(testDirectory.resolve("test-output.csv"));) {
 			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
 		}
-		assertEquals(8, headers.size());
+		assertEquals(12, headers.size());
 		assertEquals(4, lines.size());
 		lines.sort(Comparator.comparing(l -> l.get(0)));
 
 		lines.get(0).forEach(k -> System.out.print("\"" + k + "\", "));
 
-		assertEquals(Arrays.asList("A1", "A2", "", "A3", "", "A4", "Useful", "A5a"), lines.get(0));
+		assertEquals(Arrays.asList("A1", "A1", "A2", "", "A3", "", "A4", "Useful", "A5a", "ZZ1", "A1", "Interesting"),
+				lines.get(0));
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainCompleteWithOutputFileHidden() throws Exception {
 		Path testDirectory = tempDir.newFolder("test").toPath();
 
-		CSVMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
+		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
 				testMappingHidden.toAbsolutePath().toString(), "--otherInput",
 				testOtherFile.toAbsolutePath().toString(), "--output",
 				testDirectory.resolve("test-output.csv").toString());

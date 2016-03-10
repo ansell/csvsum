@@ -30,6 +30,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
@@ -43,6 +44,7 @@ import java.util.stream.Collectors;
 
 import javax.script.ScriptException;
 
+import org.apache.commons.io.IOUtils;
 import org.jooq.lambda.Unchecked;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
@@ -133,6 +135,10 @@ public final class CSVMerger {
 
 	private static void runMapper(Reader input, Reader otherInput, List<ValueMapping> map, Writer output)
 			throws ScriptException, IOException {
+		Path tempFile = Files.createTempFile("tempOtherFile-", ".csv");
+		try (final BufferedWriter tempOutput = Files.newBufferedWriter(tempFile);) {
+			IOUtils.copy(otherInput, tempOutput);
+		}
 
 		Function<ValueMapping, String> outputFields = e -> e.getOutputField();
 
@@ -156,26 +162,27 @@ public final class CSVMerger {
 					List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
 					List<String> nextMergedLine = new ArrayList<>(l);
 
-					otherInput.mark(Integer.MAX_VALUE);
-					CSVUtil.streamCSV(otherInput, otherH -> {
-					} , (otherH, otherL) -> {
-						mergeFieldsOrdered.forEach(m -> {
-							for (String inputHeader : inputHeaders) {
-								if (mergeFields.containsKey(inputHeader)) {
-									if (otherH.contains(m.getMapping())) {
-										String otherValue = otherL.get(otherH.indexOf(m.getMapping()));
-										if (l.get(inputHeaders.indexOf(m.getInputField())).equals(otherValue)) {
-											mergedInputHeaders.addAll(otherH);
-											nextMergedLine.addAll(otherL);
+					try (final BufferedReader otherTemp = Files.newBufferedReader(tempFile)) {
+						CSVUtil.streamCSV(otherTemp, otherH -> {
+						} , (otherH, otherL) -> {
+							mergeFieldsOrdered.forEach(m -> {
+								for (String inputHeader : inputHeaders) {
+									if (mergeFields.containsKey(inputHeader)) {
+										if (otherH.contains(m.getMapping())) {
+											String otherValue = otherL.get(otherH.indexOf(m.getMapping()));
+											if (l.get(inputHeaders.indexOf(m.getInputField())).equals(otherValue)) {
+												mergedInputHeaders.addAll(otherH);
+												nextMergedLine.addAll(otherL);
+											}
 										}
 									}
 								}
-							}
-						});
-						return otherL;
-					} , otherL -> {
+							});
+							return otherL;
+						} , otherL -> {
 
-					});
+						});
+					}
 
 					return ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, map);
 				} catch (final LineFilteredException e) {
@@ -183,12 +190,6 @@ public final class CSVMerger {
 					// eliminate it
 				} catch (final IOException e) {
 					throw new RuntimeException(e);
-				} finally {
-					try {
-						otherInput.reset();
-					} catch (Exception e) {
-						throw new RuntimeException(e);
-					}
 				}
 				return null;
 			} , Unchecked.consumer(l -> csvWriter.write(l)));
