@@ -109,6 +109,9 @@ public class AccessMapper {
 				.describedAs("The directory to contain the mapped file.");
 		final OptionSpec<String> outputPrefix = parser.accepts("prefix").withRequiredArg().ofType(String.class)
 				.defaultsTo("Mapped-").describedAs("The prefix to use to name the mapped files.");
+		final OptionSpec<Boolean> tableNamePrefix = parser.accepts("add-table-prefix").withOptionalArg()
+				.ofType(Boolean.class).defaultsTo(Boolean.TRUE)
+				.describedAs("Set to false to not add table name prefixes to the dumped CSV files for tables.");
 		final OptionSpec<Boolean> debug = parser.accepts("debug").withOptionalArg().ofType(Boolean.class)
 				.defaultsTo(Boolean.FALSE).describedAs("Set to true to debug the table structures");
 		final OptionSpec<Integer> threads = parser.accepts("threads").withOptionalArg().ofType(Integer.class)
@@ -141,7 +144,8 @@ public class AccessMapper {
 
 		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);) {
 			try (final InputStream readerDB = Files.newInputStream(inputPath);) {
-				dumpToCSVs(readerDB, output.value(options).toPath(), outputPrefix.value(options), debug.value(options));
+				dumpToCSVs(readerDB, output.value(options).toPath(), outputPrefix.value(options), debug.value(options),
+						tableNamePrefix.value(options));
 			}
 			// Read the database again to map it to a single CSV
 			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
@@ -613,8 +617,8 @@ public class AccessMapper {
 		}
 	}
 
-	private static void dumpToCSVs(InputStream input, Path outputDir, String csvPrefix, boolean debug)
-			throws IOException {
+	private static void dumpToCSVs(InputStream input, Path outputDir, String csvPrefix, boolean debug,
+			boolean addTableNamePrefix) throws IOException {
 		Path tempFile = Files.createTempFile("Source-accessdb", ".accdb");
 		Files.copy(input, tempFile, StandardCopyOption.REPLACE_EXISTING);
 
@@ -638,7 +642,11 @@ public class AccessMapper {
 				String[] tempArray = new String[table.getColumnCount()];
 				int x = 0;
 				for (Column nextColumn : table.getColumns()) {
-					tempArray[x++] = nextColumn.getName();
+					if (addTableNamePrefix) {
+						tempArray[x++] = tableName + "." + nextColumn.getName();
+					} else {
+						tempArray[x++] = nextColumn.getName();
+					}
 				}
 
 				final CsvSchema fullFileSchema = CSVUtil.buildSchema(Arrays.asList(tempArray));

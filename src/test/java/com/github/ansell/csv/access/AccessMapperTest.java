@@ -279,7 +279,7 @@ public class AccessMapperTest {
 	public final void testMainDebug() throws Exception {
 		AccessMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
 				testMapping.toAbsolutePath().toString(), "--output", testOutput.toAbsolutePath().toString(), "--debug",
-				Boolean.TRUE.toString());
+				Boolean.TRUE.toString(), "--add-table-prefix", Boolean.FALSE.toString());
 
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
