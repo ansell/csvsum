@@ -100,13 +100,15 @@ Run accessmap with a sample access file:
     <dependency>
         <groupId>com.github.ansell.csv.sum</groupId>
         <artifactId>csvsum</artifactId>
-        <version>0.0.4</version>
+        <version>0.0.5</version>
     </dependency>
 
 # Changelog
 
 ## 2016-03-11
+* Release 0.0.5
 * Add csvmerge program to merge two CSV files
+* Add new column to mapping files to define which fields are shown. Those with "no" in the shown column will not be in the result file.
 
 ## 2016-03-04
 * Add helper function for getting the mapped value for a column in the current line, "outCol('outputColumnName')"
