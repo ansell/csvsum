@@ -188,9 +188,14 @@ public class ValueMapping {
 
 	private String apply(List<String> inputHeaders, List<String> line, Map<String, String> mappedLine) {
 		int indexOf = inputHeaders.indexOf(getInputField());
-		String nextInputValue = "";
+		String nextInputValue;
 		if (indexOf >= 0) {
 			nextInputValue = line.get(indexOf);
+		} else {
+			// Provide a default input value for these cases. Likely the input
+			// field in this case was a set of fields and won't be directly
+			// relied upon
+			nextInputValue = "";
 		}
 
 		// Short circuit if the mapping is a default mapping
