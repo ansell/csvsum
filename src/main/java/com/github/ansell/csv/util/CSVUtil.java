@@ -31,6 +31,7 @@ import java.io.Writer;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -215,12 +216,12 @@ public final class CSVUtil {
 			}
 			if (!originRow.containsKey(sourceField)) {
 				throw new RuntimeException("Origin row did not contain a field required for mapping: field="
-						+ sourceFields[i] + " mapping=" + mapping);
+						+ sourceFields[i] + " mapping=" + mapping + " originRow=" + originRow);
 			}
 			Object nextFKValue = originRow.get(sourceField);
 			if (nextFKValue == null) {
 				// Return an empty result if one of the source fields was null
-				return new HashMap<>();
+				return Collections.emptyMap();
 			}
 			if (result.containsKey(destField)) {
 				throw new RuntimeException("Destination row contained a duplicate field name: field=" + destFields[i]

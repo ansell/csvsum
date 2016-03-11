@@ -150,30 +150,51 @@ public final class CSVMerger {
 		List<ValueMapping> mergeFieldsOrdered = map.stream()
 				.filter(k -> k.getLanguage() == ValueMappingLanguage.CSVMERGE).collect(Collectors.toList());
 
+		List<ValueMapping> nonMergeFieldsOrdered = map.stream()
+				.filter(k -> k.getLanguage() != ValueMappingLanguage.CSVMERGE).collect(Collectors.toList());
+
+		if (mergeFieldsOrdered.size() != 1) {
+			throw new RuntimeException(
+					"Can only support exactly one CsvMerge mapping: found " + mergeFieldsOrdered.size());
+		}
+
 		final CsvSchema schema = CSVUtil.buildSchema(outputHeaders);
 
 		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);) {
 			List<String> inputHeaders = new ArrayList<>();
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
 				try {
-					List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
+					List<String> mergedInputHeaders = new ArrayList<>(h);
 					List<String> nextMergedLine = new ArrayList<>(l);
 
 					try (final BufferedReader otherTemp = Files.newBufferedReader(tempFile)) {
 						CSVUtil.streamCSV(otherTemp, otherH -> {
 						} , (otherH, otherL) -> {
-							mergeFieldsOrdered.forEach(m -> {
+							// Note, we check for uniqueness and throw exception
+							// above
+							ValueMapping m = mergeFieldsOrdered.get(0);
+							Map<String, Object> matchMap = CSVUtil.buildMatchMap(m, mergedInputHeaders, nextMergedLine,
+									false);
+							boolean allMatch = !matchMap.isEmpty();
+							for (Entry<String, Object> nextOtherFieldMatcher : matchMap.entrySet()) {
+								if (!otherH.contains(nextOtherFieldMatcher.getKey())
+										|| !otherL.get(otherH.indexOf(nextOtherFieldMatcher.getKey()))
+												.equals(nextOtherFieldMatcher.getValue())) {
+									allMatch = false;
+									break;
+								}
+							}
+							if (allMatch) {
 								Map<String, Object> leftOuterJoin = CSVUtil.leftOuterJoin(m, mergedInputHeaders,
 										nextMergedLine, otherH, otherL, false);
-								nextMergedLine.clear();
-								mergedInputHeaders.clear();
-								for (String nextOutputHeader : outputHeaders) {
-									if (leftOuterJoin.containsKey(nextOutputHeader)) {
-										mergedInputHeaders.add(nextOutputHeader);
-										nextMergedLine.add((String) leftOuterJoin.get(nextOutputHeader));
+								for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
+									if (leftOuterJoin.containsKey(nextMapping.getInputField())
+											&& !mergedInputHeaders.contains(nextMapping.getInputField())) {
+										mergedInputHeaders.add(nextMapping.getInputField());
+										nextMergedLine.add((String) leftOuterJoin.get(nextMapping.getInputField()));
 									}
 								}
-							});
+							}
 							return otherL;
 						} , otherL -> {
 

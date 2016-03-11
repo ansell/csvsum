@@ -188,11 +188,10 @@ public class ValueMapping {
 
 	private String apply(List<String> inputHeaders, List<String> line, Map<String, String> mappedLine) {
 		int indexOf = inputHeaders.indexOf(getInputField());
-		if (indexOf < 0) {
-			throw new RuntimeException(
-					"Could not find field in line: inputHeaders=" + inputHeaders + " mapping=" + this.toString());
+		String nextInputValue = "";
+		if (indexOf >= 0) {
+			nextInputValue = line.get(indexOf);
 		}
-		String nextInputValue = line.get(indexOf);
 
 		// Short circuit if the mapping is a default mapping
 		if (this.language == ValueMappingLanguage.DEFAULT || this.language.matchesDefaultMapping(this.mapping)) {
