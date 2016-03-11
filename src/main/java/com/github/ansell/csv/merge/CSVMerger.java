@@ -39,12 +39,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.script.ScriptException;
 
 import org.apache.commons.io.IOUtils;
+import org.jooq.lambda.Seq;
 import org.jooq.lambda.Unchecked;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
@@ -79,8 +81,8 @@ public final class CSVMerger {
 		final OptionSpec<Void> help = parser.accepts("help").forHelp();
 		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
 				.describedAs("The input CSV file to be mapped.");
-		final OptionSpec<File> otherInput = parser.accepts("other-input").withRequiredArg().ofType(File.class).required()
-				.describedAs("The other input CSV file to be merged.");
+		final OptionSpec<File> otherInput = parser.accepts("other-input").withRequiredArg().ofType(File.class)
+				.required().describedAs("The other input CSV file to be merged.");
 		final OptionSpec<File> mapping = parser.accepts("mapping").withRequiredArg().ofType(File.class).required()
 				.describedAs("The mapping file.");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
@@ -148,17 +150,12 @@ public final class CSVMerger {
 		List<ValueMapping> mergeFieldsOrdered = map.stream()
 				.filter(k -> k.getLanguage() == ValueMappingLanguage.CSVMERGE).collect(Collectors.toList());
 
-		Map<String, List<ValueMapping>> mergeFields = map.stream()
-				.filter(k -> k.getLanguage() == ValueMappingLanguage.CSVMERGE)
-				.collect(Collectors.groupingBy(k -> k.getInputField()));
-
 		final CsvSchema schema = CSVUtil.buildSchema(outputHeaders);
 
 		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);) {
 			List<String> inputHeaders = new ArrayList<>();
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
 				try {
-
 					List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
 					List<String> nextMergedLine = new ArrayList<>(l);
 
@@ -166,15 +163,14 @@ public final class CSVMerger {
 						CSVUtil.streamCSV(otherTemp, otherH -> {
 						} , (otherH, otherL) -> {
 							mergeFieldsOrdered.forEach(m -> {
-								for (String inputHeader : inputHeaders) {
-									if (mergeFields.containsKey(inputHeader)) {
-										if (otherH.contains(m.getMapping())) {
-											String otherValue = otherL.get(otherH.indexOf(m.getMapping()));
-											if (l.get(inputHeaders.indexOf(m.getInputField())).equals(otherValue)) {
-												mergedInputHeaders.addAll(otherH);
-												nextMergedLine.addAll(otherL);
-											}
-										}
+								Map<String, Object> leftOuterJoin = CSVUtil.leftOuterJoin(m, mergedInputHeaders,
+										nextMergedLine, otherH, otherL);
+								nextMergedLine.clear();
+								mergedInputHeaders.clear();
+								for (String nextOutputHeader : outputHeaders) {
+									if (leftOuterJoin.containsKey(nextOutputHeader)) {
+										mergedInputHeaders.add(nextOutputHeader);
+										nextMergedLine.add((String) leftOuterJoin.get(nextOutputHeader));
 									}
 								}
 							});
