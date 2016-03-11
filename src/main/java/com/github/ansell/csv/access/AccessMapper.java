@@ -481,7 +481,7 @@ public class AccessMapper {
 				continue;
 			}
 
-			Map<String, Object> singletonMap = CSVUtil.buildMatchMap(nextMapping, originRow);
+			Map<String, Object> singletonMap = CSVUtil.buildMatchMap(nextMapping, originRow, true);
 
 			// Cursor cursor = dest.getDefaultCursor();
 

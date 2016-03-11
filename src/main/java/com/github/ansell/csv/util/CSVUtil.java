@@ -176,17 +176,13 @@ public final class CSVUtil {
 	}
 
 	public static Map<String, Object> leftOuterJoin(ValueMapping mapping, List<String> sourceHeaders,
-			List<String> sourceLine, List<String> destHeaders, List<String> destLine) {
-		Map<String, Object> matchMap = buildMatchMap(mapping, sourceHeaders, sourceLine);
+			List<String> sourceLine, List<String> destHeaders, List<String> destLine, boolean splitFieldNamesByDot) {
+		Map<String, Object> matchMap = buildMatchMap(mapping, sourceHeaders, sourceLine, splitFieldNamesByDot);
 
 		boolean allMatch = true;
 		for (String nextDestHeader : destHeaders) {
-			if (matchMap.containsKey(nextDestHeader)) {
-				if (!matchMap.get(nextDestHeader).equals(destLine.get(destHeaders.indexOf(nextDestHeader)))) {
-					allMatch = false;
-					break;
-				}
-			} else {
+			if (matchMap.containsKey(nextDestHeader)
+					&& !matchMap.get(nextDestHeader).equals(destLine.get(destHeaders.indexOf(nextDestHeader)))) {
 				allMatch = false;
 				break;
 			}
@@ -199,7 +195,8 @@ public final class CSVUtil {
 		}
 	}
 
-	public static Map<String, Object> buildMatchMap(ValueMapping mapping, Map<String, Object> originRow) {
+	public static Map<String, Object> buildMatchMap(ValueMapping mapping, Map<String, Object> originRow,
+			boolean splitFieldNamesByDot) {
 		// System.out.println("Building match map for: " + mapping + " row=" +
 		// originRow);
 		Map<String, Object> result = new HashMap<>();
@@ -208,31 +205,38 @@ public final class CSVUtil {
 		String[] sourceFields = COMMA_PATTERN.split(mapping.getInputField());
 
 		for (int i = 0; i < destFields.length; i++) {
-			String[] destField = DOT_PATTERN.split(destFields[i]);
-			String[] sourceField = DOT_PATTERN.split(sourceFields[i]);
-			if (!originRow.containsKey(sourceField[1])) {
+			String destField = destFields[i];
+			String sourceField = sourceFields[i];
+			if (splitFieldNamesByDot) {
+				String[] destFieldSplit = DOT_PATTERN.split(destField);
+				String[] sourceFieldSplit = DOT_PATTERN.split(sourceField);
+				destField = destFieldSplit[1];
+				sourceField = sourceFieldSplit[1];
+			}
+			if (!originRow.containsKey(sourceField)) {
 				throw new RuntimeException("Origin row did not contain a field required for mapping: field="
 						+ sourceFields[i] + " mapping=" + mapping);
 			}
-			Object nextFKValue = originRow.get(sourceField[1]);
+			Object nextFKValue = originRow.get(sourceField);
 			if (nextFKValue == null) {
 				// Return an empty result if one of the source fields was null
 				return new HashMap<>();
 			}
-			if (result.containsKey(destField[1])) {
+			if (result.containsKey(destField)) {
 				throw new RuntimeException("Destination row contained a duplicate field name: field=" + destFields[i]
 						+ " mapping=" + mapping);
 			}
-			result.put(destField[1], nextFKValue);
+			result.put(destField, nextFKValue);
 		}
 
 		return result;
 	}
 
-	public static Map<String, Object> buildMatchMap(ValueMapping m, List<String> inputHeader, List<String> inputLine) {
+	public static Map<String, Object> buildMatchMap(ValueMapping m, List<String> inputHeader, List<String> inputLine,
+			boolean splitFieldNamesByDot) {
 		Map<String, Object> originRow = map(inputHeader, inputLine);
 
-		return buildMatchMap(m, originRow);
+		return buildMatchMap(m, originRow, splitFieldNamesByDot);
 	}
 
 	private static Map<String, Object> map(List<String> inputHeader, List<String> inputLine) {

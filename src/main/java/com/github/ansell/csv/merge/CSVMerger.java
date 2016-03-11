@@ -164,7 +164,7 @@ public final class CSVMerger {
 						} , (otherH, otherL) -> {
 							mergeFieldsOrdered.forEach(m -> {
 								Map<String, Object> leftOuterJoin = CSVUtil.leftOuterJoin(m, mergedInputHeaders,
-										nextMergedLine, otherH, otherL);
+										nextMergedLine, otherH, otherL, false);
 								nextMergedLine.clear();
 								mergedInputHeaders.clear();
 								for (String nextOutputHeader : outputHeaders) {
