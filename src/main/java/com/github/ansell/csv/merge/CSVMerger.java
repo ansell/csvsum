@@ -142,6 +142,17 @@ public final class CSVMerger {
 			IOUtils.copy(otherInput, tempOutput);
 		}
 
+		List<String> otherH = new ArrayList<>();
+		List<List<String>> otherLines = new ArrayList<>();
+
+		try (final BufferedReader otherTemp = Files.newBufferedReader(tempFile)) {
+			CSVUtil.streamCSV(otherTemp, otherHeader -> otherH.addAll(otherHeader), (otherHeader, otherL) -> {
+				return otherL;
+			} , otherL -> {
+				otherLines.add(otherL);
+			});
+		}
+
 		Function<ValueMapping, String> outputFields = e -> e.getOutputField();
 
 		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(outputFields)
@@ -167,46 +178,39 @@ public final class CSVMerger {
 					List<String> mergedInputHeaders = new ArrayList<>(h);
 					List<String> nextMergedLine = new ArrayList<>(l);
 
-					try (final BufferedReader otherTemp = Files.newBufferedReader(tempFile)) {
-						CSVUtil.streamCSV(otherTemp, otherH -> {
-						} , (otherH, otherL) -> {
-							// Note, we check for uniqueness and throw exception
-							// above
-							ValueMapping m = mergeFieldsOrdered.get(0);
-							Map<String, Object> matchMap = CSVUtil.buildMatchMap(m, mergedInputHeaders, nextMergedLine,
-									false);
-							boolean allMatch = !matchMap.isEmpty();
-							for (Entry<String, Object> nextOtherFieldMatcher : matchMap.entrySet()) {
-								if (!otherH.contains(nextOtherFieldMatcher.getKey())
-										|| !otherL.get(otherH.indexOf(nextOtherFieldMatcher.getKey()))
-												.equals(nextOtherFieldMatcher.getValue())) {
-									allMatch = false;
-									break;
+					for (List<String> otherL : otherLines) {
+						// Note, we check for uniqueness and throw exception
+						// above
+						ValueMapping m = mergeFieldsOrdered.get(0);
+						Map<String, Object> matchMap = CSVUtil.buildMatchMap(m, mergedInputHeaders, nextMergedLine,
+								false);
+						boolean allMatch = !matchMap.isEmpty();
+						for (Entry<String, Object> nextOtherFieldMatcher : matchMap.entrySet()) {
+							if (!otherH.contains(nextOtherFieldMatcher.getKey())
+									|| !otherL.get(otherH.indexOf(nextOtherFieldMatcher.getKey()))
+											.equals(nextOtherFieldMatcher.getValue())) {
+								allMatch = false;
+								break;
+							}
+						}
+						if (allMatch) {
+							Map<String, Object> leftOuterJoin = CSVUtil.leftOuterJoin(m, mergedInputHeaders,
+									nextMergedLine, otherH, otherL, false);
+							for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
+								if (leftOuterJoin.containsKey(nextMapping.getInputField())
+										&& !mergedInputHeaders.contains(nextMapping.getInputField())) {
+									mergedInputHeaders.add(nextMapping.getInputField());
+									nextMergedLine.add((String) leftOuterJoin.get(nextMapping.getInputField()));
 								}
 							}
-							if (allMatch) {
-								Map<String, Object> leftOuterJoin = CSVUtil.leftOuterJoin(m, mergedInputHeaders,
-										nextMergedLine, otherH, otherL, false);
-								for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
-									if (leftOuterJoin.containsKey(nextMapping.getInputField())
-											&& !mergedInputHeaders.contains(nextMapping.getInputField())) {
-										mergedInputHeaders.add(nextMapping.getInputField());
-										nextMergedLine.add((String) leftOuterJoin.get(nextMapping.getInputField()));
-									}
-								}
-							}
-							return otherL;
-						} , otherL -> {
-
-						});
+							break;
+						}
 					}
 
 					return ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, map);
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
 					// eliminate it
-				} catch (final IOException e) {
-					throw new RuntimeException(e);
 				}
 				return null;
 			} , Unchecked.consumer(l -> csvWriter.write(l)));
