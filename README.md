@@ -52,9 +52,12 @@ If the Mapping field contains a script, it is executed in the context of the fol
 * inputHeaders : The headers from the input file as a list, in the order they were in the original file.
 * inputField : The field that was designated to be the source for this mapping. Note that this parameter doesn't need to be used, and arbitrary fields can be merged using inputheaders and line.
 * inputValue : The value of the field from inputField.
+* outputHeaders : The headers used in the output file
 * outputField : The label of the output field that the results of this row will be assigned to.
 * line : The values from the current line being processed from the input file, in the same order as the inputHeaders list.
 * mapLine : The mapped values for the current line so far
+* previousLine : The values from the previous line, or an empty list if this is the first line or the lines are all empty
+* previousMappedLine : The mapped values from the previous line, or an empty list if the previous line was filtered or the output document is empty
 
 The scripts also have access to two helper functions to get a specific column and a function to filter an entire line:
 
@@ -104,6 +107,9 @@ Run accessmap with a sample access file:
     </dependency>
 
 # Changelog
+
+## 2016-03-15
+* Add outputHeaders, previousLine and previousMappedLine to mapping function parameters
 
 ## 2016-03-11
 * Release 0.0.5
