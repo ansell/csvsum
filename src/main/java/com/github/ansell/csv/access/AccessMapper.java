@@ -37,6 +37,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -436,7 +437,7 @@ public class AccessMapper {
 		}
 
 		try {
-			return ValueMapping.mapLine(inputHeaders, nextEmittedRow, map);
+			return ValueMapping.mapLine(inputHeaders, nextEmittedRow, Collections.emptyList(), map);
 		} catch (final LineFilteredException e) {
 			// Swallow line filtered exception and return null below to
 			// eliminate it

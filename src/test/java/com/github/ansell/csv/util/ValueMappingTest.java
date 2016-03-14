@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.io.StringReader;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.After;
@@ -88,7 +89,7 @@ public class ValueMappingTest {
 	@Test
 	public final void testMapLine() {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("anInput", "anInput3", "aDifferentInput"),
-				Arrays.asList("testValue1", "testValue2", "xyzabc"),
+				Arrays.asList("testValue1", "testValue2", "xyzabc"), Collections.emptyList(),
 				Arrays.asList(testDefaultMapping, testDefaultMapping3, testJavascriptMapping));
 
 		assertEquals(3, mapLine.size());

@@ -113,13 +113,13 @@ public class ValueMapping {
 		return result;
 	}
 
-	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<ValueMapping> map)
+	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine, List<ValueMapping> map)
 			throws LineFilteredException {
 
 		Map<String, String> outputValues = new ConcurrentHashMap<>();
 
 		map.forEach(nextMapping -> {
-			String mappedValue = nextMapping.apply(inputHeaders, line, outputValues);
+			String mappedValue = nextMapping.apply(inputHeaders, line, previousLine, outputValues);
 			outputValues.put(nextMapping.getOutputField(), mappedValue);
 		});
 
@@ -186,7 +186,7 @@ public class ValueMapping {
 		this.shown = shown;
 	}
 
-	private String apply(List<String> inputHeaders, List<String> line, Map<String, String> mappedLine) {
+	private String apply(List<String> inputHeaders, List<String> line, List<String> previousLine, Map<String, String> mappedLine) {
 		int indexOf = inputHeaders.indexOf(getInputField());
 		String nextInputValue;
 		if (indexOf >= 0) {

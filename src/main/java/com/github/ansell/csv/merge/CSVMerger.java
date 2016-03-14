@@ -37,6 +37,7 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -173,7 +174,9 @@ public final class CSVMerger {
 
 		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);) {
 			List<String> inputHeaders = new ArrayList<>();
+			List<String> previousLine = new ArrayList<>();
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
+				List<String> mapLine = null;
 				try {
 					List<String> mergedInputHeaders = new ArrayList<>(h);
 					List<String> nextMergedLine = new ArrayList<>(l);
@@ -207,10 +210,16 @@ public final class CSVMerger {
 						}
 					}
 
-					return ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, map);
+					mapLine = ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, previousLine, map);
+					return mapLine;
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
 					// eliminate it
+				} finally {
+					previousLine.clear();
+					if (mapLine != null) {
+						previousLine.addAll(mapLine);
+					}
 				}
 				return null;
 			} , Unchecked.consumer(l -> csvWriter.write(l)));
