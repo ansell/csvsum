@@ -437,7 +437,7 @@ public class AccessMapper {
 		}
 
 		try {
-			return ValueMapping.mapLine(inputHeaders, nextEmittedRow, Collections.emptyList(), map);
+			return ValueMapping.mapLine(inputHeaders, nextEmittedRow, Collections.emptyList(), Collections.emptyList(), map);
 		} catch (final LineFilteredException e) {
 			// Swallow line filtered exception and return null below to
 			// eliminate it

@@ -132,18 +132,21 @@ public final class CSVMapper {
 		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);) {
 			List<String> inputHeaders = new ArrayList<>();
 			List<String> previousLine = new ArrayList<>();
+			List<String> previousMappedLine = new ArrayList<>();
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
 				List<String> mapLine = null;
 				try {
-					mapLine = ValueMapping.mapLine(inputHeaders, l, previousLine, map);
+					mapLine = ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map);
 					return mapLine;
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
 					// eliminate it
 				} finally {
 					previousLine.clear();
+					previousLine.addAll(l);
+					previousMappedLine.clear();
 					if (mapLine != null) {
-						previousLine.addAll(mapLine);
+						previousMappedLine.addAll(mapLine);
 					}
 				}
 				return null;
