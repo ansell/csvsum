@@ -344,6 +344,9 @@ public class ValueMapping {
 				StringBuilder javascriptFunction = new StringBuilder();
 				javascriptFunction
 						.append("var LFE = Java.type(\"com.github.ansell.csv.util.LineFilteredException\"); \n");
+				javascriptFunction.append("var Integer = Java.type('java.lang.Integer'); \n");
+				javascriptFunction.append("var Double = Java.type('java.lang.Double'); \n");
+				javascriptFunction.append("var Long = Java.type('java.lang.Long'); \n");
 				javascriptFunction.append("var Date = Java.type('java.time.LocalDate'); \n");
 				javascriptFunction.append("var Format = Java.type('java.time.format.DateTimeFormatter'); \n");
 				javascriptFunction.append("var ChronoUnit = Java.type('java.time.temporal.ChronoUnit'); \n");

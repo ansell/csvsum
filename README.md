@@ -61,6 +61,9 @@ If the Mapping field contains a script, it is executed in the context of the fol
 
 Javascript mappings have access to some global functions included from Java:
 
+* Integer : The java.lang.Integer class
+* Double : The java.lang.Double class
+* Long : The java.lang.Long class
 * Format : The java.time.format.DateTimeFormatter class
 * Date : The java.time.LocalDate class
 * ChronoUnit = The java.time.temporal.ChronoUnit class
