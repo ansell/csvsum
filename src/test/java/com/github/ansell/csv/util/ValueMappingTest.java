@@ -27,6 +27,7 @@ public class ValueMappingTest {
 	private ValueMapping testJavascriptMapping;
 	private ValueMapping testPreviousMapping;
 	private ValueMapping testDateMatching;
+	private ValueMapping testDateMapping;
 
 	@Before
 	public void setUp() throws Exception {
@@ -41,7 +42,9 @@ public class ValueMappingTest {
 				"return previousLine.isEmpty() ? 'no-previous' : previousLine.get(outputHeaders.indexOf(outputField));",
 				"");
 		testDateMatching = ValueMapping.newMapping("Javascript", "dateInput", "usefulDate",
-				"return dateMatches(Format.ISO_LOCAL_DATE, inputValue) ? inputValue : 'fix-your-date-format';", "");
+				"return dateMatches(inputValue, Format.ISO_LOCAL_DATE) ? inputValue : 'fix-your-date-format';", "");
+		testDateMapping = ValueMapping.newMapping("Javascript", "dateInput", "usefulDate",
+				"return dateMatches(inputValue, Format.ISO_LOCAL_DATE) ? dateConvert(inputValue, Format.ISO_LOCAL_DATE, Format.ISO_WEEK_DATE) : 'fix-your-date-format';", "");
 	}
 
 	@After
@@ -141,6 +144,24 @@ public class ValueMappingTest {
 
 		assertEquals(1, mapLine.size());
 		assertEquals("2013-01-30", mapLine.get(0));
+	}
+
+	@Test
+	public final void testMapLineDateMatchInvalidConvert() {
+		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("dateInput"), Arrays.asList("testNotADate"),
+				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMapping));
+
+		assertEquals(1, mapLine.size());
+		assertEquals("fix-your-date-format", mapLine.get(0));
+	}
+
+	@Test
+	public final void testMapLineDateMatchValidConvert() {
+		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("dateInput"), Arrays.asList("2013-01-30"),
+				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMapping));
+
+		assertEquals(1, mapLine.size());
+		assertEquals("2013-W05-3", mapLine.get(0));
 	}
 
 	@Test
