@@ -31,11 +31,19 @@ import java.io.Writer;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
+import java.util.stream.Collector;
 import java.util.stream.Collectors;
+
+import org.jooq.lambda.Seq;
+import org.jooq.lambda.tuple.Tuple2;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.MappingIterator;
@@ -50,6 +58,14 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema;
  * @author Peter Ansell p_ansell@yahoo.com
  */
 public final class CSVUtil {
+
+	public static final String DOT_REGEX = "\\.";
+	public static final Pattern DOT_PATTERN = Pattern.compile(DOT_REGEX);
+	public static final String COMMA_REGEX = "\\,";
+	public static final Pattern COMMA_PATTERN = Pattern.compile(COMMA_REGEX);
+
+	private static final Collector<Tuple2<String, String>, ?, Map<String, Object>> TUPLE2_TO_MAP = Collectors
+			.toMap(e -> (String) e.v1(), e -> (String) e.v2());
 
 	/**
 	 * Private constructor for static only class
@@ -160,4 +176,75 @@ public final class CSVUtil {
 		return formattedDate;
 	}
 
+	public static Map<String, Object> leftOuterJoin(ValueMapping mapping, List<String> sourceHeaders,
+			List<String> sourceLine, List<String> destHeaders, List<String> destLine, boolean splitFieldNamesByDot) {
+		Map<String, Object> matchMap = buildMatchMap(mapping, sourceHeaders, sourceLine, splitFieldNamesByDot);
+
+		boolean allMatch = true;
+		for (String nextDestHeader : destHeaders) {
+			if (matchMap.containsKey(nextDestHeader)
+					&& !matchMap.get(nextDestHeader).equals(destLine.get(destHeaders.indexOf(nextDestHeader)))) {
+				allMatch = false;
+				break;
+			}
+		}
+
+		if (allMatch) {
+			return zip(sourceHeaders, sourceLine).concat(zip(destHeaders, destLine)).collect(TUPLE2_TO_MAP);
+		} else {
+			return zip(sourceHeaders, sourceLine).collect(TUPLE2_TO_MAP);
+		}
+	}
+
+	public static Map<String, Object> buildMatchMap(ValueMapping mapping, Map<String, Object> originRow,
+			boolean splitFieldNamesByDot) {
+		// System.out.println("Building match map for: " + mapping + " row=" +
+		// originRow);
+		Map<String, Object> result = new HashMap<>();
+
+		String[] destFields = COMMA_PATTERN.split(mapping.getMapping());
+		String[] sourceFields = COMMA_PATTERN.split(mapping.getInputField());
+
+		for (int i = 0; i < destFields.length; i++) {
+			String destField = destFields[i];
+			String sourceField = sourceFields[i];
+			if (splitFieldNamesByDot) {
+				String[] destFieldSplit = DOT_PATTERN.split(destField);
+				String[] sourceFieldSplit = DOT_PATTERN.split(sourceField);
+				destField = destFieldSplit[1];
+				sourceField = sourceFieldSplit[1];
+			}
+			if (!originRow.containsKey(sourceField)) {
+				throw new RuntimeException("Origin row did not contain a field required for mapping: field="
+						+ sourceFields[i] + " mapping=" + mapping + " originRow=" + originRow);
+			}
+			Object nextFKValue = originRow.get(sourceField);
+			if (nextFKValue == null) {
+				// Return an empty result if one of the source fields was null
+				return Collections.emptyMap();
+			}
+			if (result.containsKey(destField)) {
+				throw new RuntimeException("Destination row contained a duplicate field name: field=" + destFields[i]
+						+ " mapping=" + mapping);
+			}
+			result.put(destField, nextFKValue);
+		}
+
+		return result;
+	}
+
+	public static Map<String, Object> buildMatchMap(ValueMapping m, List<String> inputHeader, List<String> inputLine,
+			boolean splitFieldNamesByDot) {
+		Map<String, Object> originRow = map(inputHeader, inputLine);
+
+		return buildMatchMap(m, originRow, splitFieldNamesByDot);
+	}
+
+	private static Map<String, Object> map(List<String> inputHeader, List<String> inputLine) {
+		return zip(inputHeader, inputLine).collect(TUPLE2_TO_MAP);
+	}
+
+	private static Seq<Tuple2<String, String>> zip(List<String> inputHeader, List<String> inputLine) {
+		return Seq.of(inputHeader.toArray(new String[inputHeader.size()])).zip(inputLine);
+	}
 }

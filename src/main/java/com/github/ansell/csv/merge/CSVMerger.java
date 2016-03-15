@@ -37,14 +37,17 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import javax.script.ScriptException;
 
 import org.apache.commons.io.IOUtils;
+import org.jooq.lambda.Seq;
 import org.jooq.lambda.Unchecked;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
@@ -79,8 +82,8 @@ public final class CSVMerger {
 		final OptionSpec<Void> help = parser.accepts("help").forHelp();
 		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
 				.describedAs("The input CSV file to be mapped.");
-		final OptionSpec<File> otherInput = parser.accepts("other-input").withRequiredArg().ofType(File.class).required()
-				.describedAs("The other input CSV file to be merged.");
+		final OptionSpec<File> otherInput = parser.accepts("other-input").withRequiredArg().ofType(File.class)
+				.required().describedAs("The other input CSV file to be merged.");
 		final OptionSpec<File> mapping = parser.accepts("mapping").withRequiredArg().ofType(File.class).required()
 				.describedAs("The mapping file.");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
@@ -140,6 +143,17 @@ public final class CSVMerger {
 			IOUtils.copy(otherInput, tempOutput);
 		}
 
+		List<String> otherH = new ArrayList<>();
+		List<List<String>> otherLines = new ArrayList<>();
+
+		try (final BufferedReader otherTemp = Files.newBufferedReader(tempFile)) {
+			CSVUtil.streamCSV(otherTemp, otherHeader -> otherH.addAll(otherHeader), (otherHeader, otherL) -> {
+				return otherL;
+			} , otherL -> {
+				otherLines.add(otherL);
+			});
+		}
+
 		Function<ValueMapping, String> outputFields = e -> e.getOutputField();
 
 		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(outputFields)
@@ -148,48 +162,66 @@ public final class CSVMerger {
 		List<ValueMapping> mergeFieldsOrdered = map.stream()
 				.filter(k -> k.getLanguage() == ValueMappingLanguage.CSVMERGE).collect(Collectors.toList());
 
-		Map<String, List<ValueMapping>> mergeFields = map.stream()
-				.filter(k -> k.getLanguage() == ValueMappingLanguage.CSVMERGE)
-				.collect(Collectors.groupingBy(k -> k.getInputField()));
+		List<ValueMapping> nonMergeFieldsOrdered = map.stream()
+				.filter(k -> k.getLanguage() != ValueMappingLanguage.CSVMERGE).collect(Collectors.toList());
+
+		if (mergeFieldsOrdered.size() != 1) {
+			throw new RuntimeException(
+					"Can only support exactly one CsvMerge mapping: found " + mergeFieldsOrdered.size());
+		}
 
 		final CsvSchema schema = CSVUtil.buildSchema(outputHeaders);
 
 		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);) {
 			List<String> inputHeaders = new ArrayList<>();
+			List<String> previousLine = new ArrayList<>();
+			List<String> previousMappedLine = new ArrayList<>();
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
+				List<String> mapLine = null;
 				try {
-
-					List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
+					List<String> mergedInputHeaders = new ArrayList<>(h);
 					List<String> nextMergedLine = new ArrayList<>(l);
 
-					try (final BufferedReader otherTemp = Files.newBufferedReader(tempFile)) {
-						CSVUtil.streamCSV(otherTemp, otherH -> {
-						} , (otherH, otherL) -> {
-							mergeFieldsOrdered.forEach(m -> {
-								for (String inputHeader : inputHeaders) {
-									if (mergeFields.containsKey(inputHeader)) {
-										if (otherH.contains(m.getMapping())) {
-											String otherValue = otherL.get(otherH.indexOf(m.getMapping()));
-											if (l.get(inputHeaders.indexOf(m.getInputField())).equals(otherValue)) {
-												mergedInputHeaders.addAll(otherH);
-												nextMergedLine.addAll(otherL);
-											}
-										}
-									}
+					for (List<String> otherL : otherLines) {
+						// Note, we check for uniqueness and throw exception
+						// above
+						ValueMapping m = mergeFieldsOrdered.get(0);
+						Map<String, Object> matchMap = CSVUtil.buildMatchMap(m, mergedInputHeaders, nextMergedLine,
+								false);
+						boolean allMatch = !matchMap.isEmpty();
+						for (Entry<String, Object> nextOtherFieldMatcher : matchMap.entrySet()) {
+							if (!otherH.contains(nextOtherFieldMatcher.getKey())
+									|| !otherL.get(otherH.indexOf(nextOtherFieldMatcher.getKey()))
+											.equals(nextOtherFieldMatcher.getValue())) {
+								allMatch = false;
+								break;
+							}
+						}
+						if (allMatch) {
+							Map<String, Object> leftOuterJoin = CSVUtil.leftOuterJoin(m, mergedInputHeaders,
+									nextMergedLine, otherH, otherL, false);
+							for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
+								if (leftOuterJoin.containsKey(nextMapping.getInputField())
+										&& !mergedInputHeaders.contains(nextMapping.getInputField())) {
+									mergedInputHeaders.add(nextMapping.getInputField());
+									nextMergedLine.add((String) leftOuterJoin.get(nextMapping.getInputField()));
 								}
-							});
-							return otherL;
-						} , otherL -> {
-
-						});
+							}
+							break;
+						}
 					}
 
-					return ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, map);
+					mapLine = ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, previousLine, previousMappedLine, map);
+					previousLine.clear();
+					previousLine.addAll(l);
+					previousMappedLine.clear();
+					if (mapLine != null) {
+						previousMappedLine.addAll(mapLine);
+					}
+					return mapLine;
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
 					// eliminate it
-				} catch (final IOException e) {
-					throw new RuntimeException(e);
 				}
 				return null;
 			} , Unchecked.consumer(l -> csvWriter.write(l)));

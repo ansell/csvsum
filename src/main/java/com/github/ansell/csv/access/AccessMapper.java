@@ -37,6 +37,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -46,16 +47,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Consumer;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.jooq.lambda.Unchecked;
@@ -75,7 +71,6 @@ import com.healthmarketscience.jackcess.Cursor;
 import com.healthmarketscience.jackcess.Database;
 import com.healthmarketscience.jackcess.DatabaseBuilder;
 import com.healthmarketscience.jackcess.Index;
-import com.healthmarketscience.jackcess.IndexCursor;
 import com.healthmarketscience.jackcess.Row;
 import com.healthmarketscience.jackcess.Table;
 import com.healthmarketscience.jackcess.util.Joiner;
@@ -91,11 +86,6 @@ import joptsimple.OptionSpec;
  * @author Peter Ansell p_ansell@yahoo.com
  */
 public class AccessMapper {
-
-	private static final String DOT_REGEX = "\\.";
-	private static final Pattern DOT_PATTERN = Pattern.compile(DOT_REGEX);
-	private static final String COMMA_REGEX = "\\,";
-	private static final Pattern COMMA_PATTERN = Pattern.compile(COMMA_REGEX);
 
 	public static void main(String... args) throws Exception {
 		final OptionParser parser = new OptionParser();
@@ -170,8 +160,8 @@ public class AccessMapper {
 
 		List<ValueMapping> accessMappings = map.stream().filter(m -> m.getLanguage() == ValueMappingLanguage.ACCESS)
 				.map(m -> {
-					String[] destFields = COMMA_PATTERN.split(m.getMapping());
-					String[] sourceFields = COMMA_PATTERN.split(m.getInputField());
+					String[] destFields = CSVUtil.COMMA_PATTERN.split(m.getMapping());
+					String[] sourceFields = CSVUtil.COMMA_PATTERN.split(m.getInputField());
 
 					if (destFields.length != sourceFields.length) {
 						throw new RuntimeException("Source and destination mapping fields must be equal size: " + m);
@@ -187,9 +177,9 @@ public class AccessMapper {
 					Set<String> destTables = new LinkedHashSet<>();
 
 					for (int i = 0; i < destFields.length; i++) {
-						String[] destField = DOT_PATTERN.split(destFields[i]);
+						String[] destField = CSVUtil.DOT_PATTERN.split(destFields[i]);
 						destTables.add(destField[0]);
-						String[] sourceField = DOT_PATTERN.split(sourceFields[i]);
+						String[] sourceField = CSVUtil.DOT_PATTERN.split(sourceFields[i]);
 						sourceTables.add(sourceField[0]);
 					}
 
@@ -352,16 +342,16 @@ public class AccessMapper {
 			JDefaultDict<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
 			ConcurrentMap<ValueMapping, Joiner> joiners) throws IOException {
 		String originTable = map.isEmpty() ? null
-				: db.getTable(DOT_PATTERN.split(map.get(0).getInputField())[0]).getName();
+				: db.getTable(CSVUtil.DOT_PATTERN.split(map.get(0).getInputField())[0]).getName();
 		// for (final ValueMapping nextValueMapping : map) {
 		// Must be a sequential mapping as ordering is important
 		map.stream().sequential().forEach(Unchecked.consumer(nextValueMapping -> {
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
-				final String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
+				final String[] splitDBField = CSVUtil.DOT_PATTERN.split(nextValueMapping.getInputField());
 				System.out.println(nextValueMapping.getInputField());
 				final Table nextTable = db.getTable(splitDBField[0]);
 
-				final String[] splitForeignDBField = DOT_PATTERN.split(nextValueMapping.getMapping());
+				final String[] splitForeignDBField = CSVUtil.DOT_PATTERN.split(nextValueMapping.getMapping());
 				final Table nextForeignTable = db.getTable(splitForeignDBField[0]);
 				if (nextForeignTable == null) {
 					throw new RuntimeException(
@@ -392,8 +382,8 @@ public class AccessMapper {
 		componentRowsForThisRow.put(originTable, nextRow);
 		for (final ValueMapping nextValueMapping : map) {
 			if (nextValueMapping.getLanguage() == ValueMappingLanguage.ACCESS) {
-				String[] splitDBFieldSource = DOT_PATTERN.split(nextValueMapping.getInputField());
-				String[] splitDBFieldDest = DOT_PATTERN.split(nextValueMapping.getMapping());
+				String[] splitDBFieldSource = CSVUtil.DOT_PATTERN.split(nextValueMapping.getInputField());
+				String[] splitDBFieldDest = CSVUtil.DOT_PATTERN.split(nextValueMapping.getMapping());
 				if (splitDBFieldDest.length < 2) {
 					throw new RuntimeException(
 							"Destination mapping was not in the 'table.column' format: " + nextValueMapping);
@@ -417,7 +407,7 @@ public class AccessMapper {
 		ConcurrentMap<String, String> output = new ConcurrentHashMap<>();
 		// for (final ValueMapping nextValueMapping : map) {
 		map.parallelStream().forEach(Unchecked.consumer(nextValueMapping -> {
-			String[] splitDBField = DOT_PATTERN.split(nextValueMapping.getInputField());
+			String[] splitDBField = CSVUtil.DOT_PATTERN.split(nextValueMapping.getInputField());
 			if (splitDBField.length >= 2) {
 				if (componentRowsForThisRow.containsKey(splitDBField[0])) {
 					Map<String, Object> findFirstRow = componentRowsForThisRow.get(splitDBField[0]);
@@ -447,7 +437,7 @@ public class AccessMapper {
 		}
 
 		try {
-			return ValueMapping.mapLine(inputHeaders, nextEmittedRow, map);
+			return ValueMapping.mapLine(inputHeaders, nextEmittedRow, Collections.emptyList(), Collections.emptyList(), map);
 		} catch (final LineFilteredException e) {
 			// Swallow line filtered exception and return null below to
 			// eliminate it
@@ -492,7 +482,7 @@ public class AccessMapper {
 				continue;
 			}
 
-			Map<String, Object> singletonMap = buildMatchMap(nextMapping, originRow);
+			Map<String, Object> singletonMap = CSVUtil.buildMatchMap(nextMapping, originRow, true);
 
 			// Cursor cursor = dest.getDefaultCursor();
 
@@ -568,36 +558,6 @@ public class AccessMapper {
 				}
 			}
 		}
-	}
-
-	private static Map<String, Object> buildMatchMap(ValueMapping mapping, Map<String, Object> originRow) {
-		// System.out.println("Building match map for: " + mapping + " row=" +
-		// originRow);
-		Map<String, Object> result = new HashMap<>();
-
-		String[] destFields = COMMA_PATTERN.split(mapping.getMapping());
-		String[] sourceFields = COMMA_PATTERN.split(mapping.getInputField());
-
-		for (int i = 0; i < destFields.length; i++) {
-			String[] destField = DOT_PATTERN.split(destFields[i]);
-			String[] sourceField = DOT_PATTERN.split(sourceFields[i]);
-			if (!originRow.containsKey(sourceField[1])) {
-				throw new RuntimeException("Origin row did not contain a field required for mapping: field="
-						+ sourceFields[i] + " mapping=" + mapping);
-			}
-			Object nextFKValue = originRow.get(sourceField[1]);
-			if (nextFKValue == null) {
-				// Return an empty result if one of the source fields was null
-				return new HashMap<>();
-			}
-			if (result.containsKey(destField[1])) {
-				throw new RuntimeException("Destination row contained a duplicate field name: field=" + destFields[i]
-						+ " mapping=" + mapping);
-			}
-			result.put(destField[1], nextFKValue);
-		}
-
-		return result;
 	}
 
 	private static void getRowFromJoiner(ConcurrentMap<ValueMapping, Joiner> joiners,

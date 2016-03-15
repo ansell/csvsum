@@ -52,15 +52,37 @@ If the Mapping field contains a script, it is executed in the context of the fol
 * inputHeaders : The headers from the input file as a list, in the order they were in the original file.
 * inputField : The field that was designated to be the source for this mapping. Note that this parameter doesn't need to be used, and arbitrary fields can be merged using inputheaders and line.
 * inputValue : The value of the field from inputField.
+* outputHeaders : The headers used in the output file
 * outputField : The label of the output field that the results of this row will be assigned to.
 * line : The values from the current line being processed from the input file, in the same order as the inputHeaders list.
 * mapLine : The mapped values for the current line so far
+* previousLine : The values from the previous line, or an empty list if this is the first line or the lines are all empty
+* previousMappedLine : The mapped values from the previous line, or an empty list if the previous line was filtered or the output document is empty
 
-The scripts also have access to two helper functions to get a specific column and a function to filter an entire line:
+Javascript mappings have access to some global functions included from Java:
+
+* Integer : The java.lang.Integer class
+* Double : The java.lang.Double class
+* Long : The java.lang.Long class
+* Format : The java.time.format.DateTimeFormatter class
+* LocalDate : The java.time.LocalDate class
+* LocalTime : The java.time.LocalTime class
+* LocalDateTime : The java.time.LocalDateTime class
+* ChronoUnit = The java.time.temporal.ChronoUnit class
+
+Other Java classes can be accessed by assigning their type to a global variable using the syntax:
+
+    var ClassName = Java.type("org.com.JavaClassName");
+
+Javascript mappings also have access to two helper functions to get a specific column and a function to filter an entire line:
 
 * col : Called using the syntax col('columnName'), and returns the value for that column on the current line
 * outCol : Called using the syntax outCol('outputColumnName'), and returns the value that has been mapped so far for that column on the current line.
 * filter : Called using the syntax filter(), and will make the line not appear in the results and short-circuit processing of the line for mapping purposes
+* dateMatches : Called using the syntax dateMatches(inputValue, dateFormat), where dateFormat is a DateTimeFormatter instance, such as Format.ISO_LOCAL_DATE
+* dateConvert : Called using the syntax dateConvert(inputValue, inputFormat, outputFormat), where inputFormat and outputFormat are instances of DateTimeFormatter, such as Format.ISO_LOCAL_DATE. This function also accepts an optional fourth parameter specifying the class to use, which can be any of LocalDate, LocalTime, LocalDateTime, or other similar functions that support the parse method. The default is to use LocalDate.
+
+Javascript mappings must always return a value.
 
 # CSV Merger
 
@@ -104,6 +126,10 @@ Run accessmap with a sample access file:
     </dependency>
 
 # Changelog
+
+## 2016-03-15
+* Add outputHeaders, previousLine and previousMappedLine to mapping function parameters
+* Add dateMatches and dateConvert functions
 
 ## 2016-03-11
 * Release 0.0.5

@@ -113,18 +113,19 @@ public class ValueMapping {
 		return result;
 	}
 
-	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<ValueMapping> map)
-			throws LineFilteredException {
+	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,
+			List<String> previousMappedLine, List<ValueMapping> map) throws LineFilteredException {
 
 		Map<String, String> outputValues = new ConcurrentHashMap<>();
 
+		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(k -> k.getOutputField())
+				.collect(Collectors.toList());
 		map.forEach(nextMapping -> {
-			String mappedValue = nextMapping.apply(inputHeaders, line, outputValues);
+			String mappedValue = nextMapping.apply(inputHeaders, line, previousLine, previousMappedLine, outputHeaders,
+					outputValues);
 			outputValues.put(nextMapping.getOutputField(), mappedValue);
 		});
 
-		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(k -> k.getOutputField())
-				.collect(Collectors.toList());
 		List<String> result = new ArrayList<>(outputHeaders.size());
 		outputHeaders.forEach(nextOutput -> result.add(outputValues.getOrDefault(nextOutput, "")));
 
@@ -186,13 +187,18 @@ public class ValueMapping {
 		this.shown = shown;
 	}
 
-	private String apply(List<String> inputHeaders, List<String> line, Map<String, String> mappedLine) {
+	private String apply(List<String> inputHeaders, List<String> line, List<String> previousLine,
+			List<String> previousMappedLine, List<String> outputHeaders, Map<String, String> mappedLine) {
 		int indexOf = inputHeaders.indexOf(getInputField());
-		if (indexOf < 0) {
-			throw new RuntimeException(
-					"Could not find field in line: inputHeaders=" + inputHeaders + " mapping=" + this.toString());
+		String nextInputValue;
+		if (indexOf >= 0) {
+			nextInputValue = line.get(indexOf);
+		} else {
+			// Provide a default input value for these cases. Likely the input
+			// field in this case was a set of fields and won't be directly
+			// relied upon
+			nextInputValue = "";
 		}
-		String nextInputValue = line.get(indexOf);
 
 		// Short circuit if the mapping is a default mapping
 		if (this.language == ValueMappingLanguage.DEFAULT || this.language.matchesDefaultMapping(this.mapping)) {
@@ -207,16 +213,20 @@ public class ValueMapping {
 					// evaluate script code and access the variable that results
 					// from the mapping
 					return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", inputHeaders,
-							this.getInputField(), nextInputValue, this.getOutputField(), line, mappedLine);
+							this.getInputField(), nextInputValue, outputHeaders, this.getOutputField(), line, mappedLine, previousLine,
+							previousMappedLine);
 				} else if (compiledScript != null) {
 					Bindings bindings = scriptEngine.createBindings();
 					// inputHeaders, inputField, inputValue, outputField, line
 					bindings.put("inputHeaders", inputHeaders);
 					bindings.put("inputField", this.getInputField());
 					bindings.put("inputValue", nextInputValue);
+					bindings.put("outputHeaders", outputHeaders);
 					bindings.put("outputField", this.getOutputField());
 					bindings.put("line", line);
 					bindings.put("mapLine", mappedLine);
+					bindings.put("previousLine", previousLine);
+					bindings.put("previousMappedLine", previousMappedLine);
 					return (String) compiledScript.eval(bindings);
 				} else {
 					throw new UnsupportedOperationException(
@@ -334,19 +344,29 @@ public class ValueMapping {
 				StringBuilder javascriptFunction = new StringBuilder();
 				javascriptFunction
 						.append("var LFE = Java.type(\"com.github.ansell.csv.util.LineFilteredException\"); \n");
-				javascriptFunction.append("var filter = function() { throw new LFE(); } \n");
+				javascriptFunction.append("var Integer = Java.type('java.lang.Integer'); \n");
+				javascriptFunction.append("var Double = Java.type('java.lang.Double'); \n");
+				javascriptFunction.append("var Long = Java.type('java.lang.Long'); \n");
+				javascriptFunction.append("var LocalDate = Java.type('java.time.LocalDate'); \n");
+				javascriptFunction.append("var LocalDateTime = Java.type('java.time.LocalDateTime'); \n");
+				javascriptFunction.append("var LocalTime = Java.type('java.time.LocalTime'); \n");
+				javascriptFunction.append("var Format = Java.type('java.time.format.DateTimeFormatter'); \n");
+				javascriptFunction.append("var ChronoUnit = Java.type('java.time.temporal.ChronoUnit'); \n");
+				javascriptFunction.append("var dateMatches = function(dateValue, format) { try {\n format.parse(dateValue); \n return true; \n } catch(e) { } \n return false; }; \n");
+				javascriptFunction.append("var dateConvert = function(dateValue, inputFormat, outputFormat, parseClass) { if(!parseClass) { parseClass = LocalDate; } return parseClass.parse(dateValue, inputFormat).format(outputFormat); }; \n");
+				javascriptFunction.append("var filter = function() { throw new LFE(); }; \n");
 				javascriptFunction.append(
 						"var columnFunction = function(searchHeader, inputHeaders, line) { return line.get(inputHeaders.indexOf(searchHeader)); };\n");
 				javascriptFunction.append(
 						"var columnFunctionMap = function(searchHeader, mapLine) { return mapLine.get(searchHeader); };\n");
 				javascriptFunction.append(
-						"var mapFunction = function(inputHeaders, inputField, inputValue, outputField, line, mapLine) { ");
+						"var mapFunction = function(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine) { ");
 				javascriptFunction.append(
 						"    var col = function(searchHeader) { \n return columnFunction(searchHeader, inputHeaders, line); }; \n ");
 				javascriptFunction.append(
 						"    var outCol = function(searchHeader) { \n return columnFunctionMap(searchHeader, mapLine); }; \n ");
 				javascriptFunction.append(this.mapping);
-				javascriptFunction.append(" };");
+				javascriptFunction.append(" }; \n");
 
 				scriptEngine.eval(javascriptFunction.toString());
 			} catch (ScriptException e) {
@@ -357,7 +377,7 @@ public class ValueMapping {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("groovy");
 
 				scriptEngine
-						.eval("def mapFunction(inputHeaders, inputField, inputValue, outputField, line, mapLine) {  "
+						.eval("def mapFunction(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine) {  "
 								+ this.mapping + " }");
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);

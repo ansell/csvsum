@@ -68,6 +68,12 @@ public class CSVMergerTest {
 
 	private Path testOtherFile;
 
+	private Path testMappingMulti;
+
+	private Path testFileMulti;
+
+	private Path testOtherFileMulti;
+
 	@Before
 	public void setUp() throws Exception {
 		testMapping = tempDir.newFile("test-mapping.csv").toPath();
@@ -82,6 +88,16 @@ public class CSVMergerTest {
 		testOtherFile = tempDir.newFile("test-source-other.csv").toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-source-other.csv"),
 				testOtherFile, StandardCopyOption.REPLACE_EXISTING);
+
+		testMappingMulti = tempDir.newFile("test-mapping-multi-key.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-mapping-multi-key.csv"),
+				testMappingMulti, StandardCopyOption.REPLACE_EXISTING);
+		testFileMulti = tempDir.newFile("test-source-multi-key.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-source-multi-key.csv"),
+				testFileMulti, StandardCopyOption.REPLACE_EXISTING);
+		testOtherFileMulti = tempDir.newFile("test-source-other-multi-key.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-source-other-multi-key.csv"),
+				testOtherFileMulti, StandardCopyOption.REPLACE_EXISTING);
 	}
 
 	/**
@@ -202,6 +218,33 @@ public class CSVMergerTest {
 		assertEquals(
 				Arrays.asList("D1", "D1", "D2", "", "y", "naturalised", "D4", "Useful", "D5a", "ZZ4", "D1", "Sporadic"),
 				lines.get(3));
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainCompleteMultiKeyWithOutputFile() throws Exception {
+		Path testDirectory = tempDir.newFolder("test").toPath();
+
+		CSVMerger.main("--input", testFileMulti.toAbsolutePath().toString(), "--other-input",
+				testOtherFileMulti.toAbsolutePath().toString(), "--mapping",
+				testMappingMulti.toAbsolutePath().toString(), "--output",
+				testDirectory.resolve("test-output.csv").toString());
+
+		List<String> headers = new ArrayList<>();
+		List<List<String>> lines = new ArrayList<>();
+		try (BufferedReader reader = Files.newBufferedReader(testDirectory.resolve("test-output.csv"));) {
+			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+		}
+		assertEquals(10, headers.size());
+		assertEquals(3, lines.size());
+		lines.sort(Comparator.comparing(l -> l.get(0)));
+
+		lines.get(0).forEach(k -> System.out.print("\"" + k + "\", "));
+
+		assertEquals(Arrays.asList("A1", "A2", "A3", "A4", "A5", "ZZ1", "A1", "A2", "A3", "Interesting"), lines.get(0));
 	}
 
 	/**

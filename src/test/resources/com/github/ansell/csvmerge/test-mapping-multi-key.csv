@@ -1,0 +1,12 @@
+OldField,NewField,Shown,Language,Mapping
+Field1,Field1After,,,
+Field2,Field2After,,,
+Field3,Field3After,,,
+Field4,Field4After,,,
+Field5,Field5After,,,
+"Field1,Field2,Field3",Field123ToOtherField234,No,CsvMerge,"OtherField2,OtherField3,OtherField4"
+OtherField1,OtherField1After,,,
+OtherField2,OtherField2After,,,
+OtherField3,OtherField3After,,,
+OtherField4,OtherField4After,,,
+OtherField5,OtherField5After,,,
