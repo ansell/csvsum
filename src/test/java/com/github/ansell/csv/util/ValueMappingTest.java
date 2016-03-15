@@ -3,6 +3,8 @@ package com.github.ansell.csv.util;
 import static org.junit.Assert.*;
 
 import java.io.StringReader;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -194,5 +196,19 @@ public class ValueMappingTest {
 		assertEquals("anotherField", testDefaultMapping.getOutputField());
 		assertEquals("anotherField", testDefaultMapping2.getOutputField());
 		assertEquals("aDifferentField", testJavascriptMapping.getOutputField());
+	}
+	
+	@Test
+	public final void testDateFormatter() {
+		DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("H[H][:][m][m]");
+		
+		LocalTime.parse("7", timeFormatter);
+		LocalTime.parse("07:19", timeFormatter);
+		LocalTime.parse("07", timeFormatter);
+		LocalTime.parse("07:0", timeFormatter);
+		LocalTime.parse("07:1", timeFormatter);
+		LocalTime.parse("15:5", timeFormatter);
+		LocalTime.parse("15:50", timeFormatter);
+		LocalTime.parse("1300", timeFormatter);
 	}
 }
