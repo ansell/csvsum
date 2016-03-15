@@ -46,7 +46,8 @@ public class ValueMappingTest {
 		testDateMatching = ValueMapping.newMapping("Javascript", "dateInput", "usefulDate",
 				"return dateMatches(inputValue, Format.ISO_LOCAL_DATE) ? inputValue : 'fix-your-date-format';", "");
 		testDateMapping = ValueMapping.newMapping("Javascript", "dateInput", "usefulDate",
-				"return dateMatches(inputValue, Format.ISO_LOCAL_DATE) ? dateConvert(inputValue, Format.ISO_LOCAL_DATE, Format.ISO_WEEK_DATE) : 'fix-your-date-format';", "");
+				"return dateMatches(inputValue, Format.ISO_LOCAL_DATE) ? dateConvert(inputValue, Format.ISO_LOCAL_DATE, Format.ISO_WEEK_DATE) : 'fix-your-date-format';",
+				"");
 	}
 
 	@After
@@ -197,11 +198,11 @@ public class ValueMappingTest {
 		assertEquals("anotherField", testDefaultMapping2.getOutputField());
 		assertEquals("aDifferentField", testJavascriptMapping.getOutputField());
 	}
-	
+
 	@Test
 	public final void testDateFormatter() {
 		DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("H[H][:][m][m]");
-		
+
 		LocalTime.parse("7", timeFormatter);
 		LocalTime.parse("07:19", timeFormatter);
 		LocalTime.parse("07", timeFormatter);
@@ -209,6 +210,7 @@ public class ValueMappingTest {
 		LocalTime.parse("07:1", timeFormatter);
 		LocalTime.parse("15:5", timeFormatter);
 		LocalTime.parse("15:50", timeFormatter);
-		LocalTime.parse("1300", timeFormatter);
+		// The following requires HHmm and doesn't work with the pattern above
+		// LocalTime.parse("1300", timeFormatter);
 	}
 }
