@@ -26,17 +26,22 @@ public class ValueMappingTest {
 	private ValueMapping testDefaultMapping4;
 	private ValueMapping testJavascriptMapping;
 	private ValueMapping testPreviousMapping;
+	private ValueMapping testDateMatching;
 
 	@Before
 	public void setUp() throws Exception {
 		testDefaultMapping = ValueMapping.newMapping("Default", "anInput", "anotherField", "", "");
 		testDefaultMapping2 = ValueMapping.newMapping("Default", "anInput", "anotherField", "inputValue", "");
 		testDefaultMapping3 = ValueMapping.newMapping("Default", "anInput3", "anotherField3", "inputValue", "");
-		testDefaultMapping4 = ValueMapping.newMapping("Default", "anInput3", "anotherFieldNotShown", "inputValue", "no");
+		testDefaultMapping4 = ValueMapping.newMapping("Default", "anInput3", "anotherFieldNotShown", "inputValue",
+				"no");
 		testJavascriptMapping = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
 				"return inputValue.substring(0, 1);", "");
 		testPreviousMapping = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField2",
-				"return previousLine.isEmpty() ? 'no-previous' : previousLine.get(outputHeaders.indexOf(outputField));", "");
+				"return previousLine.isEmpty() ? 'no-previous' : previousLine.get(outputHeaders.indexOf(outputField));",
+				"");
+		testDateMatching = ValueMapping.newMapping("Javascript", "dateInput", "usefulDate",
+				"return dateMatches(Format.ISO_LOCAL_DATE, inputValue) ? inputValue : 'fix-your-date-format';", "");
 	}
 
 	@After
@@ -95,8 +100,8 @@ public class ValueMappingTest {
 	public final void testMapLine() {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("anInput", "anInput3", "aDifferentInput", "anInput4"),
 				Arrays.asList("testValue1", "testValue2", "xyzabc", "defghi"), Collections.emptyList(),
-				Collections.emptyList(),
-				Arrays.asList(testDefaultMapping, testDefaultMapping3, testDefaultMapping4, testJavascriptMapping, testPreviousMapping));
+				Collections.emptyList(), Arrays.asList(testDefaultMapping, testDefaultMapping3, testDefaultMapping4,
+						testJavascriptMapping, testPreviousMapping));
 
 		assertEquals(4, mapLine.size());
 		assertEquals("testValue1", mapLine.get(0));
@@ -108,15 +113,34 @@ public class ValueMappingTest {
 	@Test
 	public final void testMapLineWithPrevious() {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("anInput", "anInput3", "aDifferentInput", "anInput4"),
-				Arrays.asList("testValue1A", "testValue2A", "xyzabcdefg", "defghijkl"), Arrays.asList("testValue1", "testValue2", "xyzabc", "defghi"),
-				Arrays.asList("testValue1", "testValue2", "x", "no-previous"),
-				Arrays.asList(testDefaultMapping, testDefaultMapping3, testDefaultMapping4, testJavascriptMapping, testPreviousMapping));
+				Arrays.asList("testValue1A", "testValue2A", "xyzabcdefg", "defghijkl"),
+				Arrays.asList("testValue1", "testValue2", "xyzabc", "defghi"),
+				Arrays.asList("testValue1", "testValue2", "x", "no-previous"), Arrays.asList(testDefaultMapping,
+						testDefaultMapping3, testDefaultMapping4, testJavascriptMapping, testPreviousMapping));
 
 		assertEquals(4, mapLine.size());
 		assertEquals("testValue1A", mapLine.get(0));
 		assertEquals("testValue2A", mapLine.get(1));
 		assertEquals("x", mapLine.get(2));
 		assertEquals("defghi", mapLine.get(3));
+	}
+
+	@Test
+	public final void testMapLineDateMatchInvalid() {
+		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("dateInput"), Arrays.asList("testNotADate"),
+				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMatching));
+
+		assertEquals(1, mapLine.size());
+		assertEquals("fix-your-date-format", mapLine.get(0));
+	}
+
+	@Test
+	public final void testMapLineDateMatchValid() {
+		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("dateInput"), Arrays.asList("2013-01-30"),
+				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMatching));
+
+		assertEquals(1, mapLine.size());
+		assertEquals("2013-01-30", mapLine.get(0));
 	}
 
 	@Test
