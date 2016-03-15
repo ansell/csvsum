@@ -347,11 +347,13 @@ public class ValueMapping {
 				javascriptFunction.append("var Integer = Java.type('java.lang.Integer'); \n");
 				javascriptFunction.append("var Double = Java.type('java.lang.Double'); \n");
 				javascriptFunction.append("var Long = Java.type('java.lang.Long'); \n");
-				javascriptFunction.append("var Date = Java.type('java.time.LocalDate'); \n");
+				javascriptFunction.append("var LocalDate = Java.type('java.time.LocalDate'); \n");
+				javascriptFunction.append("var LocalDateTime = Java.type('java.time.LocalDateTime'); \n");
+				javascriptFunction.append("var LocalTime = Java.type('java.time.LocalTime'); \n");
 				javascriptFunction.append("var Format = Java.type('java.time.format.DateTimeFormatter'); \n");
 				javascriptFunction.append("var ChronoUnit = Java.type('java.time.temporal.ChronoUnit'); \n");
 				javascriptFunction.append("var dateMatches = function(dateValue, format) { try {\n format.parse(dateValue); \n return true; \n } catch(e) { } \n return false; }; \n");
-				javascriptFunction.append("var dateConvert = function(dateValue, inputFormat, outputFormat) { return Date.parse(dateValue, inputFormat).format(outputFormat); }; \n");
+				javascriptFunction.append("var dateConvert = function(dateValue, inputFormat, outputFormat, parseClass) { if(!parseClass) { parseClass = LocalDate; } return parseClass.parse(dateValue, inputFormat).format(outputFormat); }; \n");
 				javascriptFunction.append("var filter = function() { throw new LFE(); }; \n");
 				javascriptFunction.append(
 						"var columnFunction = function(searchHeader, inputHeaders, line) { return line.get(inputHeaders.indexOf(searchHeader)); };\n");

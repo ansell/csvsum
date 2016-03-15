@@ -65,7 +65,9 @@ Javascript mappings have access to some global functions included from Java:
 * Double : The java.lang.Double class
 * Long : The java.lang.Long class
 * Format : The java.time.format.DateTimeFormatter class
-* Date : The java.time.LocalDate class
+* LocalDate : The java.time.LocalDate class
+* LocalTime : The java.time.LocalTime class
+* LocalDateTime : The java.time.LocalDateTime class
 * ChronoUnit = The java.time.temporal.ChronoUnit class
 
 Other Java classes can be accessed by assigning their type to a global variable using the syntax:
@@ -78,7 +80,7 @@ Javascript mappings also have access to two helper functions to get a specific c
 * outCol : Called using the syntax outCol('outputColumnName'), and returns the value that has been mapped so far for that column on the current line.
 * filter : Called using the syntax filter(), and will make the line not appear in the results and short-circuit processing of the line for mapping purposes
 * dateMatches : Called using the syntax dateMatches(inputValue, dateFormat), where dateFormat is a DateTimeFormatter instance, such as Format.ISO_LOCAL_DATE
-* dateConvert : Called using the syntax dateConvert(inputValue, inputFormat, outputFormat), where inputFormat and outputFormat are instances of DateTimeFormatter, such as Format.ISO_LOCAL_DATE
+* dateConvert : Called using the syntax dateConvert(inputValue, inputFormat, outputFormat), where inputFormat and outputFormat are instances of DateTimeFormatter, such as Format.ISO_LOCAL_DATE. This function also accepts an optional fourth parameter specifying the class to use, which can be any of LocalDate, LocalTime, LocalDateTime, or other similar functions that support the parse method. The default is to use LocalDate.
 
 Javascript mappings must always return a value.
 
