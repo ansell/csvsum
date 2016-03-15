@@ -212,17 +212,16 @@ public final class CSVMerger {
 					}
 
 					mapLine = ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, previousLine, previousMappedLine, map);
-					return mapLine;
-				} catch (final LineFilteredException e) {
-					// Swallow line filtered exception and return null below to
-					// eliminate it
-				} finally {
 					previousLine.clear();
 					previousLine.addAll(l);
 					previousMappedLine.clear();
 					if (mapLine != null) {
 						previousMappedLine.addAll(mapLine);
 					}
+					return mapLine;
+				} catch (final LineFilteredException e) {
+					// Swallow line filtered exception and return null below to
+					// eliminate it
 				}
 				return null;
 			} , Unchecked.consumer(l -> csvWriter.write(l)));
