@@ -59,11 +59,24 @@ If the Mapping field contains a script, it is executed in the context of the fol
 * previousLine : The values from the previous line, or an empty list if this is the first line or the lines are all empty
 * previousMappedLine : The mapped values from the previous line, or an empty list if the previous line was filtered or the output document is empty
 
-The scripts also have access to two helper functions to get a specific column and a function to filter an entire line:
+Javascript mappings have access to some global functions included from Java:
+
+* Format : The java.time.format.DateTimeFormatter class
+* Date : The java.time.LocalDate class
+
+Other Java classes can be accessed by assigning their type to a global variable using the syntax:
+
+    var ClassName = Java.type("org.com.JavaClassName");
+
+Javascript mappings also have access to two helper functions to get a specific column and a function to filter an entire line:
 
 * col : Called using the syntax col('columnName'), and returns the value for that column on the current line
 * outCol : Called using the syntax outCol('outputColumnName'), and returns the value that has been mapped so far for that column on the current line.
 * filter : Called using the syntax filter(), and will make the line not appear in the results and short-circuit processing of the line for mapping purposes
+* dateMatches : Called using the syntax dateMatches(inputValue, dateFormat), where dateFormat is a DateTimeFormatter instance, such as Format.ISO_LOCAL_DATE
+* dateConvert : Called using the syntax dateConvert(inputValue, inputFormat, outputFormat), where inputFormat and outputFormat are instances of DateTimeFormatter, such as Format.ISO_LOCAL_DATE
+
+Javascript mappings must always return a value.
 
 # CSV Merger
 
@@ -110,6 +123,7 @@ Run accessmap with a sample access file:
 
 ## 2016-03-15
 * Add outputHeaders, previousLine and previousMappedLine to mapping function parameters
+* Add dateMatches and dateConvert functions
 
 ## 2016-03-11
 * Release 0.0.5
