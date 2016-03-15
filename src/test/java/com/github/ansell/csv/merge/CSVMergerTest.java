@@ -74,6 +74,12 @@ public class CSVMergerTest {
 
 	private Path testOtherFileMulti;
 
+	private Path testMappingMultiDots;
+
+	private Path testFileMultiDots;
+
+	private Path testOtherFileMultiDots;
+
 	@Before
 	public void setUp() throws Exception {
 		testMapping = tempDir.newFile("test-mapping.csv").toPath();
@@ -98,6 +104,17 @@ public class CSVMergerTest {
 		testOtherFileMulti = tempDir.newFile("test-source-other-multi-key.csv").toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-source-other-multi-key.csv"),
 				testOtherFileMulti, StandardCopyOption.REPLACE_EXISTING);
+
+		testMappingMultiDots = tempDir.newFile("test-mapping-multi-key-dots.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-mapping-multi-key-dots.csv"),
+				testMappingMultiDots, StandardCopyOption.REPLACE_EXISTING);
+		testFileMultiDots = tempDir.newFile("test-source-multi-key-dots.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-source-multi-key-dots.csv"),
+				testFileMultiDots, StandardCopyOption.REPLACE_EXISTING);
+		testOtherFileMultiDots = tempDir.newFile("test-source-other-multi-key-dots.csv").toPath();
+		Files.copy(
+				this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-source-other-multi-key-dots.csv"),
+				testOtherFileMultiDots, StandardCopyOption.REPLACE_EXISTING);
 	}
 
 	/**
@@ -242,9 +259,48 @@ public class CSVMergerTest {
 		assertEquals(3, lines.size());
 		lines.sort(Comparator.comparing(l -> l.get(0)));
 
-		lines.get(0).forEach(k -> System.out.print("\"" + k + "\", "));
+		lines.forEach(l -> {
+			l.forEach(k -> System.out.print("\"" + k + "\", "));
+			System.out.println("");
+		});
 
 		assertEquals(Arrays.asList("A1", "A2", "A3", "A4", "A5", "ZZ1", "A1", "A2", "A3", "Interesting"), lines.get(0));
+		assertEquals(Arrays.asList("B1", "B2", "B3", "B4", "B5", "ZZ2", "B1", "B2", "B3", "Not at all"), lines.get(1));
+		assertEquals(Arrays.asList("C1", "C2", "C3", "C4", "C5", "ZZ3", "C1", "C2", "C3", "Enlightening"),
+				lines.get(2));
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainCompleteMultiKeyDotsWithOutputFile() throws Exception {
+		Path testDirectory = tempDir.newFolder("test").toPath();
+
+		CSVMerger.main("--input", testFileMultiDots.toAbsolutePath().toString(), "--other-input",
+				testOtherFileMultiDots.toAbsolutePath().toString(), "--mapping",
+				testMappingMultiDots.toAbsolutePath().toString(), "--output",
+				testDirectory.resolve("test-output.csv").toString());
+
+		List<String> headers = new ArrayList<>();
+		List<List<String>> lines = new ArrayList<>();
+		try (BufferedReader reader = Files.newBufferedReader(testDirectory.resolve("test-output.csv"));) {
+			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+		}
+		assertEquals(10, headers.size());
+		assertEquals(3, lines.size());
+		lines.sort(Comparator.comparing(l -> l.get(0)));
+
+		lines.forEach(l -> {
+			l.forEach(k -> System.out.print("\"" + k + "\", "));
+			System.out.println("");
+		});
+
+		assertEquals(Arrays.asList("A1", "A2", "A3", "A4", "A5", "ZZ1", "A1", "A2", "A3", "Interesting"), lines.get(0));
+		assertEquals(Arrays.asList("B1", "B2", "B3", "B4", "B5", "ZZ2", "B1", "B2", "B3", "Not at all"), lines.get(1));
+		assertEquals(Arrays.asList("C1", "C2", "C3", "C4", "C5", "ZZ3", "C1", "C2", "C3", "Enlightening"),
+				lines.get(2));
 	}
 
 	/**
