@@ -346,6 +346,7 @@ public class ValueMapping {
 						.append("var LFE = Java.type(\"com.github.ansell.csv.util.LineFilteredException\"); \n");
 				javascriptFunction.append("var Date = Java.type('java.time.LocalDate'); \n");
 				javascriptFunction.append("var Format = Java.type('java.time.format.DateTimeFormatter'); \n");
+				javascriptFunction.append("var ChronoUnit = Java.type('java.time.temporal.ChronoUnit'); \n");
 				javascriptFunction.append("var dateMatches = function(dateValue, format) { try {\n format.parse(dateValue); \n return true; \n } catch(e) { } \n return false; }; \n");
 				javascriptFunction.append("var dateConvert = function(dateValue, inputFormat, outputFormat) { return Date.parse(dateValue, inputFormat).format(outputFormat); }; \n");
 				javascriptFunction.append("var filter = function() { throw new LFE(); }; \n");
