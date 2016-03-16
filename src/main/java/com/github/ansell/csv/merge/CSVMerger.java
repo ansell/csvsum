@@ -183,8 +183,7 @@ public final class CSVMerger {
 					List<String> nextMergedLine = new ArrayList<>(l);
 
 					ValueMapping m = mergeFieldsOrdered.get(0);
-					Map<String, Object> matchMap = CSVUtil.buildMatchMap(m, mergedInputHeaders, nextMergedLine,
-							false);
+					Map<String, Object> matchMap = CSVUtil.buildMatchMap(m, mergedInputHeaders, nextMergedLine, false);
 					for (List<String> otherL : otherLines) {
 						// Note, we check for uniqueness and throw exception
 						// above
@@ -201,17 +200,18 @@ public final class CSVMerger {
 							Map<String, Object> leftOuterJoin = CSVUtil.leftOuterJoin(m, mergedInputHeaders,
 									nextMergedLine, otherH, otherL, false);
 							for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
-								if (leftOuterJoin.containsKey(nextMapping.getInputField())
-										&& !mergedInputHeaders.contains(nextMapping.getInputField())) {
-									mergedInputHeaders.add(nextMapping.getInputField());
-									nextMergedLine.add((String) leftOuterJoin.get(nextMapping.getInputField()));
+								final String inputField = nextMapping.getInputField();
+								if (leftOuterJoin.containsKey(inputField) && !mergedInputHeaders.contains(inputField)) {
+									mergedInputHeaders.add(inputField);
+									nextMergedLine.add((String) leftOuterJoin.get(inputField));
 								}
 							}
 							break;
 						}
 					}
 
-					mapLine = ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, previousLine, previousMappedLine, map);
+					mapLine = ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, previousLine, previousMappedLine,
+							map);
 					previousLine.clear();
 					previousLine.addAll(l);
 					previousMappedLine.clear();
