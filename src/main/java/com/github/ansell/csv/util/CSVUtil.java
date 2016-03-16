@@ -200,10 +200,10 @@ public final class CSVUtil {
 			boolean splitFieldNamesByDot) {
 		// System.out.println("Building match map for: " + mapping + " row=" +
 		// originRow);
-		Map<String, Object> result = new HashMap<>();
-
 		String[] destFields = COMMA_PATTERN.split(mapping.getMapping());
 		String[] sourceFields = COMMA_PATTERN.split(mapping.getInputField());
+
+		Map<String, Object> result = new HashMap<>(destFields.length, 0.75f);
 
 		for (int i = 0; i < destFields.length; i++) {
 			String destField = destFields[i];
