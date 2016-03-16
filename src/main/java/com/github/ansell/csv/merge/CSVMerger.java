@@ -180,7 +180,7 @@ public final class CSVMerger {
 			CSVUtil.streamCSV(input, h -> h.forEach(n -> inputHeaders.add(n.intern())), (h, l) -> {
 				List<String> mapLine = null;
 				try {
-					List<String> mergedInputHeaders = new ArrayList<>(h);
+					List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
 					List<String> nextMergedLine = new ArrayList<>(l);
 
 					ValueMapping m = mergeFieldsOrdered.get(0);
