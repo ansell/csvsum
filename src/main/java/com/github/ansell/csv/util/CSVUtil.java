@@ -132,6 +132,26 @@ public final class CSVUtil {
 
 	/**
 	 * Returns a Jackson {@link SequenceWriter} which will write CSV lines to
+	 * the given {@link Writer} using the headers provided.
+	 * 
+	 * @param writer
+	 *            The writer which will receive the CSV file.
+	 * @param header
+	 *            The column headers that will be used by the returned Jackson
+	 *            {@link SequenceWriter}.
+	 * @return A Jackson {@link SequenceWriter} that can have
+	 *         {@link SequenceWriter#write(Object)} called on it to emit CSV
+	 *         lines to the given {@link Writer}.
+	 * @throws IOException
+	 *             If there is a problem writing the CSV header line to the
+	 *             {@link Writer}.
+	 */
+	public static SequenceWriter newCSVWriter(final Writer writer, List<String> header) throws IOException {
+		return newCSVWriter(writer, buildSchema(header));
+	}
+
+	/**
+	 * Returns a Jackson {@link SequenceWriter} which will write CSV lines to
 	 * the given {@link Writer} using the {@link CsvSchema}.
 	 * 
 	 * @param writer
