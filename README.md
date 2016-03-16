@@ -122,10 +122,14 @@ Run accessmap with a sample access file:
     <dependency>
         <groupId>com.github.ansell.csv.sum</groupId>
         <artifactId>csvsum</artifactId>
-        <version>0.0.5</version>
+        <version>0.0.6</version>
     </dependency>
 
 # Changelog
+
+## 2016-03-16
+* Release 0.0.6
+* Improve performance of csvmerge
 
 ## 2016-03-15
 * Add outputHeaders, previousLine and previousMappedLine to mapping function parameters
