@@ -182,12 +182,12 @@ public final class CSVMerger {
 					List<String> mergedInputHeaders = new ArrayList<>(h);
 					List<String> nextMergedLine = new ArrayList<>(l);
 
+					ValueMapping m = mergeFieldsOrdered.get(0);
+					Map<String, Object> matchMap = CSVUtil.buildMatchMap(m, mergedInputHeaders, nextMergedLine,
+							false);
 					for (List<String> otherL : otherLines) {
 						// Note, we check for uniqueness and throw exception
 						// above
-						ValueMapping m = mergeFieldsOrdered.get(0);
-						Map<String, Object> matchMap = CSVUtil.buildMatchMap(m, mergedInputHeaders, nextMergedLine,
-								false);
 						boolean allMatch = !matchMap.isEmpty();
 						for (Entry<String, Object> nextOtherFieldMatcher : matchMap.entrySet()) {
 							if (!otherH.contains(nextOtherFieldMatcher.getKey())
