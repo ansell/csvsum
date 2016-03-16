@@ -104,9 +104,8 @@ public class ValueMapping {
 	public static List<ValueMapping> extractMappings(Reader input) throws IOException {
 		List<ValueMapping> result = new ArrayList<>();
 
-		List<String> headers = new ArrayList<>();
-
-		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
+		CSVUtil.streamCSV(input, h -> {
+		} , (h, l) -> {
 			return newMapping(l.get(h.indexOf(LANGUAGE)), l.get(h.indexOf(OLD_FIELD)), l.get(h.indexOf(NEW_FIELD)),
 					l.get(h.indexOf(MAPPING)), l.get(h.indexOf(SHOWN)));
 		} , l -> result.add(l));
