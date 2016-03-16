@@ -117,7 +117,7 @@ public class ValueMapping {
 	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,
 			List<String> previousMappedLine, List<ValueMapping> map) throws LineFilteredException {
 
-		Map<String, String> outputValues = new HashMap<>();
+		Map<String, String> outputValues = new HashMap<>(map.size(), 0.75f);
 
 		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(k -> k.getOutputField())
 				.collect(Collectors.toList());
