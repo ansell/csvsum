@@ -184,9 +184,9 @@ public class ValueMapping {
 	 */
 	private ValueMapping(ValueMappingLanguage language, String input, String output, String mapping, boolean shown) {
 		this.language = language;
-		this.input = input;
-		this.output = output;
-		this.mapping = mapping;
+		this.input = input.intern();
+		this.output = output.intern();
+		this.mapping = mapping.intern();
 		this.shown = shown;
 	}
 
