@@ -189,9 +189,9 @@ public final class CSVMerger {
 						// above
 						boolean allMatch = !matchMap.isEmpty();
 						for (Entry<String, Object> nextOtherFieldMatcher : matchMap.entrySet()) {
-							if (!otherH.contains(nextOtherFieldMatcher.getKey())
-									|| !otherL.get(otherH.indexOf(nextOtherFieldMatcher.getKey()))
-											.equals(nextOtherFieldMatcher.getValue())) {
+							final String key = nextOtherFieldMatcher.getKey();
+							if (!otherH.contains(key)
+									|| !otherL.get(otherH.indexOf(key)).equals(nextOtherFieldMatcher.getValue())) {
 								allMatch = false;
 								break;
 							}
