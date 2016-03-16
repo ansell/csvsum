@@ -104,7 +104,7 @@ public final class CSVUtil {
 		while (it.hasNext()) {
 			nextLine = it.next();
 			if (headers == null) {
-				headers = nextLine.stream().map(v -> v.trim()).collect(Collectors.toList());
+				headers = nextLine.stream().map(v -> v.trim()).map(v -> v.intern()).collect(Collectors.toList());
 				try {
 					headerValidator.accept(headers);
 				} catch (final IllegalArgumentException e) {
