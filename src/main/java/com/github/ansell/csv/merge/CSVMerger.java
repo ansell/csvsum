@@ -147,11 +147,12 @@ public final class CSVMerger {
 		List<List<String>> otherLines = new ArrayList<>();
 
 		try (final BufferedReader otherTemp = Files.newBufferedReader(tempFile)) {
-			CSVUtil.streamCSV(otherTemp, otherHeader -> otherH.addAll(otherHeader), (otherHeader, otherL) -> {
-				return otherL;
-			} , otherL -> {
-				otherLines.add(otherL);
-			});
+			CSVUtil.streamCSV(otherTemp, otherHeader -> otherHeader.forEach(n -> otherH.add(n.intern())),
+					(otherHeader, otherL) -> {
+						return otherL;
+					} , otherL -> {
+						otherLines.add(otherL);
+					});
 		}
 
 		Function<ValueMapping, String> outputFields = e -> e.getOutputField();
@@ -176,7 +177,7 @@ public final class CSVMerger {
 			List<String> inputHeaders = new ArrayList<>();
 			List<String> previousLine = new ArrayList<>();
 			List<String> previousMappedLine = new ArrayList<>();
-			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
+			CSVUtil.streamCSV(input, h -> h.forEach(n -> inputHeaders.add(n.intern())), (h, l) -> {
 				List<String> mapLine = null;
 				try {
 					List<String> mergedInputHeaders = new ArrayList<>(h);

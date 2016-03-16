@@ -106,7 +106,7 @@ public class ValueMapping {
 
 		List<String> headers = new ArrayList<>();
 
-		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
+		CSVUtil.streamCSV(input, h -> h.forEach(n -> headers.add(n.intern())), (h, l) -> {
 			return newMapping(l.get(h.indexOf(LANGUAGE)), l.get(h.indexOf(OLD_FIELD)), l.get(h.indexOf(NEW_FIELD)),
 					l.get(h.indexOf(MAPPING)), l.get(h.indexOf(SHOWN)));
 		} , l -> result.add(l));
@@ -117,7 +117,7 @@ public class ValueMapping {
 	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,
 			List<String> previousMappedLine, List<ValueMapping> map) throws LineFilteredException {
 
-		Map<String, String> outputValues = new HashMap<>(map.size(), 0.75f);
+		HashMap<String, String> outputValues = new HashMap<>(map.size(), 0.75f);
 
 		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(k -> k.getOutputField())
 				.collect(Collectors.toList());
@@ -129,6 +129,8 @@ public class ValueMapping {
 
 		List<String> result = new ArrayList<>(outputHeaders.size());
 		outputHeaders.forEach(nextOutput -> result.add(outputValues.getOrDefault(nextOutput, "")));
+
+		outputValues.clear();
 
 		return result;
 	}
@@ -214,8 +216,8 @@ public class ValueMapping {
 					// evaluate script code and access the variable that results
 					// from the mapping
 					return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", inputHeaders,
-							this.getInputField(), nextInputValue, outputHeaders, this.getOutputField(), line, mappedLine, previousLine,
-							previousMappedLine);
+							this.getInputField(), nextInputValue, outputHeaders, this.getOutputField(), line,
+							mappedLine, previousLine, previousMappedLine);
 				} else if (compiledScript != null) {
 					Bindings bindings = scriptEngine.createBindings();
 					// inputHeaders, inputField, inputValue, outputField, line
@@ -353,8 +355,10 @@ public class ValueMapping {
 				javascriptFunction.append("var LocalTime = Java.type('java.time.LocalTime'); \n");
 				javascriptFunction.append("var Format = Java.type('java.time.format.DateTimeFormatter'); \n");
 				javascriptFunction.append("var ChronoUnit = Java.type('java.time.temporal.ChronoUnit'); \n");
-				javascriptFunction.append("var dateMatches = function(dateValue, format) { try {\n format.parse(dateValue); \n return true; \n } catch(e) { } \n return false; }; \n");
-				javascriptFunction.append("var dateConvert = function(dateValue, inputFormat, outputFormat, parseClass) { if(!parseClass) { parseClass = LocalDate; } return parseClass.parse(dateValue, inputFormat).format(outputFormat); }; \n");
+				javascriptFunction.append(
+						"var dateMatches = function(dateValue, format) { try {\n format.parse(dateValue); \n return true; \n } catch(e) { } \n return false; }; \n");
+				javascriptFunction.append(
+						"var dateConvert = function(dateValue, inputFormat, outputFormat, parseClass) { if(!parseClass) { parseClass = LocalDate; } return parseClass.parse(dateValue, inputFormat).format(outputFormat); }; \n");
 				javascriptFunction.append("var filter = function() { throw new LFE(); }; \n");
 				javascriptFunction.append(
 						"var columnFunction = function(searchHeader, inputHeaders, line) { return line.get(inputHeaders.indexOf(searchHeader)); };\n");
