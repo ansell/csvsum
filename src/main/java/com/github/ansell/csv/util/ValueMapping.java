@@ -28,6 +28,7 @@ package com.github.ansell.csv.util;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -116,7 +117,7 @@ public class ValueMapping {
 	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,
 			List<String> previousMappedLine, List<ValueMapping> map) throws LineFilteredException {
 
-		Map<String, String> outputValues = new ConcurrentHashMap<>();
+		Map<String, String> outputValues = new HashMap<>();
 
 		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(k -> k.getOutputField())
 				.collect(Collectors.toList());
