@@ -58,6 +58,7 @@ If the Mapping field contains a script, it is executed in the context of the fol
 * mapLine : The mapped values for the current line so far
 * previousLine : The values from the previous line, or an empty list if this is the first line or the lines are all empty
 * previousMappedLine : The mapped values from the previous line, or an empty list if the previous line was filtered or the output document is empty
+* primaryKeys : An optionally useful Set of String's that can be used to deduplicate collections. If not explicitly used, it will not grow in size and hence large collections can still stream with minimal memory requirements.
 
 Javascript mappings have access to some global functions included from Java:
 
@@ -126,6 +127,9 @@ Run accessmap with a sample access file:
     </dependency>
 
 # Changelog
+
+## 2016-03-30
+* Add primaryKeys argument to mapping function parameters to deduplicate sets where necessary
 
 ## 2016-03-16
 * Release 0.0.6
