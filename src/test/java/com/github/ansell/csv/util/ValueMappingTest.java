@@ -3,6 +3,7 @@ package com.github.ansell.csv.util;
 import static org.junit.Assert.*;
 
 import java.io.StringReader;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -212,5 +213,9 @@ public class ValueMappingTest {
 		LocalTime.parse("15:50", timeFormatter);
 		// The following requires HHmm and doesn't work with the pattern above
 		// LocalTime.parse("1300", timeFormatter);
+		
+		DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/M[M]/yyyy");
+		
+		LocalDate.parse("17/2/2016", dateFormatter);
 	}
 }
