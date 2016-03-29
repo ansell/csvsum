@@ -38,8 +38,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -176,6 +178,7 @@ public final class CSVMerger {
 			List<String> inputHeaders = new ArrayList<>();
 			List<String> previousLine = new ArrayList<>();
 			List<String> previousMappedLine = new ArrayList<>();
+			Set<String> primaryKeys = new HashSet<>();
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
 				List<String> mapLine = null;
 				try {
@@ -211,7 +214,7 @@ public final class CSVMerger {
 					}
 
 					mapLine = ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, previousLine, previousMappedLine,
-							map);
+							map, primaryKeys);
 					previousLine.clear();
 					previousLine.addAll(l);
 					previousMappedLine.clear();

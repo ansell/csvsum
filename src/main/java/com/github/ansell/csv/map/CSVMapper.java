@@ -36,7 +36,9 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -133,10 +135,11 @@ public final class CSVMapper {
 			List<String> inputHeaders = new ArrayList<>();
 			List<String> previousLine = new ArrayList<>();
 			List<String> previousMappedLine = new ArrayList<>();
+			Set<String> primaryKeys = new HashSet<>();
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
 				List<String> mapLine = null;
 				try {
-					mapLine = ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map);
+					mapLine = ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map, primaryKeys);
 					previousLine.clear();
 					previousLine.addAll(l);
 					previousMappedLine.clear();

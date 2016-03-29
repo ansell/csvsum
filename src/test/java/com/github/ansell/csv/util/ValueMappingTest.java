@@ -8,7 +8,9 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -28,6 +30,7 @@ public class ValueMappingTest {
 	private ValueMapping testDefaultMapping3;
 	private ValueMapping testDefaultMapping4;
 	private ValueMapping testJavascriptMapping;
+	private ValueMapping testJavascriptPrimaryKeyMapping;
 	private ValueMapping testPreviousMapping;
 	private ValueMapping testDateMatching;
 	private ValueMapping testDateMapping;
@@ -49,6 +52,8 @@ public class ValueMappingTest {
 		testDateMapping = ValueMapping.newMapping("Javascript", "dateInput", "usefulDate",
 				"return dateMatches(inputValue, Format.ISO_LOCAL_DATE) ? dateConvert(inputValue, Format.ISO_LOCAL_DATE, Format.ISO_WEEK_DATE) : 'fix-your-date-format';",
 				"");
+		testJavascriptPrimaryKeyMapping = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
+				"return !primaryKeys.add(inputValue) ? filter() : inputValue;", "");
 	}
 
 	@After
@@ -105,10 +110,12 @@ public class ValueMappingTest {
 
 	@Test
 	public final void testMapLine() {
-		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("anInput", "anInput3", "aDifferentInput", "anInput4"),
-				Arrays.asList("testValue1", "testValue2", "xyzabc", "defghi"), Collections.emptyList(),
-				Collections.emptyList(), Arrays.asList(testDefaultMapping, testDefaultMapping3, testDefaultMapping4,
-						testJavascriptMapping, testPreviousMapping));
+		List<String> mapLine = ValueMapping
+				.mapLine(Arrays.asList("anInput", "anInput3", "aDifferentInput", "anInput4"),
+						Arrays.asList("testValue1", "testValue2", "xyzabc", "defghi"),
+						Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDefaultMapping,
+								testDefaultMapping3, testDefaultMapping4, testJavascriptMapping, testPreviousMapping),
+				new HashSet<>());
 
 		assertEquals(4, mapLine.size());
 		assertEquals("testValue1", mapLine.get(0));
@@ -123,7 +130,8 @@ public class ValueMappingTest {
 				Arrays.asList("testValue1A", "testValue2A", "xyzabcdefg", "defghijkl"),
 				Arrays.asList("testValue1", "testValue2", "xyzabc", "defghi"),
 				Arrays.asList("testValue1", "testValue2", "x", "no-previous"), Arrays.asList(testDefaultMapping,
-						testDefaultMapping3, testDefaultMapping4, testJavascriptMapping, testPreviousMapping));
+						testDefaultMapping3, testDefaultMapping4, testJavascriptMapping, testPreviousMapping),
+				new HashSet<>());
 
 		assertEquals(4, mapLine.size());
 		assertEquals("testValue1A", mapLine.get(0));
@@ -133,9 +141,35 @@ public class ValueMappingTest {
 	}
 
 	@Test
+	public final void testMapLinePrimaryKey() {
+		Set<String> primaryKeys = new HashSet<>();
+		List<String> mapLine1 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
+				Arrays.asList("testKey1", "testValue1"), Collections.emptyList(), Collections.emptyList(),
+				Arrays.asList(testJavascriptPrimaryKeyMapping, testDefaultMapping), primaryKeys);
+
+		assertEquals(2, mapLine1.size());
+		assertEquals("testKey1", mapLine1.get(0));
+		assertEquals("testValue1", mapLine1.get(1));
+
+		List<String> mapLine2 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
+				Arrays.asList("testKey2", "testValue2"), Collections.emptyList(), Collections.emptyList(),
+				Arrays.asList(testJavascriptPrimaryKeyMapping, testDefaultMapping), primaryKeys);
+
+		assertEquals(2, mapLine2.size());
+		assertEquals("testKey2", mapLine2.get(0));
+		assertEquals("testValue2", mapLine2.get(1));
+
+		// Map a duplicate now and verify that it is filtered
+		thrown.expect(LineFilteredException.class);
+		ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"), Arrays.asList("testKey2", "testValue3"),
+				Collections.emptyList(), Collections.emptyList(),
+				Arrays.asList(testJavascriptPrimaryKeyMapping, testDefaultMapping), primaryKeys);
+	}
+
+	@Test
 	public final void testMapLineDateMatchInvalid() {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("dateInput"), Arrays.asList("testNotADate"),
-				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMatching));
+				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMatching), new HashSet<>());
 
 		assertEquals(1, mapLine.size());
 		assertEquals("fix-your-date-format", mapLine.get(0));
@@ -144,7 +178,7 @@ public class ValueMappingTest {
 	@Test
 	public final void testMapLineDateMatchValid() {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("dateInput"), Arrays.asList("2013-01-30"),
-				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMatching));
+				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMatching), new HashSet<>());
 
 		assertEquals(1, mapLine.size());
 		assertEquals("2013-01-30", mapLine.get(0));
@@ -153,7 +187,7 @@ public class ValueMappingTest {
 	@Test
 	public final void testMapLineDateMatchInvalidConvert() {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("dateInput"), Arrays.asList("testNotADate"),
-				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMapping));
+				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMapping), new HashSet<>());
 
 		assertEquals(1, mapLine.size());
 		assertEquals("fix-your-date-format", mapLine.get(0));
@@ -162,7 +196,7 @@ public class ValueMappingTest {
 	@Test
 	public final void testMapLineDateMatchValidConvert() {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("dateInput"), Arrays.asList("2013-01-30"),
-				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMapping));
+				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMapping), new HashSet<>());
 
 		assertEquals(1, mapLine.size());
 		assertEquals("2013-W05-3", mapLine.get(0));
@@ -213,9 +247,9 @@ public class ValueMappingTest {
 		LocalTime.parse("15:50", timeFormatter);
 		// The following requires HHmm and doesn't work with the pattern above
 		// LocalTime.parse("1300", timeFormatter);
-		
+
 		DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/M[M]/yyyy");
-		
+
 		LocalDate.parse("17/2/2016", dateFormatter);
 	}
 }

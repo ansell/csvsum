@@ -246,6 +246,7 @@ public class AccessMapper {
 
 				List<Thread> mapThreads = new ArrayList<>(parallelism);
 				List<Database> dbCopies = new ArrayList<>(parallelism);
+				final Set<String> primaryKeys = ConcurrentHashMap.newKeySet();
 
 				Queue<Map<String, Object>> originRowQueue = new ConcurrentLinkedQueue<>();
 				final Map<String, Object> originRowSentinel = new HashMap<String, Object>();
@@ -287,7 +288,7 @@ public class AccessMapper {
 								joinersForThread);
 						final Consumer<Map<String, Object>> originRowConsumer = Unchecked.consumer(r -> {
 							List<String> mappedRow = mapNextRow(map, foreignKeyMappingForThread, joinersForThread,
-									nextOriginTable, r, db);
+									nextOriginTable, r, db, primaryKeys);
 							if (mappedRow != null) {
 								writerQueue.add(mappedRow);
 							}
@@ -376,7 +377,7 @@ public class AccessMapper {
 	private static List<String> mapNextRow(List<ValueMapping> map,
 			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
 			ConcurrentMap<ValueMapping, Joiner> joiners, String originTable, Map<String, Object> nextRow,
-			Database database) throws IOException {
+			Database database, Set<String> primaryKeys) throws IOException {
 		// Rows, indexed by the table that they came from
 		ConcurrentMap<String, Map<String, Object>> componentRowsForThisRow = new ConcurrentHashMap<>();
 		componentRowsForThisRow.put(originTable, nextRow);
@@ -437,7 +438,7 @@ public class AccessMapper {
 		}
 
 		try {
-			return ValueMapping.mapLine(inputHeaders, nextEmittedRow, Collections.emptyList(), Collections.emptyList(), map);
+			return ValueMapping.mapLine(inputHeaders, nextEmittedRow, Collections.emptyList(), Collections.emptyList(), map, primaryKeys);
 		} catch (final LineFilteredException e) {
 			// Swallow line filtered exception and return null below to
 			// eliminate it
