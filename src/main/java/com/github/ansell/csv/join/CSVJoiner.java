@@ -188,7 +188,7 @@ public final class CSVJoiner {
 			CSVUtil.streamCSV(input, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)), (h, l) -> {
 				List<String> mapLine = null;
 				try {
-					List<String> mergedInputHeaders = new ArrayList<>(h);
+					List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
 					List<String> nextMergedLine = new ArrayList<>(l);
 
 					ValueMapping m = mergeFieldsOrdered.get(0);
