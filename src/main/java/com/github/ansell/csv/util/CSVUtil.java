@@ -25,24 +25,38 @@
  */
 package com.github.ansell.csv.util;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import javax.script.ScriptException;
+
+import org.apache.commons.io.IOUtils;
 import org.jooq.lambda.Seq;
+import org.jooq.lambda.Unchecked;
 import org.jooq.lambda.tuple.Tuple2;
 
 import com.fasterxml.jackson.core.JsonParser;
@@ -51,6 +65,7 @@ import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import com.github.ansell.csv.util.ValueMapping.ValueMappingLanguage;
 
 /**
  * Utilities used by CSV processors.
@@ -210,7 +225,18 @@ public final class CSVUtil {
 		}
 
 		if (allMatch) {
-			return zip(sourceHeaders, sourceLine).concat(zip(destHeaders, destLine)).collect(TUPLE2_TO_MAP);
+			List<String> filteredDestHeaders = new ArrayList<>(destHeaders.size());
+			List<String> filteredDestLine = new ArrayList<>(destLine.size());
+			for (int i = 0; i < destHeaders.size(); i++) {
+				// Deduplicate matching fields in the two files by ignoring the
+				// one from the destination
+				if (!sourceHeaders.contains(destHeaders.get(i))) {
+					filteredDestHeaders.add(destHeaders.get(i));
+					filteredDestLine.add(destLine.get(i));
+				}
+			}
+			return zip(sourceHeaders, sourceLine).concat(zip(filteredDestHeaders, filteredDestLine))
+					.collect(TUPLE2_TO_MAP);
 		} else {
 			return zip(sourceHeaders, sourceLine).collect(TUPLE2_TO_MAP);
 		}
@@ -266,5 +292,135 @@ public final class CSVUtil {
 
 	private static Seq<Tuple2<String, String>> zip(List<String> inputHeader, List<String> inputLine) {
 		return Seq.of(inputHeader.toArray(new String[inputHeader.size()])).zip(inputLine);
+	}
+
+	public static void runMapper(Reader input, Reader otherInput, List<ValueMapping> map, Writer output,
+			String inputPrefix, String otherPrefix, boolean leftOuterJoin) throws ScriptException, IOException {
+		Path tempFile = Files.createTempFile("tempOtherFile-", ".csv");
+		try (final BufferedWriter tempOutput = Files.newBufferedWriter(tempFile);) {
+			IOUtils.copy(otherInput, tempOutput);
+		}
+	
+		List<String> otherH = new ArrayList<>();
+		List<List<String>> otherLines = new ArrayList<>();
+	
+		try (final BufferedReader otherTemp = Files.newBufferedReader(tempFile)) {
+			streamCSV(otherTemp, otherHeader -> otherHeader.forEach(h -> otherH.add(otherPrefix + h)),
+					(otherHeader, otherL) -> {
+						return otherL;
+					} , otherL -> {
+						otherLines.add(otherL);
+					});
+		}
+	
+		Function<ValueMapping, String> outputFields = e -> e.getOutputField();
+	
+		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(outputFields)
+				.collect(Collectors.toList());
+	
+		List<ValueMapping> mergeFieldsOrdered = map.stream()
+				.filter(k -> k.getLanguage() == ValueMappingLanguage.CSVJOIN).collect(Collectors.toList());
+	
+		List<ValueMapping> nonMergeFieldsOrdered = map.stream()
+				.filter(k -> k.getLanguage() != ValueMappingLanguage.CSVJOIN).collect(Collectors.toList());
+	
+		if (mergeFieldsOrdered.size() != 1) {
+			throw new RuntimeException(
+					"Can only support exactly one CsvJoin mapping: found " + mergeFieldsOrdered.size());
+		}
+	
+		final CsvSchema schema = buildSchema(outputHeaders);
+	
+		try (final SequenceWriter csvWriter = newCSVWriter(output, schema);) {
+			List<String> inputHeaders = new ArrayList<>();
+			List<String> previousLine = new ArrayList<>();
+			List<String> previousMappedLine = new ArrayList<>();
+			Set<String> primaryKeys = new HashSet<>();
+			Set<List<String>> matchedOtherLines = new LinkedHashSet<>();
+	
+			streamCSV(input, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)), (h, l) -> {
+				List<String> mapLine = null;
+				try {
+					List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
+					List<String> nextMergedLine = new ArrayList<>(l);
+	
+					ValueMapping m = mergeFieldsOrdered.get(0);
+					Map<String, Object> matchMap = buildMatchMap(m, mergedInputHeaders, nextMergedLine, false);
+					for (List<String> otherL : otherLines) {
+						// Note, we check for uniqueness and throw exception
+						// above
+						boolean allMatch = !matchMap.isEmpty();
+						for (Entry<String, Object> nextOtherFieldMatcher : matchMap.entrySet()) {
+							final String key = nextOtherFieldMatcher.getKey();
+							if (!otherH.contains(key)
+									|| !otherL.get(otherH.indexOf(key)).equals(nextOtherFieldMatcher.getValue())) {
+								allMatch = false;
+								break;
+							}
+						}
+						if (allMatch) {
+							if (!matchedOtherLines.contains(otherL)) {
+								matchedOtherLines.add(otherL);
+							}
+							Map<String, Object> leftOuterJoinMap = leftOuterJoin(m, mergedInputHeaders,
+									nextMergedLine, otherH, otherL, false);
+							for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
+								final String inputField = nextMapping.getInputField();
+								if (leftOuterJoinMap.containsKey(inputField)
+										&& !mergedInputHeaders.contains(inputField)) {
+									mergedInputHeaders.add(inputField);
+									nextMergedLine.add((String) leftOuterJoinMap.get(inputField));
+								}
+							}
+							break;
+						}
+					}
+	
+					mapLine = ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, previousLine, previousMappedLine,
+							map, primaryKeys);
+					previousLine.clear();
+					previousLine.addAll(l);
+					previousMappedLine.clear();
+					if (mapLine != null) {
+						previousMappedLine.addAll(mapLine);
+					}
+					return mapLine;
+				} catch (final LineFilteredException e) {
+					// Swallow line filtered exception and return null below to
+					// eliminate it
+				}
+				return null;
+			} , Unchecked.consumer(l -> csvWriter.write(l)));
+	
+			if(!leftOuterJoin) {
+				otherLines.stream().filter(l -> !matchedOtherLines.contains(l)).forEach(Unchecked.consumer(l -> {
+					List<String> mapLine = null;
+					try {
+						List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
+						List<String> nextMergedLine = new ArrayList<>(l);
+						for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
+							final String inputField = nextMapping.getInputField();
+							if (otherH.contains(inputField)
+									&& !mergedInputHeaders.contains(inputField)) {
+								mergedInputHeaders.add(inputField);
+								nextMergedLine.add((String) l.get(otherH.indexOf(inputField)));
+							}
+						}
+						
+						mapLine = ValueMapping.mapLine(otherH, nextMergedLine, previousLine, previousMappedLine, map, primaryKeys);
+						previousLine.clear();
+						previousLine.addAll(l);
+						previousMappedLine.clear();
+						if (mapLine != null) {
+							previousMappedLine.addAll(mapLine);
+						}
+						csvWriter.write(mapLine);
+					} catch (final LineFilteredException e) {
+						// Swallow line filtered exception and return null below to
+						// eliminate it
+					}
+				}));
+			}
+		}
 	}
 }
