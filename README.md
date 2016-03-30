@@ -90,7 +90,7 @@ Javascript mappings must always return a value.
 
 CSV Joiner inherits the functionality of CSV Mapper, so all of the functions and languages available to the CSV Mapper program are available here.
 
-In addition, it adds another supported language, CsvJoin. Keys from the primary input are linked using a row in the mapping column that point from either 1-1 or Many-1 relationships to the other input. 1-Many relationships are not supported due to the way rows are generated based on a base file. The base file is always the first input, which has rows from other-input merged into it using a left outer join pattern.
+In addition, it adds another supported language, CsvJoin. Keys from the primary input are linked using a row in the mapping column that point from either 1-1 or Many-1 relationships to the other input. 1-Many relationships are not supported due to the way rows are generated based on a base file. The base file is always the first input, which has rows from other-input merged into it using either a left outer join pattern or a full outer join pattern, depending on whether true or false is specified for --left-outer-join.
 
 ## Usage
 
@@ -131,6 +131,7 @@ Run accessmap with a sample access file:
 
 ## 2016-03-03
 * Rename csvmerge to csvjoin to indicate its purpose, while freeing up csvmerge to be implemented separately
+* Add capability to do a full outer join for csvjoin in addition to left outer join
 
 ## 2016-03-30
 * Release 0.0.7
