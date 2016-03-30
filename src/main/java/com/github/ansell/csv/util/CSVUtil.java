@@ -31,6 +31,7 @@ import java.io.Writer;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -210,7 +211,18 @@ public final class CSVUtil {
 		}
 
 		if (allMatch) {
-			return zip(sourceHeaders, sourceLine).concat(zip(destHeaders, destLine)).collect(TUPLE2_TO_MAP);
+			List<String> filteredDestHeaders = new ArrayList<>(destHeaders.size());
+			List<String> filteredDestLine = new ArrayList<>(destLine.size());
+			for (int i = 0; i < destHeaders.size(); i++) {
+				// Deduplicate matching fields in the two files by ignoring the
+				// one from the destination
+				if (!sourceHeaders.contains(destHeaders.get(i))) {
+					filteredDestHeaders.add(destHeaders.get(i));
+					filteredDestLine.add(destLine.get(i));
+				}
+			}
+			return zip(sourceHeaders, sourceLine).concat(zip(filteredDestHeaders, filteredDestLine))
+					.collect(TUPLE2_TO_MAP);
 		} else {
 			return zip(sourceHeaders, sourceLine).collect(TUPLE2_TO_MAP);
 		}
