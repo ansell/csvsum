@@ -75,13 +75,14 @@ Other Java classes can be accessed by assigning their type to a global variable 
 
     var ClassName = Java.type("org.com.JavaClassName");
 
-Javascript mappings also have access to two helper functions to get a specific column and a function to filter an entire line:
+Javascript mappings also have access to helper functions to simplify common mappings:
 
 * col : Called using the syntax col('columnName'), and returns the value for that column on the current line
 * outCol : Called using the syntax outCol('outputColumnName'), and returns the value that has been mapped so far for that column on the current line.
 * filter : Called using the syntax filter(), and will make the line not appear in the results and short-circuit processing of the line for mapping purposes
 * dateMatches : Called using the syntax dateMatches(inputValue, dateFormat), where dateFormat is a DateTimeFormatter instance, such as Format.ISO_LOCAL_DATE
 * dateConvert : Called using the syntax dateConvert(inputValue, inputFormat, outputFormat), where inputFormat and outputFormat are instances of DateTimeFormatter, such as Format.ISO_LOCAL_DATE. This function also accepts an optional fourth parameter specifying the class to use, which can be any of LocalDate, LocalTime, LocalDateTime, or other similar functions that support the parse method. The default is to use LocalDate.
+* primaryKeyFilter : Called using the syntax primaryKeyFilter(inputValue), where inputValue is the primary key string. The function returns the string if and only if it is unique so far, otherwise it calls filter() to filter out the line.
 
 Javascript mappings must always return a value.
 
@@ -130,6 +131,7 @@ Run accessmap with a sample access file:
 
 ## 2016-03-30
 * Add primaryKeys argument to mapping function parameters to deduplicate sets where necessary
+* Add primaryKeyFilter function to simplify usage of the primaryKeys set
 
 ## 2016-03-16
 * Release 0.0.6
