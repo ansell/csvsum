@@ -124,12 +124,13 @@ Run accessmap with a sample access file:
     <dependency>
         <groupId>com.github.ansell.csv.sum</groupId>
         <artifactId>csvsum</artifactId>
-        <version>0.0.6</version>
+        <version>0.0.7</version>
     </dependency>
 
 # Changelog
 
 ## 2016-03-30
+* Release 0.0.7
 * Add primaryKeys argument to mapping function parameters to deduplicate sets where necessary
 * Add primaryKeyFilter function to simplify usage of the primaryKeys set
 
