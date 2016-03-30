@@ -94,6 +94,9 @@ public final class CSVJoiner {
 				.describedAs("The mapping file.");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
 				.describedAs("The mapped CSV file, or the console if not specified.");
+		final OptionSpec<Boolean> leftOuterJoin = parser.accepts("left-outer-join").withRequiredArg()
+				.ofType(Boolean.class).defaultsTo(Boolean.TRUE)
+				.describedAs("True to use left outer join and false to use a full outer join");
 
 		OptionSet options = null;
 
@@ -136,8 +139,8 @@ public final class CSVJoiner {
 				final BufferedReader readerInput = Files.newBufferedReader(inputPath);
 				final BufferedReader readerOtherInput = Files.newBufferedReader(otherInputPath);) {
 			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
-			runMapper(readerInput, readerOtherInput, map, writer, inputPrefix.value(options),
-					otherPrefix.value(options));
+			CSVUtil.runMapper(readerInput, readerOtherInput, map, writer, inputPrefix.value(options),
+					otherPrefix.value(options), leftOuterJoin.value(options));
 		} finally {
 			writer.close();
 		}
