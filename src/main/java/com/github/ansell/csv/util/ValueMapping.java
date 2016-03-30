@@ -64,7 +64,7 @@ public class ValueMapping {
 
 		ACCESS(""),
 
-		CSVMERGE("");
+		CSVJOIN("");
 
 		private final String defaultMapping;
 
@@ -252,8 +252,8 @@ public class ValueMapping {
 			// Access is currently handled separately, before these mappings are
 			// applied, so make this a noop
 			return nextInputValue;
-		} else if (this.language == ValueMappingLanguage.CSVMERGE) {
-			// CSVMerge is currently handled separately, before these mappings
+		} else if (this.language == ValueMappingLanguage.CSVJOIN) {
+			// CSVJoin is currently handled separately, before these mappings
 			// are applied, so make this a noop
 			return nextInputValue;
 		} else {
@@ -402,7 +402,7 @@ public class ValueMapping {
 			}
 		} else if (this.language == ValueMappingLanguage.ACCESS) {
 
-		} else if (this.language == ValueMappingLanguage.CSVMERGE) {
+		} else if (this.language == ValueMappingLanguage.CSVJOIN) {
 
 		} else {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);

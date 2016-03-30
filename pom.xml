@@ -4,7 +4,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.github.ansell.csv.sum</groupId>
 	<artifactId>csvsum</artifactId>
-	<version>0.0.8-SNAPSHOT</version>
+	<version>0.1.0-SNAPSHOT</version>
 	<name>CSVSum</name>
 	<description>CSV Summariser</description>
 	<packaging>jar</packaging>
@@ -206,7 +206,7 @@
 							<id>csvmap</id>
 						</program>
 						<program>
-							<mainClass>com.github.ansell.csv.merge.CSVMerger</mainClass>
+							<mainClass>com.github.ansell.csv.join.CSVJoiner</mainClass>
 							<id>csvmerge</id>
 						</program>
 						<program>

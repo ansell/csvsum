@@ -23,7 +23,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.github.ansell.csv.merge;
+package com.github.ansell.csv.join;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -70,12 +70,12 @@ import joptsimple.OptionSpec;
  * 
  * @author Peter Ansell p_ansell@yahoo.com
  */
-public final class CSVMerger {
+public final class CSVJoiner {
 
 	/**
 	 * Private constructor for static only class
 	 */
-	private CSVMerger() {
+	private CSVJoiner() {
 	}
 
 	public static void main(String... args) throws Exception {
@@ -84,8 +84,12 @@ public final class CSVMerger {
 		final OptionSpec<Void> help = parser.accepts("help").forHelp();
 		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
 				.describedAs("The input CSV file to be mapped.");
+		final OptionSpec<String> inputPrefix = parser.accepts("input-prefix").withRequiredArg().ofType(String.class)
+				.defaultsTo("").describedAs("A prefix to be used for the input file.");
 		final OptionSpec<File> otherInput = parser.accepts("other-input").withRequiredArg().ofType(File.class)
 				.required().describedAs("The other input CSV file to be merged.");
+		final OptionSpec<String> otherPrefix = parser.accepts("other-prefix").withRequiredArg().ofType(String.class)
+				.defaultsTo("").describedAs("A prefix to be used for the other file.");
 		final OptionSpec<File> mapping = parser.accepts("mapping").withRequiredArg().ofType(File.class).required()
 				.describedAs("The mapping file.");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
@@ -132,14 +136,15 @@ public final class CSVMerger {
 				final BufferedReader readerInput = Files.newBufferedReader(inputPath);
 				final BufferedReader readerOtherInput = Files.newBufferedReader(otherInputPath);) {
 			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
-			runMapper(readerInput, readerOtherInput, map, writer);
+			runMapper(readerInput, readerOtherInput, map, writer, inputPrefix.value(options),
+					otherPrefix.value(options));
 		} finally {
 			writer.close();
 		}
 	}
 
-	private static void runMapper(Reader input, Reader otherInput, List<ValueMapping> map, Writer output)
-			throws ScriptException, IOException {
+	private static void runMapper(Reader input, Reader otherInput, List<ValueMapping> map, Writer output,
+			String inputPrefix, String otherPrefix) throws ScriptException, IOException {
 		Path tempFile = Files.createTempFile("tempOtherFile-", ".csv");
 		try (final BufferedWriter tempOutput = Files.newBufferedWriter(tempFile);) {
 			IOUtils.copy(otherInput, tempOutput);
@@ -149,11 +154,12 @@ public final class CSVMerger {
 		List<List<String>> otherLines = new ArrayList<>();
 
 		try (final BufferedReader otherTemp = Files.newBufferedReader(tempFile)) {
-			CSVUtil.streamCSV(otherTemp, otherHeader -> otherH.addAll(otherHeader), (otherHeader, otherL) -> {
-				return otherL;
-			} , otherL -> {
-				otherLines.add(otherL);
-			});
+			CSVUtil.streamCSV(otherTemp, otherHeader -> otherHeader.forEach(h -> otherH.add(otherPrefix + h)),
+					(otherHeader, otherL) -> {
+						return otherL;
+					} , otherL -> {
+						otherLines.add(otherL);
+					});
 		}
 
 		Function<ValueMapping, String> outputFields = e -> e.getOutputField();
@@ -162,14 +168,14 @@ public final class CSVMerger {
 				.collect(Collectors.toList());
 
 		List<ValueMapping> mergeFieldsOrdered = map.stream()
-				.filter(k -> k.getLanguage() == ValueMappingLanguage.CSVMERGE).collect(Collectors.toList());
+				.filter(k -> k.getLanguage() == ValueMappingLanguage.CSVJOIN).collect(Collectors.toList());
 
 		List<ValueMapping> nonMergeFieldsOrdered = map.stream()
-				.filter(k -> k.getLanguage() != ValueMappingLanguage.CSVMERGE).collect(Collectors.toList());
+				.filter(k -> k.getLanguage() != ValueMappingLanguage.CSVJOIN).collect(Collectors.toList());
 
 		if (mergeFieldsOrdered.size() != 1) {
 			throw new RuntimeException(
-					"Can only support exactly one CsvMerge mapping: found " + mergeFieldsOrdered.size());
+					"Can only support exactly one CsvJoin mapping: found " + mergeFieldsOrdered.size());
 		}
 
 		final CsvSchema schema = CSVUtil.buildSchema(outputHeaders);
@@ -179,10 +185,10 @@ public final class CSVMerger {
 			List<String> previousLine = new ArrayList<>();
 			List<String> previousMappedLine = new ArrayList<>();
 			Set<String> primaryKeys = new HashSet<>();
-			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
+			CSVUtil.streamCSV(input, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)), (h, l) -> {
 				List<String> mapLine = null;
 				try {
-					List<String> mergedInputHeaders = new ArrayList<>(h);
+					List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
 					List<String> nextMergedLine = new ArrayList<>(l);
 
 					ValueMapping m = mergeFieldsOrdered.get(0);

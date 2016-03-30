@@ -14,7 +14,7 @@ Set the relevant programs to be executable.
 
     chmod a+x ./csvsum
     chmod a+x ./csvmap
-    chmod a+x ./csvmerge
+    chmod a+x ./csvjoin
     chmod a+x ./accessmap
 
 # CSV Summariser
@@ -86,21 +86,21 @@ Javascript mappings also have access to helper functions to simplify common mapp
 
 Javascript mappings must always return a value.
 
-# CSV Merger
+# CSV Joiner
 
-CSV Merger inherits the functionality of CSV Mapper, so all of the functions and languages available to the CSV Mapper program are available here.
+CSV Joiner inherits the functionality of CSV Mapper, so all of the functions and languages available to the CSV Mapper program are available here.
 
-In addition, it adds another supported language, CsvMerge. Keys from the primary input are linked using a row in the mapping column that point from either 1-1 or Many-1 relationships to the other input. 1-Many relationships are not supported due to the way rows are generated based on a base file. The base file is always the first input, which has rows from other-input merged into it using a left outer join pattern.
+In addition, it adds another supported language, CsvJoin. Keys from the primary input are linked using a row in the mapping column that point from either 1-1 or Many-1 relationships to the other input. 1-Many relationships are not supported due to the way rows are generated based on a base file. The base file is always the first input, which has rows from other-input merged into it using a left outer join pattern.
 
 ## Usage
 
-Run csvmerge with --help to get usage details:
+Run csvjoin with --help to get usage details:
 
-    ./csvmerge --help
+    ./csvjoin --help
 
 Run csvmap with a sample csv file:
 
-    ./csvmerge --input src/test/resources/com/github/ansell/csvmerge/test-source.csv --other-input src/test/resources/com/github/ansell/csvmerge/test-source-other.csv --mapping src/test/resources/com/github/ansell/csvmerge/test-mapping.csv
+    ./csvjoin --input src/test/resources/com/github/ansell/csvjoin/test-source.csv --other-input src/test/resources/com/github/ansell/csvjoin/test-source-other.csv --mapping src/test/resources/com/github/ansell/csvjoin/test-mapping.csv
 
 
 # Access Mapper
@@ -128,6 +128,9 @@ Run accessmap with a sample access file:
     </dependency>
 
 # Changelog
+
+## 2016-03-03
+* Rename csvmerge to csvjoin to indicate its purpose, while freeing up csvmerge to be implemented separately
 
 ## 2016-03-30
 * Release 0.0.7
