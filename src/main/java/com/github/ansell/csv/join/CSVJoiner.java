@@ -136,14 +136,15 @@ public final class CSVJoiner {
 				final BufferedReader readerInput = Files.newBufferedReader(inputPath);
 				final BufferedReader readerOtherInput = Files.newBufferedReader(otherInputPath);) {
 			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
-			runMapper(readerInput, readerOtherInput, map, writer);
+			runMapper(readerInput, readerOtherInput, map, writer, inputPrefix.value(options),
+					otherPrefix.value(options));
 		} finally {
 			writer.close();
 		}
 	}
 
-	private static void runMapper(Reader input, Reader otherInput, List<ValueMapping> map, Writer output)
-			throws ScriptException, IOException {
+	private static void runMapper(Reader input, Reader otherInput, List<ValueMapping> map, Writer output,
+			String inputPrefix, String otherPrefix) throws ScriptException, IOException {
 		Path tempFile = Files.createTempFile("tempOtherFile-", ".csv");
 		try (final BufferedWriter tempOutput = Files.newBufferedWriter(tempFile);) {
 			IOUtils.copy(otherInput, tempOutput);
@@ -153,11 +154,12 @@ public final class CSVJoiner {
 		List<List<String>> otherLines = new ArrayList<>();
 
 		try (final BufferedReader otherTemp = Files.newBufferedReader(tempFile)) {
-			CSVUtil.streamCSV(otherTemp, otherHeader -> otherH.addAll(otherHeader), (otherHeader, otherL) -> {
-				return otherL;
-			} , otherL -> {
-				otherLines.add(otherL);
-			});
+			CSVUtil.streamCSV(otherTemp, otherHeader -> otherHeader.forEach(h -> otherH.add(otherPrefix + h)),
+					(otherHeader, otherL) -> {
+						return otherL;
+					} , otherL -> {
+						otherLines.add(otherL);
+					});
 		}
 
 		Function<ValueMapping, String> outputFields = e -> e.getOutputField();
@@ -183,7 +185,7 @@ public final class CSVJoiner {
 			List<String> previousLine = new ArrayList<>();
 			List<String> previousMappedLine = new ArrayList<>();
 			Set<String> primaryKeys = new HashSet<>();
-			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
+			CSVUtil.streamCSV(input, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)), (h, l) -> {
 				List<String> mapLine = null;
 				try {
 					List<String> mergedInputHeaders = new ArrayList<>(h);
