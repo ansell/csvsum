@@ -31,6 +31,7 @@ public class ValueMappingTest {
 	private ValueMapping testDefaultMapping4;
 	private ValueMapping testJavascriptMapping;
 	private ValueMapping testJavascriptPrimaryKeyMapping;
+	private ValueMapping testJavascriptPrimaryKeyMappingFunction;
 	private ValueMapping testPreviousMapping;
 	private ValueMapping testDateMatching;
 	private ValueMapping testDateMapping;
@@ -54,6 +55,8 @@ public class ValueMappingTest {
 				"");
 		testJavascriptPrimaryKeyMapping = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
 				"return !primaryKeys.add(inputValue) ? filter() : inputValue;", "");
+		testJavascriptPrimaryKeyMappingFunction = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
+				"return primaryKeyFilter(inputValue);", "");
 	}
 
 	@After
@@ -164,6 +167,32 @@ public class ValueMappingTest {
 		ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"), Arrays.asList("testKey2", "testValue3"),
 				Collections.emptyList(), Collections.emptyList(),
 				Arrays.asList(testJavascriptPrimaryKeyMapping, testDefaultMapping), primaryKeys);
+	}
+
+	@Test
+	public final void testMapLinePrimaryKeyFunction() {
+		Set<String> primaryKeys = new HashSet<>();
+		List<String> mapLine1 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
+				Arrays.asList("testKey1", "testValue1"), Collections.emptyList(), Collections.emptyList(),
+				Arrays.asList(testJavascriptPrimaryKeyMappingFunction, testDefaultMapping), primaryKeys);
+
+		assertEquals(2, mapLine1.size());
+		assertEquals("testKey1", mapLine1.get(0));
+		assertEquals("testValue1", mapLine1.get(1));
+
+		List<String> mapLine2 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
+				Arrays.asList("testKey2", "testValue2"), Collections.emptyList(), Collections.emptyList(),
+				Arrays.asList(testJavascriptPrimaryKeyMappingFunction, testDefaultMapping), primaryKeys);
+
+		assertEquals(2, mapLine2.size());
+		assertEquals("testKey2", mapLine2.get(0));
+		assertEquals("testValue2", mapLine2.get(1));
+
+		// Map a duplicate now and verify that it is filtered
+		thrown.expect(LineFilteredException.class);
+		ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"), Arrays.asList("testKey2", "testValue3"),
+				Collections.emptyList(), Collections.emptyList(),
+				Arrays.asList(testJavascriptPrimaryKeyMappingFunction, testDefaultMapping), primaryKeys);
 	}
 
 	@Test

@@ -115,7 +115,8 @@ public class ValueMapping {
 	}
 
 	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,
-			List<String> previousMappedLine, List<ValueMapping> map, Set<String> primaryKeys) throws LineFilteredException {
+			List<String> previousMappedLine, List<ValueMapping> map, Set<String> primaryKeys)
+					throws LineFilteredException {
 
 		HashMap<String, String> outputValues = new HashMap<>(map.size(), 0.75f);
 
@@ -191,7 +192,8 @@ public class ValueMapping {
 	}
 
 	private String apply(List<String> inputHeaders, List<String> line, List<String> previousLine,
-			List<String> previousMappedLine, List<String> outputHeaders, Map<String, String> mappedLine, Set<String> primaryKeys) {
+			List<String> previousMappedLine, List<String> outputHeaders, Map<String, String> mappedLine,
+			Set<String> primaryKeys) {
 		int indexOf = inputHeaders.indexOf(getInputField());
 		String nextInputValue;
 		if (indexOf >= 0) {
@@ -367,6 +369,8 @@ public class ValueMapping {
 						"var columnFunctionMap = function(searchHeader, mapLine) { return mapLine.get(searchHeader); };\n");
 				javascriptFunction.append(
 						"var mapFunction = function(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys) { ");
+				javascriptFunction.append(
+						"    var primaryKeyFilter = function(nextPrimaryKey) { \n return !primaryKeys.add(nextPrimaryKey) ? filter() : nextPrimaryKey; }; \n ");
 				javascriptFunction.append(
 						"    var col = function(searchHeader) { \n return columnFunction(searchHeader, inputHeaders, line); }; \n ");
 				javascriptFunction.append(
