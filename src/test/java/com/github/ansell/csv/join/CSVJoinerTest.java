@@ -23,7 +23,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.github.ansell.csv.merge;
+package com.github.ansell.csv.join;
 
 import static org.junit.Assert.assertEquals;
 
@@ -43,16 +43,17 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
+import com.github.ansell.csv.join.CSVJoiner;
 import com.github.ansell.csv.util.CSVUtil;
 
 import joptsimple.OptionException;
 
 /**
- * Tests for {@link CSVMerger}.
+ * Tests for {@link CSVJoiner}.
  * 
  * @author Peter Ansell p_ansell@yahoo.com
  */
-public class CSVMergerTest {
+public class CSVJoinerTest {
 
 	@Rule
 	public ExpectedException thrown = ExpectedException.none();
@@ -83,103 +84,103 @@ public class CSVMergerTest {
 	@Before
 	public void setUp() throws Exception {
 		testMapping = tempDir.newFile("test-mapping.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-mapping.csv"), testMapping,
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvjoin/test-mapping.csv"), testMapping,
 				StandardCopyOption.REPLACE_EXISTING);
 		testMappingHidden = tempDir.newFile("test-mapping-with-hidden.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-mapping-with-hidden.csv"),
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvjoin/test-mapping-with-hidden.csv"),
 				testMappingHidden, StandardCopyOption.REPLACE_EXISTING);
 		testFile = tempDir.newFile("test-source.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-source.csv"), testFile,
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvjoin/test-source.csv"), testFile,
 				StandardCopyOption.REPLACE_EXISTING);
 		testOtherFile = tempDir.newFile("test-source-other.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-source-other.csv"),
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvjoin/test-source-other.csv"),
 				testOtherFile, StandardCopyOption.REPLACE_EXISTING);
 
 		testMappingMulti = tempDir.newFile("test-mapping-multi-key.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-mapping-multi-key.csv"),
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvjoin/test-mapping-multi-key.csv"),
 				testMappingMulti, StandardCopyOption.REPLACE_EXISTING);
 		testFileMulti = tempDir.newFile("test-source-multi-key.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-source-multi-key.csv"),
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvjoin/test-source-multi-key.csv"),
 				testFileMulti, StandardCopyOption.REPLACE_EXISTING);
 		testOtherFileMulti = tempDir.newFile("test-source-other-multi-key.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-source-other-multi-key.csv"),
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvjoin/test-source-other-multi-key.csv"),
 				testOtherFileMulti, StandardCopyOption.REPLACE_EXISTING);
 
 		testMappingMultiDots = tempDir.newFile("test-mapping-multi-key-dots.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-mapping-multi-key-dots.csv"),
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvjoin/test-mapping-multi-key-dots.csv"),
 				testMappingMultiDots, StandardCopyOption.REPLACE_EXISTING);
 		testFileMultiDots = tempDir.newFile("test-source-multi-key-dots.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-source-multi-key-dots.csv"),
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvjoin/test-source-multi-key-dots.csv"),
 				testFileMultiDots, StandardCopyOption.REPLACE_EXISTING);
 		testOtherFileMultiDots = tempDir.newFile("test-source-other-multi-key-dots.csv").toPath();
 		Files.copy(
-				this.getClass().getResourceAsStream("/com/github/ansell/csvmerge/test-source-other-multi-key-dots.csv"),
+				this.getClass().getResourceAsStream("/com/github/ansell/csvjoin/test-source-other-multi-key-dots.csv"),
 				testOtherFileMultiDots, StandardCopyOption.REPLACE_EXISTING);
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVJoiner#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainNoArgs() throws Exception {
 		thrown.expect(OptionException.class);
-		CSVMerger.main();
+		CSVJoiner.main();
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVJoiner#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainHelp() throws Exception {
-		CSVMerger.main("--help");
+		CSVJoiner.main("--help");
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVJoiner#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainFileDoesNotExist() throws Exception {
 		Path testDirectory = tempDir.newFolder("test-does-not-exist").toPath();
 
 		thrown.expect(FileNotFoundException.class);
-		CSVMerger.main("--input", testDirectory.resolve("test-does-not-exist.csv").toString(), "--other-input",
+		CSVJoiner.main("--input", testDirectory.resolve("test-does-not-exist.csv").toString(), "--other-input",
 				testOtherFile.toAbsolutePath().toString(), "--mapping", testMapping.toAbsolutePath().toString());
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVJoiner#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainOtherFileDoesNotExist() throws Exception {
 		Path testDirectory = tempDir.newFolder("test-does-not-exist").toPath();
 
 		thrown.expect(FileNotFoundException.class);
-		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--other-input",
+		CSVJoiner.main("--input", testFile.toAbsolutePath().toString(), "--other-input",
 				testDirectory.resolve("test-does-not-exist.csv").toString(), "--mapping",
 				testMapping.toAbsolutePath().toString());
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVJoiner#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainMappingDoesNotExist() throws Exception {
 		Path testDirectory = tempDir.newFolder("test-does-not-exist").toPath();
 
 		thrown.expect(FileNotFoundException.class);
-		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--other-input",
+		CSVJoiner.main("--input", testFile.toAbsolutePath().toString(), "--other-input",
 				testOtherFile.toAbsolutePath().toString(), "--mapping",
 				testDirectory.resolve("test-does-not-exist.csv").toString());
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVJoiner#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainEmpty() throws Exception {
@@ -189,29 +190,29 @@ public class CSVMergerTest {
 
 		thrown.expect(RuntimeException.class);
 		thrown.expectMessage("CSV file did not contain a valid header line");
-		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--other-input",
+		CSVJoiner.main("--input", testFile.toAbsolutePath().toString(), "--other-input",
 				testOtherFile.toAbsolutePath().toString(), "--mapping", testMapping.toAbsolutePath().toString());
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVJoiner#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainComplete() throws Exception {
-		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--other-input",
+		CSVJoiner.main("--input", testFile.toAbsolutePath().toString(), "--other-input",
 				testOtherFile.toAbsolutePath().toString(), "--mapping", testMapping.toAbsolutePath().toString());
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVJoiner#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainCompleteWithOutputFile() throws Exception {
 		Path testDirectory = tempDir.newFolder("test").toPath();
 
-		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--other-input",
+		CSVJoiner.main("--input", testFile.toAbsolutePath().toString(), "--other-input",
 				testOtherFile.toAbsolutePath().toString(), "--mapping", testMapping.toAbsolutePath().toString(),
 				"--output", testDirectory.resolve("test-output.csv").toString());
 
@@ -239,13 +240,13 @@ public class CSVMergerTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVJoiner#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainCompleteMultiKeyWithOutputFile() throws Exception {
 		Path testDirectory = tempDir.newFolder("test").toPath();
 
-		CSVMerger.main("--input", testFileMulti.toAbsolutePath().toString(), "--other-input",
+		CSVJoiner.main("--input", testFileMulti.toAbsolutePath().toString(), "--other-input",
 				testOtherFileMulti.toAbsolutePath().toString(), "--mapping",
 				testMappingMulti.toAbsolutePath().toString(), "--output",
 				testDirectory.resolve("test-output.csv").toString());
@@ -272,13 +273,13 @@ public class CSVMergerTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVJoiner#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainCompleteMultiKeyDotsWithOutputFile() throws Exception {
 		Path testDirectory = tempDir.newFolder("test").toPath();
 
-		CSVMerger.main("--input", testFileMultiDots.toAbsolutePath().toString(), "--other-input",
+		CSVJoiner.main("--input", testFileMultiDots.toAbsolutePath().toString(), "--other-input",
 				testOtherFileMultiDots.toAbsolutePath().toString(), "--mapping",
 				testMappingMultiDots.toAbsolutePath().toString(), "--output",
 				testDirectory.resolve("test-output.csv").toString());
@@ -305,13 +306,13 @@ public class CSVMergerTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVMerger#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.map.CSVJoiner#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainCompleteWithOutputFileHidden() throws Exception {
 		Path testDirectory = tempDir.newFolder("test").toPath();
 
-		CSVMerger.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
+		CSVJoiner.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
 				testMappingHidden.toAbsolutePath().toString(), "--other-input",
 				testOtherFile.toAbsolutePath().toString(), "--output",
 				testDirectory.resolve("test-output.csv").toString());

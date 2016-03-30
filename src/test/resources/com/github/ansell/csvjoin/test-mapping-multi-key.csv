@@ -4,7 +4,7 @@ Field2,Field2After,,,
 Field3,Field3After,,,
 Field4,Field4After,,,
 Field5,Field5After,,,
-"Field1,Field2,Field3",Field123ToOtherField234,No,CsvMerge,"OtherField2,OtherField3,OtherField4"
+"Field1,Field2,Field3",Field123ToOtherField234,No,CsvJoin,"OtherField2,OtherField3,OtherField4"
 OtherField1,OtherField1After,,,
 OtherField2,OtherField2After,,,
 OtherField3,OtherField3After,,,

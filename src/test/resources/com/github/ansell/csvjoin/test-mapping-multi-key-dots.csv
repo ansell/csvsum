@@ -4,7 +4,7 @@ file1.Field2,Field2After,,,
 file1.Field3,Field3After,,,
 file1.Field4,Field4After,,,
 file1.Field5,Field5After,,,
-"file1.Field1,file1.Field2,file1.Field3",Field123ToOtherField234,No,CsvMerge,"file2.OtherField2,file2.OtherField3,file2.OtherField4"
+"file1.Field1,file1.Field2,file1.Field3",Field123ToOtherField234,No,CsvJoin,"file2.OtherField2,file2.OtherField3,file2.OtherField4"
 file2.OtherField1,OtherField1After,,,
 file2.OtherField2,OtherField2After,,,
 file2.OtherField3,OtherField3After,,,
