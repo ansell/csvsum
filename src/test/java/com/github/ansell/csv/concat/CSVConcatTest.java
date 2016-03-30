@@ -45,6 +45,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import com.github.ansell.csv.concat.CSVConcat;
+import com.github.ansell.csv.join.CSVJoiner;
 import com.github.ansell.csv.util.CSVUtil;
 
 import joptsimple.OptionException;
@@ -211,6 +212,32 @@ public class CSVConcatTest {
 						"input1Field,input1Field,,,", "input2Field,input2Field,,,"));
 		Path testOutput = tempDir.newFile("test-output-simple.csv").toPath();
 		CSVConcat.main("--input", testInputSimple.toAbsolutePath().toString(), "--other-input",
+				testInputSimpleOther.toAbsolutePath().toString(), "--mapping",
+				testMappingSimple.toAbsolutePath().toString(), "--output",
+				testOutput.toAbsolutePath().toString());
+		Files.copy(testOutput, System.out);
+		List<String> testAllLines = Files.readAllLines(testOutput);
+		assertEquals(2, testAllLines.size());
+		assertEquals("primaryKeyField,input1Field,input2Field", testAllLines.get(0));
+		assertEquals("1,value1,value2", testAllLines.get(1));
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.map.CSVConcat#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainSimpleCsvJoin() throws Exception {
+		Path testInputSimple = tempDir.newFile("test-input-simple.csv").toPath();
+		Files.write(testInputSimple, Arrays.asList("primaryKeyField,input1Field", "1,value1"));
+		Path testInputSimpleOther = tempDir.newFile("test-input-simple-other.csv").toPath();
+		Files.write(testInputSimpleOther, Arrays.asList("primaryKeyField,input2Field", "1,value2"));
+		Path testMappingSimple = tempDir.newFile("test-mapping-simple.csv").toPath();
+		Files.write(testMappingSimple,
+				Arrays.asList("OldField,NewField,Shown,Language,Mapping", "primaryKeyField,primaryKeyField,,CsvJoin,primaryKeyField",
+						"input1Field,input1Field,,,", "input2Field,input2Field,,,"));
+		Path testOutput = tempDir.newFile("test-output-simple.csv").toPath();
+		CSVJoiner.main("--input", testInputSimple.toAbsolutePath().toString(), "--other-input",
 				testInputSimpleOther.toAbsolutePath().toString(), "--mapping",
 				testMappingSimple.toAbsolutePath().toString(), "--output",
 				testOutput.toAbsolutePath().toString());
