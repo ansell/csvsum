@@ -39,6 +39,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -137,7 +138,7 @@ public final class CSVConcat {
 				final BufferedReader readerOtherInput = Files.newBufferedReader(otherInputPath);) {
 			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
 			runMapper(readerInput, readerOtherInput, map, writer, inputPrefix.value(options),
-					otherPrefix.value(options), true);
+					otherPrefix.value(options), false);
 		} finally {
 			writer.close();
 		}
@@ -185,6 +186,8 @@ public final class CSVConcat {
 			List<String> previousLine = new ArrayList<>();
 			List<String> previousMappedLine = new ArrayList<>();
 			Set<String> primaryKeys = new HashSet<>();
+			Set<List<String>> matchedOtherLines = new LinkedHashSet<>();
+
 			CSVUtil.streamCSV(input, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)), (h, l) -> {
 				List<String> mapLine = null;
 				try {
@@ -206,19 +209,20 @@ public final class CSVConcat {
 							}
 						}
 						if (allMatch) {
-							if (leftOuterJoin) {
-								Map<String, Object> leftOuterJoinMap = CSVUtil.leftOuterJoin(m, mergedInputHeaders,
-										nextMergedLine, otherH, otherL, false);
-								for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
-									final String inputField = nextMapping.getInputField();
-									if (leftOuterJoinMap.containsKey(inputField)
-											&& !mergedInputHeaders.contains(inputField)) {
-										mergedInputHeaders.add(inputField);
-										nextMergedLine.add((String) leftOuterJoinMap.get(inputField));
-									}
+							if (!matchedOtherLines.contains(otherL)) {
+								matchedOtherLines.add(otherL);
+							}
+							Map<String, Object> leftOuterJoinMap = CSVUtil.leftOuterJoin(m, mergedInputHeaders,
+									nextMergedLine, otherH, otherL, false);
+							for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
+								final String inputField = nextMapping.getInputField();
+								if (leftOuterJoinMap.containsKey(inputField)
+										&& !mergedInputHeaders.contains(inputField)) {
+									mergedInputHeaders.add(inputField);
+									nextMergedLine.add((String) leftOuterJoinMap.get(inputField));
 								}
-								break;
-							} 
+							}
+							break;
 						}
 					}
 
@@ -238,6 +242,35 @@ public final class CSVConcat {
 				return null;
 			} , Unchecked.consumer(l -> csvWriter.write(l)));
 
+			if(!leftOuterJoin) {
+				otherLines.stream().filter(l -> !matchedOtherLines.contains(l)).forEach(Unchecked.consumer(l -> {
+					List<String> mapLine = null;
+					try {
+						List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
+						List<String> nextMergedLine = new ArrayList<>(l);
+						for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
+							final String inputField = nextMapping.getInputField();
+							if (otherH.contains(inputField)
+									&& !mergedInputHeaders.contains(inputField)) {
+								mergedInputHeaders.add(inputField);
+								nextMergedLine.add((String) l.get(otherH.indexOf(inputField)));
+							}
+						}
+						
+						mapLine = ValueMapping.mapLine(otherH, nextMergedLine, previousLine, previousMappedLine, map, primaryKeys);
+						previousLine.clear();
+						previousLine.addAll(l);
+						previousMappedLine.clear();
+						if (mapLine != null) {
+							previousMappedLine.addAll(mapLine);
+						}
+						csvWriter.write(mapLine);
+					} catch (final LineFilteredException e) {
+						// Swallow line filtered exception and return null below to
+						// eliminate it
+					}
+				}));
+			}
 		}
 	}
 

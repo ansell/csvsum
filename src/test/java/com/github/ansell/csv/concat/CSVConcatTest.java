@@ -248,4 +248,31 @@ public class CSVConcatTest {
 		assertEquals("1,value1,value2", testAllLines.get(1));
 	}
 
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.map.CSVConcat#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainNonMatchingCsvJoin() throws Exception {
+		Path testInputNonMatching = tempDir.newFile("test-input-non-matching.csv").toPath();
+		Files.write(testInputNonMatching, Arrays.asList("primaryKeyField,input1Field", "1,value1"));
+		Path testInputNonMatchingOther = tempDir.newFile("test-input-non-matching-other.csv").toPath();
+		Files.write(testInputNonMatchingOther, Arrays.asList("primaryKeyField,input2Field", "2,value2"));
+		Path testMappingNonMatching = tempDir.newFile("test-mapping-non-matching.csv").toPath();
+		Files.write(testMappingNonMatching,
+				Arrays.asList("OldField,NewField,Shown,Language,Mapping", "primaryKeyField,primaryKeyField,,CsvJoin,primaryKeyField",
+						"input1Field,input1Field,,,", "input2Field,input2Field,,,"));
+		Path testOutput = tempDir.newFile("test-output-simple.csv").toPath();
+		CSVConcat.main("--input", testInputNonMatching.toAbsolutePath().toString(), "--other-input",
+				testInputNonMatchingOther.toAbsolutePath().toString(), "--mapping",
+				testMappingNonMatching.toAbsolutePath().toString(), "--output",
+				testOutput.toAbsolutePath().toString());
+		Files.copy(testOutput, System.out);
+		List<String> testAllLines = Files.readAllLines(testOutput);
+		assertEquals(3, testAllLines.size());
+		assertEquals("primaryKeyField,input1Field,input2Field", testAllLines.get(0));
+		assertEquals("1,value1,", testAllLines.get(1));
+		assertEquals("2,,value2", testAllLines.get(2));
+	}
+
 }
