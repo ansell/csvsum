@@ -366,7 +366,7 @@ public class ValueMapping {
 						"var dateConvert = function(dateValue, inputFormat, outputFormat, parseClass) { if(!parseClass) { parseClass = LocalDate; } return parseClass.parse(dateValue, inputFormat).format(outputFormat); }; \n");
 				javascriptFunction.append("var filter = function() { throw new LFE(); }; \n");
 				javascriptFunction.append(
-						"var columnFunction = function(searchHeader, inputHeaders, line) { return line.get(inputHeaders.indexOf(searchHeader)); };\n");
+						"var columnFunction = function(searchHeader, inputHeaders, line) { return inputHeaders.indexOf(searchHeader) >= 0 ? line.get(inputHeaders.indexOf(searchHeader)) : \"Could not find: \" + searchHeader; };\n");
 				javascriptFunction.append(
 						"var columnFunctionMap = function(searchHeader, mapLine) { return mapLine.get(searchHeader); };\n");
 				javascriptFunction.append(
