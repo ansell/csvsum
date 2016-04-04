@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -136,10 +137,14 @@ public final class CSVMapper {
 			List<String> previousLine = new ArrayList<>();
 			List<String> previousMappedLine = new ArrayList<>();
 			Set<String> primaryKeys = new HashSet<>();
+			AtomicInteger lineNumber = new AtomicInteger(0);
+			AtomicInteger filteredLineNumber = new AtomicInteger(0);
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
 				List<String> mapLine = null;
+				int nextLineNumber = lineNumber.incrementAndGet();
+				int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
-					mapLine = ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map, primaryKeys);
+					mapLine = ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map, primaryKeys, nextLineNumber, nextFilteredLineNumber);
 					previousLine.clear();
 					previousLine.addAll(l);
 					previousMappedLine.clear();
@@ -150,6 +155,11 @@ public final class CSVMapper {
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
 					// eliminate it
+					// We expect streamCSV to operate in sequential order, print a warning if it doesn't
+					boolean success = filteredLineNumber.compareAndSet(nextFilteredLineNumber, nextFilteredLineNumber -1);
+					if(!success) {
+						System.out.println("Line numbers may not be consistent");
+					}
 				}
 				return null;
 			} , Unchecked.consumer(l -> csvWriter.write(l)));

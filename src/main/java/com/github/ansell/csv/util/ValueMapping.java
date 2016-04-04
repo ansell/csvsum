@@ -115,8 +115,8 @@ public class ValueMapping {
 	}
 
 	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,
-			List<String> previousMappedLine, List<ValueMapping> map, Set<String> primaryKeys)
-					throws LineFilteredException {
+			List<String> previousMappedLine, List<ValueMapping> map, Set<String> primaryKeys, int lineNumber,
+			int filteredLineNumber) throws LineFilteredException {
 
 		HashMap<String, String> outputValues = new HashMap<>(map.size(), 0.75f);
 
@@ -124,7 +124,7 @@ public class ValueMapping {
 				.collect(Collectors.toList());
 		map.forEach(nextMapping -> {
 			String mappedValue = nextMapping.apply(inputHeaders, line, previousLine, previousMappedLine, outputHeaders,
-					outputValues, primaryKeys);
+					outputValues, primaryKeys, lineNumber, filteredLineNumber);
 			outputValues.put(nextMapping.getOutputField(), mappedValue);
 		});
 
@@ -193,7 +193,7 @@ public class ValueMapping {
 
 	private String apply(List<String> inputHeaders, List<String> line, List<String> previousLine,
 			List<String> previousMappedLine, List<String> outputHeaders, Map<String, String> mappedLine,
-			Set<String> primaryKeys) {
+			Set<String> primaryKeys, int lineNumber, int filteredLineNumber) {
 		int indexOf = inputHeaders.indexOf(getInputField());
 		String nextInputValue;
 		if (indexOf >= 0) {
@@ -219,7 +219,7 @@ public class ValueMapping {
 					// from the mapping
 					return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", inputHeaders,
 							this.getInputField(), nextInputValue, outputHeaders, this.getOutputField(), line,
-							mappedLine, previousLine, previousMappedLine, primaryKeys);
+							mappedLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber);
 				} else if (compiledScript != null) {
 					Bindings bindings = scriptEngine.createBindings();
 					// inputHeaders, inputField, inputValue, outputField, line
@@ -233,6 +233,8 @@ public class ValueMapping {
 					bindings.put("previousLine", previousLine);
 					bindings.put("previousMappedLine", previousMappedLine);
 					bindings.put("primaryKeys", primaryKeys);
+					bindings.put("lineNumber", lineNumber);
+					bindings.put("filteredLineNumber", filteredLineNumber);
 					return (String) compiledScript.eval(bindings);
 				} else {
 					throw new UnsupportedOperationException(
@@ -368,7 +370,7 @@ public class ValueMapping {
 				javascriptFunction.append(
 						"var columnFunctionMap = function(searchHeader, mapLine) { return mapLine.get(searchHeader); };\n");
 				javascriptFunction.append(
-						"var mapFunction = function(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys) { ");
+						"var mapFunction = function(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber) { ");
 				javascriptFunction.append(
 						"    var primaryKeyFilter = function(nextPrimaryKey) { \n return !primaryKeys.add(nextPrimaryKey) ? filter() : nextPrimaryKey; }; \n ");
 				javascriptFunction.append(
@@ -387,7 +389,7 @@ public class ValueMapping {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("groovy");
 
 				scriptEngine
-						.eval("def mapFunction(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys) {  "
+						.eval("def mapFunction(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber) {  "
 								+ this.mapping + " }");
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);

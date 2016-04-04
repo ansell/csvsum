@@ -44,6 +44,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -300,10 +301,10 @@ public final class CSVUtil {
 		try (final BufferedWriter tempOutput = Files.newBufferedWriter(tempFile);) {
 			IOUtils.copy(otherInput, tempOutput);
 		}
-	
+
 		List<String> otherH = new ArrayList<>();
 		List<List<String>> otherLines = new ArrayList<>();
-	
+
 		try (final BufferedReader otherTemp = Files.newBufferedReader(tempFile)) {
 			streamCSV(otherTemp, otherHeader -> otherHeader.forEach(h -> otherH.add(otherPrefix + h)),
 					(otherHeader, otherL) -> {
@@ -312,38 +313,42 @@ public final class CSVUtil {
 						otherLines.add(otherL);
 					});
 		}
-	
+
 		Function<ValueMapping, String> outputFields = e -> e.getOutputField();
-	
+
 		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(outputFields)
 				.collect(Collectors.toList());
-	
+
 		List<ValueMapping> mergeFieldsOrdered = map.stream()
 				.filter(k -> k.getLanguage() == ValueMappingLanguage.CSVJOIN).collect(Collectors.toList());
-	
+
 		List<ValueMapping> nonMergeFieldsOrdered = map.stream()
 				.filter(k -> k.getLanguage() != ValueMappingLanguage.CSVJOIN).collect(Collectors.toList());
-	
+
 		if (mergeFieldsOrdered.size() != 1) {
 			throw new RuntimeException(
 					"Can only support exactly one CsvJoin mapping: found " + mergeFieldsOrdered.size());
 		}
-	
+
 		final CsvSchema schema = buildSchema(outputHeaders);
-	
+
 		try (final SequenceWriter csvWriter = newCSVWriter(output, schema);) {
 			List<String> inputHeaders = new ArrayList<>();
 			List<String> previousLine = new ArrayList<>();
 			List<String> previousMappedLine = new ArrayList<>();
 			Set<String> primaryKeys = new HashSet<>();
+			AtomicInteger lineNumber = new AtomicInteger(0);
+			AtomicInteger filteredLineNumber = new AtomicInteger(0);
 			Set<List<String>> matchedOtherLines = new LinkedHashSet<>();
-	
+
 			streamCSV(input, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)), (h, l) -> {
 				List<String> mapLine = null;
+				int nextLineNumber = lineNumber.incrementAndGet();
+				int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
 					List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
 					List<String> nextMergedLine = new ArrayList<>(l);
-	
+
 					ValueMapping m = mergeFieldsOrdered.get(0);
 					Map<String, Object> matchMap = buildMatchMap(m, mergedInputHeaders, nextMergedLine, false);
 					for (List<String> otherL : otherLines) {
@@ -362,8 +367,8 @@ public final class CSVUtil {
 							if (!matchedOtherLines.contains(otherL)) {
 								matchedOtherLines.add(otherL);
 							}
-							Map<String, Object> leftOuterJoinMap = leftOuterJoin(m, mergedInputHeaders,
-									nextMergedLine, otherH, otherL, false);
+							Map<String, Object> leftOuterJoinMap = leftOuterJoin(m, mergedInputHeaders, nextMergedLine,
+									otherH, otherL, false);
 							for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
 								final String inputField = nextMapping.getInputField();
 								if (leftOuterJoinMap.containsKey(inputField)
@@ -375,9 +380,9 @@ public final class CSVUtil {
 							break;
 						}
 					}
-	
+
 					mapLine = ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, previousLine, previousMappedLine,
-							map, primaryKeys);
+							map, primaryKeys, nextLineNumber, nextFilteredLineNumber);
 					previousLine.clear();
 					previousLine.addAll(l);
 					previousMappedLine.clear();
@@ -388,26 +393,35 @@ public final class CSVUtil {
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
 					// eliminate it
+					// We expect streamCSV to operate in sequential order, print
+					// a warning if it doesn't
+					boolean success = filteredLineNumber.compareAndSet(nextFilteredLineNumber,
+							nextFilteredLineNumber - 1);
+					if (!success) {
+						System.out.println("Line numbers may not be consistent");
+					}
 				}
 				return null;
 			} , Unchecked.consumer(l -> csvWriter.write(l)));
-	
-			if(!leftOuterJoin) {
+
+			if (!leftOuterJoin) {
 				otherLines.stream().filter(l -> !matchedOtherLines.contains(l)).forEach(Unchecked.consumer(l -> {
 					List<String> mapLine = null;
+					int nextLineNumber = lineNumber.incrementAndGet();
+					int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 					try {
 						List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
 						List<String> nextMergedLine = new ArrayList<>(l);
 						for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
 							final String inputField = nextMapping.getInputField();
-							if (otherH.contains(inputField)
-									&& !mergedInputHeaders.contains(inputField)) {
+							if (otherH.contains(inputField) && !mergedInputHeaders.contains(inputField)) {
 								mergedInputHeaders.add(inputField);
 								nextMergedLine.add((String) l.get(otherH.indexOf(inputField)));
 							}
 						}
-						
-						mapLine = ValueMapping.mapLine(otherH, nextMergedLine, previousLine, previousMappedLine, map, primaryKeys);
+
+						mapLine = ValueMapping.mapLine(otherH, nextMergedLine, previousLine, previousMappedLine, map,
+								primaryKeys, nextLineNumber, nextFilteredLineNumber);
 						previousLine.clear();
 						previousLine.addAll(l);
 						previousMappedLine.clear();
@@ -416,8 +430,16 @@ public final class CSVUtil {
 						}
 						csvWriter.write(mapLine);
 					} catch (final LineFilteredException e) {
-						// Swallow line filtered exception and return null below to
+						// Swallow line filtered exception and return null below
+						// to
 						// eliminate it
+						// We expect streamCSV to operate in sequential order,
+						// print a warning if it doesn't
+						boolean success = filteredLineNumber.compareAndSet(nextFilteredLineNumber,
+								nextFilteredLineNumber - 1);
+						if (!success) {
+							System.out.println("Line numbers may not be consistent");
+						}
 					}
 				}));
 			}
