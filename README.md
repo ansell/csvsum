@@ -69,7 +69,9 @@ Javascript mappings have access to some global functions included from Java:
 * LocalDate : The java.time.LocalDate class
 * LocalTime : The java.time.LocalTime class
 * LocalDateTime : The java.time.LocalDateTime class
-* ChronoUnit = The java.time.temporal.ChronoUnit class
+* ChronoUnit : The java.time.temporal.ChronoUnit class
+* Math : The java.lang.Math class
+* String : The java.lang.String class
 
 Other Java classes can be accessed by assigning their type to a global variable using the syntax:
 

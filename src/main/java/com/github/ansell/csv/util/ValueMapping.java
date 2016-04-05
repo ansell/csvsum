@@ -348,7 +348,7 @@ public class ValueMapping {
 		if (this.language == ValueMappingLanguage.JAVASCRIPT) {
 			try {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("javascript");
-
+				
 				StringBuilder javascriptFunction = new StringBuilder();
 				javascriptFunction
 						.append("var LFE = Java.type(\"com.github.ansell.csv.util.LineFilteredException\"); \n");
@@ -360,6 +360,8 @@ public class ValueMapping {
 				javascriptFunction.append("var LocalTime = Java.type('java.time.LocalTime'); \n");
 				javascriptFunction.append("var Format = Java.type('java.time.format.DateTimeFormatter'); \n");
 				javascriptFunction.append("var ChronoUnit = Java.type('java.time.temporal.ChronoUnit'); \n");
+				javascriptFunction.append("var Math = Java.type('java.lang.Math'); \n");
+				javascriptFunction.append("var String = Java.type('java.lang.String'); \n");
 				javascriptFunction.append(
 						"var dateMatches = function(dateValue, format) { try {\n format.parse(dateValue); \n return true; \n } catch(e) { } \n return false; }; \n");
 				javascriptFunction.append(
