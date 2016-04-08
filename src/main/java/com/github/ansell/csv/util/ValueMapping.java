@@ -362,6 +362,9 @@ public class ValueMapping {
 				javascriptFunction.append("var ChronoUnit = Java.type('java.time.temporal.ChronoUnit'); \n");
 				javascriptFunction.append("var Math = Java.type('java.lang.Math'); \n");
 				javascriptFunction.append("var String = Java.type('java.lang.String'); \n");
+				javascriptFunction.append("var MessageDigest = Java.type('java.security.MessageDigest'); \n");
+				javascriptFunction.append("var BigInteger = Java.type('java.math.BigInteger'); \n");
+				javascriptFunction.append("var digest = function(value, algorithm, formatPattern) { if(!algorithm) { algorithm = \"SHA-256\"; } if(!formatPattern) { formatPattern = \"%064x\";} var md = MessageDigest.getInstance(algorithm); md.update(value.getBytes(\"UTF-8\")); var digestValue = md.digest(); return String.format(formatPattern, new BigInteger(1, digestValue));}; \n");
 				javascriptFunction.append(
 						"var dateMatches = function(dateValue, format) { try {\n format.parse(dateValue); \n return true; \n } catch(e) { } \n return false; }; \n");
 				javascriptFunction.append(

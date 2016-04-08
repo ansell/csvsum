@@ -72,6 +72,8 @@ Javascript mappings have access to some global functions included from Java:
 * ChronoUnit : The java.time.temporal.ChronoUnit class
 * Math : The java.lang.Math class
 * String : The java.lang.String class
+* MessageDigest : The java.security.MessageDigest class
+* BigInteger : The java.math.BigInteger class
 
 Other Java classes can be accessed by assigning their type to a global variable using the syntax:
 
@@ -85,6 +87,7 @@ Javascript mappings also have access to helper functions to simplify common mapp
 * dateMatches : Called using the syntax dateMatches(inputValue, dateFormat), where dateFormat is a DateTimeFormatter instance, such as Format.ISO_LOCAL_DATE
 * dateConvert : Called using the syntax dateConvert(inputValue, inputFormat, outputFormat), where inputFormat and outputFormat are instances of DateTimeFormatter, such as Format.ISO_LOCAL_DATE. This function also accepts an optional fourth parameter specifying the class to use, which can be any of LocalDate, LocalTime, LocalDateTime, or other similar functions that support the parse method. The default is to use LocalDate.
 * primaryKeyFilter : Called using the syntax primaryKeyFilter(inputValue), where inputValue is the primary key string. The function returns the string if and only if it is unique so far, otherwise it calls filter() to filter out the line.
+* digest : Called using the syntax digest(value, algorithm), where algorithm defaults to 'SHA-256' if it is not specified.
 
 Javascript mappings must always return a value.
 
