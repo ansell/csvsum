@@ -19,6 +19,7 @@ Set the relevant programs to be executable.
 
 # CSV Summariser
 
+
 ## Usage
 
 Run csvsum with --help to get usage details:
@@ -56,9 +57,10 @@ If the Mapping field contains a script, it is executed in the context of the fol
 * outputField : The label of the output field that the results of this row will be assigned to.
 * line : The values from the current line being processed from the input file, in the same order as the inputHeaders list.
 * mapLine : The mapped values for the current line so far
-* previousLine : The values from the previous line, or an empty list if this is the first line or the lines are all empty
+* previousLine : The values from the previous line, or an empty list i
+f this is the first line or the lines are all empty
 * previousMappedLine : The mapped values from the previous line, or an empty list if the previous line was filtered or the output document is empty
-* primaryKeys : An optionally useful Set of String's that can be used to deduplicate collections. If not explicitly used, it will not grow in size and hence large collections can still stream with minimal memory requirements.
+* primaryKeys : An optionally useful JDefaultDict Set of String's that can be used to deduplicate collections. If not explicitly used, it will not grow in size and hence large collections can still stream with minimal memory requirements.
 
 Javascript mappings have access to some global functions included from Java:
 
