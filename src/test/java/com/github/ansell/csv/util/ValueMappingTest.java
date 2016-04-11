@@ -58,7 +58,7 @@ public class ValueMappingTest {
 				"return dateMatches(inputValue, Format.ISO_LOCAL_DATE) ? dateConvert(inputValue, Format.ISO_LOCAL_DATE, Format.ISO_WEEK_DATE) : 'fix-your-date-format';",
 				"");
 		testJavascriptPrimaryKeyMapping = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
-				"return !primaryKeys.add(inputValue) ? filter() : inputValue;", "");
+				"return !primaryKeys.get(\"Primary\").add(inputValue) ? filter() : inputValue;", "");
 		testJavascriptPrimaryKeyMappingFunction = ValueMapping.newMapping("Javascript", "aDifferentInput",
 				"aDifferentField", "return primaryKeyFilter(inputValue);", "");
 		testJavascriptLineNumber = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
