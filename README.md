@@ -86,7 +86,7 @@ Javascript mappings also have access to helper functions to simplify common mapp
 * filter : Called using the syntax filter(), and will make the line not appear in the results and short-circuit processing of the line for mapping purposes
 * dateMatches : Called using the syntax dateMatches(inputValue, dateFormat), where dateFormat is a DateTimeFormatter instance, such as Format.ISO_LOCAL_DATE
 * dateConvert : Called using the syntax dateConvert(inputValue, inputFormat, outputFormat), where inputFormat and outputFormat are instances of DateTimeFormatter, such as Format.ISO_LOCAL_DATE. This function also accepts an optional fourth parameter specifying the class to use, which can be any of LocalDate, LocalTime, LocalDateTime, or other similar functions that support the parse method. The default is to use LocalDate.
-* primaryKeyFilter : Called using the syntax primaryKeyFilter(inputValue), where inputValue is the primary key string. The function returns the string if and only if it is unique so far, otherwise it calls filter() to filter out the line.
+* primaryKeyFilter : Called using the syntax primaryKeyFilter(inputValue) or primaryKeyFilter(inputValue, primaryKeyField), where inputValue is the primary key string and the optional primaryKeyField defaults to "Primary". The function returns the string if and only if it is unique so far, otherwise it calls filter() to filter out the line.
 * digest : Called using the syntax digest(value, algorithm), where algorithm defaults to 'SHA-256' if it is not specified.
 
 Javascript mappings must always return a value.

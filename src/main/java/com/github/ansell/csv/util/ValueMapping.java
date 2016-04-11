@@ -44,6 +44,8 @@ import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
+import com.github.ansell.jdefaultdict.JDefaultDict;
+
 /**
  * A mapping definition from an original CSV field to an output CSV field.
  * 
@@ -115,7 +117,7 @@ public class ValueMapping {
 	}
 
 	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,
-			List<String> previousMappedLine, List<ValueMapping> map, Set<String> primaryKeys, int lineNumber,
+			List<String> previousMappedLine, List<ValueMapping> map, JDefaultDict<String, Set<String>> primaryKeys, int lineNumber,
 			int filteredLineNumber) throws LineFilteredException {
 
 		HashMap<String, String> outputValues = new HashMap<>(map.size(), 0.75f);
@@ -193,7 +195,7 @@ public class ValueMapping {
 
 	private String apply(List<String> inputHeaders, List<String> line, List<String> previousLine,
 			List<String> previousMappedLine, List<String> outputHeaders, Map<String, String> mappedLine,
-			Set<String> primaryKeys, int lineNumber, int filteredLineNumber) {
+			JDefaultDict<String, Set<String>> primaryKeys, int lineNumber, int filteredLineNumber) {
 		int indexOf = inputHeaders.indexOf(getInputField());
 		String nextInputValue;
 		if (indexOf >= 0) {
@@ -377,7 +379,7 @@ public class ValueMapping {
 				javascriptFunction.append(
 						"var mapFunction = function(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber) { ");
 				javascriptFunction.append(
-						"    var primaryKeyFilter = function(nextPrimaryKey) { \n return !primaryKeys.add(nextPrimaryKey) ? filter() : nextPrimaryKey; }; \n ");
+						"    var primaryKeyFilter = function(nextPrimaryKey, primaryKeyField) { \n if(!primaryKeyField) { primaryKeyField = \"Primary\"; } \n return !primaryKeys.get(primaryKeyField).add(nextPrimaryKey) ? filter() : nextPrimaryKey; }; \n ");
 				javascriptFunction.append(
 						"    var col = function(searchHeader) { \n return columnFunction(searchHeader, inputHeaders, line); }; \n ");
 				javascriptFunction.append(

@@ -52,6 +52,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.util.CSVUtil;
 import com.github.ansell.csv.util.LineFilteredException;
 import com.github.ansell.csv.util.ValueMapping;
+import com.github.ansell.jdefaultdict.JDefaultDict;
 
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
@@ -136,7 +137,7 @@ public final class CSVMapper {
 			List<String> inputHeaders = new ArrayList<>();
 			List<String> previousLine = new ArrayList<>();
 			List<String> previousMappedLine = new ArrayList<>();
-			Set<String> primaryKeys = new HashSet<>();
+			JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
 			AtomicInteger lineNumber = new AtomicInteger(0);
 			AtomicInteger filteredLineNumber = new AtomicInteger(0);
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
