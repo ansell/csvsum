@@ -67,6 +67,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.util.ValueMapping.ValueMappingLanguage;
+import com.github.ansell.jdefaultdict.JDefaultDict;
 
 /**
  * Utilities used by CSV processors.
@@ -336,7 +337,7 @@ public final class CSVUtil {
 			List<String> inputHeaders = new ArrayList<>();
 			List<String> previousLine = new ArrayList<>();
 			List<String> previousMappedLine = new ArrayList<>();
-			Set<String> primaryKeys = new HashSet<>();
+			JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
 			AtomicInteger lineNumber = new AtomicInteger(0);
 			AtomicInteger filteredLineNumber = new AtomicInteger(0);
 			Set<List<String>> matchedOtherLines = new LinkedHashSet<>();
