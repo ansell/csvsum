@@ -202,7 +202,12 @@ public final class CSVSummariser {
 			if (sampleValue.length() > 0) {
 				sampleValue.append(", ");
 			}
-			sampleValue.append(s);
+			if (s.length() > 200) {
+				sampleValue.append(s.substring(0, 200));
+				sampleValue.append("...");
+			} else {
+				sampleValue.append(s);
+			}
 		};
 
 		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);) {
