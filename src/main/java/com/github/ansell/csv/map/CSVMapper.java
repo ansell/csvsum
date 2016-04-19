@@ -145,25 +145,27 @@ public final class CSVMapper {
 				int nextLineNumber = lineNumber.incrementAndGet();
 				int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
-					mapLine = ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map, primaryKeys, nextLineNumber, nextFilteredLineNumber);
-					previousLine.clear();
-					previousLine.addAll(l);
-					previousMappedLine.clear();
-					if (mapLine != null) {
-						previousMappedLine.addAll(mapLine);
-					}
-					return mapLine;
+					return ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map, primaryKeys,
+							nextLineNumber, nextFilteredLineNumber);
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
 					// eliminate it
-					// We expect streamCSV to operate in sequential order, print a warning if it doesn't
-					boolean success = filteredLineNumber.compareAndSet(nextFilteredLineNumber, nextFilteredLineNumber -1);
-					if(!success) {
+					// We expect streamCSV to operate in sequential order, print
+					// a warning if it doesn't
+					boolean success = filteredLineNumber.compareAndSet(nextFilteredLineNumber,
+							nextFilteredLineNumber - 1);
+					if (!success) {
 						System.out.println("Line numbers may not be consistent");
 					}
 				}
 				return null;
-			} , Unchecked.consumer(l -> csvWriter.write(l)));
+			} , Unchecked.consumer(l -> {
+				previousLine.clear();
+				previousLine.addAll(l);
+				previousMappedLine.clear();
+				previousMappedLine.addAll(l);
+				csvWriter.write(l);
+			}));
 
 		}
 	}
