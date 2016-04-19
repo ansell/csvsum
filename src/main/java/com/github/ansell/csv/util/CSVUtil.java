@@ -342,8 +342,14 @@ public final class CSVUtil {
 			AtomicInteger filteredLineNumber = new AtomicInteger(0);
 			Set<List<String>> matchedOtherLines = new LinkedHashSet<>();
 
+			Consumer<List<String>> mapLineConsumer = Unchecked.consumer(l -> {
+				previousLine.clear();
+				previousLine.addAll(l);
+				previousMappedLine.clear();
+				previousMappedLine.addAll(l);
+				csvWriter.write(l);
+			});
 			streamCSV(input, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)), (h, l) -> {
-				List<String> mapLine = null;
 				int nextLineNumber = lineNumber.incrementAndGet();
 				int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
@@ -382,15 +388,8 @@ public final class CSVUtil {
 						}
 					}
 
-					mapLine = ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, previousLine, previousMappedLine,
+					return ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, previousLine, previousMappedLine,
 							map, primaryKeys, nextLineNumber, nextFilteredLineNumber);
-					previousLine.clear();
-					previousLine.addAll(l);
-					previousMappedLine.clear();
-					if (mapLine != null) {
-						previousMappedLine.addAll(mapLine);
-					}
-					return mapLine;
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
 					// eliminate it
@@ -403,7 +402,7 @@ public final class CSVUtil {
 					}
 				}
 				return null;
-			} , Unchecked.consumer(l -> csvWriter.write(l)));
+			} , mapLineConsumer);
 
 			if (!leftOuterJoin) {
 				otherLines.stream().filter(l -> !matchedOtherLines.contains(l)).forEach(Unchecked.consumer(l -> {

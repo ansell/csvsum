@@ -40,6 +40,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -140,8 +141,14 @@ public final class CSVMapper {
 			JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
 			AtomicInteger lineNumber = new AtomicInteger(0);
 			AtomicInteger filteredLineNumber = new AtomicInteger(0);
+			Consumer<List<String>> mapLineConsumer = Unchecked.consumer(l -> {
+				previousLine.clear();
+				previousLine.addAll(l);
+				previousMappedLine.clear();
+				previousMappedLine.addAll(l);
+				csvWriter.write(l);
+			});
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
-				List<String> mapLine = null;
 				int nextLineNumber = lineNumber.incrementAndGet();
 				int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
@@ -159,14 +166,7 @@ public final class CSVMapper {
 					}
 				}
 				return null;
-			} , Unchecked.consumer(l -> {
-				previousLine.clear();
-				previousLine.addAll(l);
-				previousMappedLine.clear();
-				previousMappedLine.addAll(l);
-				csvWriter.write(l);
-			}));
-
+			} , mapLineConsumer);
 		}
 	}
 
