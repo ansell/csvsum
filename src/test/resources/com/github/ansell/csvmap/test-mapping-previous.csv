@@ -1,0 +1,3 @@
+OldField,NewField,Shown,Language,Mapping
+Field1,anotherfield,,,
+Field2,PreviousField1,,Javascript,"return previousLine.isEmpty() ? ""no-previous"" : previousLine.get(outputHeaders.indexOf(""anotherfield""));"
