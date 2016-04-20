@@ -61,6 +61,7 @@ If the Mapping field contains a script, it is executed in the context of the fol
 f this is the first line or the lines are all empty
 * previousMappedLine : The mapped values from the previous line, or an empty list if the previous line was filtered or the output document is empty
 * primaryKeys : An optionally useful JDefaultDict Set of String's that can be used to deduplicate collections. If not explicitly used, it will not grow in size and hence large collections can still stream with minimal memory requirements.
+* mapLineConsumer : A function that can be called with a List<String> that contains an intermediate result set. Note that the result set must be the same size as all of the other lines or the CSV file will be corrupted. This is only for advanced use when it is much simpler to do this than to have multiple mapping files for a single input file.
 
 Javascript mappings have access to some global functions included from Java:
 
@@ -76,6 +77,7 @@ Javascript mappings have access to some global functions included from Java:
 * String : The java.lang.String class
 * MessageDigest : The java.security.MessageDigest class
 * BigInteger : The java.math.BigInteger class
+* Arrays : The java.util.Arrays class
 
 Other Java classes can be accessed by assigning their type to a global variable using the syntax:
 
@@ -135,6 +137,10 @@ Run accessmap with a sample access file:
     </dependency>
 
 # Changelog
+
+## 2016-04-20
+* Add mapLineConsumer to csvmap
+* Add Arrays class as an import to csvmap
 
 ## 2016-03-03
 * Rename csvmerge to csvjoin to indicate its purpose, while freeing up csvmerge to be implemented separately
