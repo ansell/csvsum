@@ -179,6 +179,9 @@ public class ValueMapping {
 
 	private final boolean shown;
 
+	private final String[] destFields;
+	private final String[] sourceFields;
+	
 	private transient ScriptEngine scriptEngine;
 	private transient CompiledScript compiledScript;
 
@@ -192,6 +195,8 @@ public class ValueMapping {
 		this.output = output.intern();
 		this.mapping = mapping.intern();
 		this.shown = shown;
+		this.destFields = CSVUtil.COMMA_PATTERN.split(this.mapping);
+		this.sourceFields = CSVUtil.COMMA_PATTERN.split(this.input);
 	}
 
 	private String apply(List<String> inputHeaders, List<String> line, List<String> previousLine,
@@ -425,5 +430,13 @@ public class ValueMapping {
 	public String toString() {
 		return "ValueMapping [language=" + language + ", input=" + input + ", output=" + output + ", mapping=" + mapping
 				+ ", shown=" + shown + "]";
+	}
+
+	public String[] getDestFields() {
+		return this.destFields;
+	}
+	
+	public String[] getSourceFields() {
+		return this.sourceFields;
 	}
 }

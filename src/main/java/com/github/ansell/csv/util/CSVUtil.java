@@ -246,13 +246,25 @@ public final class CSVUtil {
 
 	public static Map<String, Object> buildMatchMap(ValueMapping mapping, Map<String, Object> originRow,
 			boolean splitFieldNamesByDot) {
-		// System.out.println("Building match map for: " + mapping + " row=" +
-		// originRow);
-		String[] destFields = COMMA_PATTERN.split(mapping.getMapping());
-		String[] sourceFields = COMMA_PATTERN.split(mapping.getInputField());
-
+		String[] destFields = mapping.getDestFields();
+		String[] sourceFields = mapping.getSourceFields();
 		Map<String, Object> result = new HashMap<>(destFields.length, 0.75f);
 
+		return buildMatchMap(mapping, originRow, splitFieldNamesByDot, result, sourceFields, destFields);
+	}
+
+	public static Map<String, Object> buildMatchMap(ValueMapping m, List<String> inputHeader, List<String> inputLine,
+			boolean splitFieldNamesByDot, Map<String, Object> result, String[] sourceFields, String[] destFields) {
+		Map<String, Object> originRow = map(inputHeader, inputLine);
+		
+		return buildMatchMap(m, originRow, splitFieldNamesByDot, result, sourceFields, destFields);
+	}
+
+	public static Map<String, Object> buildMatchMap(ValueMapping mapping, Map<String, Object> originRow,
+			boolean splitFieldNamesByDot, Map<String, Object> result, String[] sourceFields, String[] destFields) {
+		result.clear();
+		// System.out.println("Building match map for: " + mapping + " row=" +
+		// originRow);
 		for (int i = 0; i < destFields.length; i++) {
 			String destField = destFields[i];
 			String sourceField = sourceFields[i];
@@ -330,6 +342,10 @@ public final class CSVUtil {
 			throw new RuntimeException(
 					"Can only support exactly one CsvJoin mapping: found " + mergeFieldsOrdered.size());
 		}
+		ValueMapping m = mergeFieldsOrdered.get(0);
+		String[] destFields = m.getDestFields();
+		String[] sourceFields = m.getSourceFields();
+		Map<String, Object> temporaryMatchMap = new HashMap<>(destFields.length, 0.75f);
 
 		final CsvSchema schema = buildSchema(outputHeaders);
 
@@ -356,8 +372,8 @@ public final class CSVUtil {
 					List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
 					List<String> nextMergedLine = new ArrayList<>(l);
 
-					ValueMapping m = mergeFieldsOrdered.get(0);
-					Map<String, Object> matchMap = buildMatchMap(m, mergedInputHeaders, nextMergedLine, false);
+					Map<String, Object> matchMap = buildMatchMap(m, mergedInputHeaders, nextMergedLine, false,
+							temporaryMatchMap, sourceFields, destFields);
 					for (List<String> otherL : otherLines) {
 						// Note, we check for uniqueness and throw exception
 						// above
