@@ -133,12 +133,13 @@ Run accessmap with a sample access file:
     <dependency>
         <groupId>com.github.ansell.csv.sum</groupId>
         <artifactId>csvsum</artifactId>
-        <version>0.0.7</version>
+        <version>0.1.0</version>
     </dependency>
 
 # Changelog
 
 ## 2016-04-20
+* Release 0.1.0
 * Add mapLineConsumer to csvmap
 * Add Arrays class as an import to csvmap
 
