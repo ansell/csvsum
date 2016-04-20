@@ -389,7 +389,7 @@ public final class CSVUtil {
 					}
 
 					return ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, previousLine, previousMappedLine,
-							map, primaryKeys, nextLineNumber, nextFilteredLineNumber);
+							map, primaryKeys, nextLineNumber, nextFilteredLineNumber, mapLineConsumer);
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
 					// eliminate it
@@ -406,7 +406,6 @@ public final class CSVUtil {
 
 			if (!leftOuterJoin) {
 				otherLines.stream().filter(l -> !matchedOtherLines.contains(l)).forEach(Unchecked.consumer(l -> {
-					List<String> mapLine = null;
 					int nextLineNumber = lineNumber.incrementAndGet();
 					int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 					try {
@@ -420,15 +419,9 @@ public final class CSVUtil {
 							}
 						}
 
-						mapLine = ValueMapping.mapLine(otherH, nextMergedLine, previousLine, previousMappedLine, map,
-								primaryKeys, nextLineNumber, nextFilteredLineNumber);
-						previousLine.clear();
-						previousLine.addAll(l);
-						previousMappedLine.clear();
-						if (mapLine != null) {
-							previousMappedLine.addAll(mapLine);
-						}
-						csvWriter.write(mapLine);
+						mapLineConsumer
+								.accept(ValueMapping.mapLine(otherH, nextMergedLine, previousLine, previousMappedLine,
+										map, primaryKeys, nextLineNumber, nextFilteredLineNumber, mapLineConsumer));
 					} catch (final LineFilteredException e) {
 						// Swallow line filtered exception and return null below
 						// to

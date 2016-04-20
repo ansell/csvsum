@@ -153,7 +153,7 @@ public final class CSVMapper {
 				int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
 					return ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map, primaryKeys,
-							nextLineNumber, nextFilteredLineNumber);
+							nextLineNumber, nextFilteredLineNumber, mapLineConsumer);
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
 					// eliminate it
