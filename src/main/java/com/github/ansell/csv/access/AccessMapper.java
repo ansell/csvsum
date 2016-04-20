@@ -288,7 +288,7 @@ public class AccessMapper {
 								joinersForThread);
 						final Consumer<Map<String, Object>> originRowConsumer = Unchecked.consumer(r -> {
 							List<String> mappedRow = mapNextRow(map, foreignKeyMappingForThread, joinersForThread,
-									nextOriginTable, r, db, primaryKeys);
+									nextOriginTable, r, db, primaryKeys, l -> writerQueue.add(l));
 							if (mappedRow != null) {
 								writerQueue.add(mappedRow);
 							}
@@ -377,7 +377,8 @@ public class AccessMapper {
 	private static List<String> mapNextRow(List<ValueMapping> map,
 			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
 			ConcurrentMap<ValueMapping, Joiner> joiners, String originTable, Map<String, Object> nextRow,
-			Database database, JDefaultDict<String, Set<String>> primaryKeys) throws IOException {
+			Database database, JDefaultDict<String, Set<String>> primaryKeys, Consumer<List<String>> mapLineConsumer)
+					throws IOException {
 		// Rows, indexed by the table that they came from
 		ConcurrentMap<String, Map<String, Object>> componentRowsForThisRow = new ConcurrentHashMap<>();
 		componentRowsForThisRow.put(originTable, nextRow);
@@ -439,7 +440,7 @@ public class AccessMapper {
 
 		try {
 			return ValueMapping.mapLine(inputHeaders, nextEmittedRow, Collections.emptyList(), Collections.emptyList(),
-					map, primaryKeys, -1, -1);
+					map, primaryKeys, -1, -1, mapLineConsumer);
 		} catch (final LineFilteredException e) {
 			// Swallow line filtered exception and return null below to
 			// eliminate it

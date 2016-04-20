@@ -40,6 +40,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -140,31 +141,32 @@ public final class CSVMapper {
 			JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
 			AtomicInteger lineNumber = new AtomicInteger(0);
 			AtomicInteger filteredLineNumber = new AtomicInteger(0);
+			Consumer<List<String>> mapLineConsumer = Unchecked.consumer(l -> {
+				previousLine.clear();
+				previousLine.addAll(l);
+				previousMappedLine.clear();
+				previousMappedLine.addAll(l);
+				csvWriter.write(l);
+			});
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
-				List<String> mapLine = null;
 				int nextLineNumber = lineNumber.incrementAndGet();
 				int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
-					mapLine = ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map, primaryKeys, nextLineNumber, nextFilteredLineNumber);
-					previousLine.clear();
-					previousLine.addAll(l);
-					previousMappedLine.clear();
-					if (mapLine != null) {
-						previousMappedLine.addAll(mapLine);
-					}
-					return mapLine;
+					return ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map, primaryKeys,
+							nextLineNumber, nextFilteredLineNumber, mapLineConsumer);
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
 					// eliminate it
-					// We expect streamCSV to operate in sequential order, print a warning if it doesn't
-					boolean success = filteredLineNumber.compareAndSet(nextFilteredLineNumber, nextFilteredLineNumber -1);
-					if(!success) {
+					// We expect streamCSV to operate in sequential order, print
+					// a warning if it doesn't
+					boolean success = filteredLineNumber.compareAndSet(nextFilteredLineNumber,
+							nextFilteredLineNumber - 1);
+					if (!success) {
 						System.out.println("Line numbers may not be consistent");
 					}
 				}
 				return null;
-			} , Unchecked.consumer(l -> csvWriter.write(l)));
-
+			} , mapLineConsumer);
 		}
 	}
 

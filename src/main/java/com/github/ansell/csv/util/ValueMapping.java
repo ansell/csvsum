@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.script.Bindings;
@@ -118,7 +119,7 @@ public class ValueMapping {
 
 	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,
 			List<String> previousMappedLine, List<ValueMapping> map, JDefaultDict<String, Set<String>> primaryKeys, int lineNumber,
-			int filteredLineNumber) throws LineFilteredException {
+			int filteredLineNumber, Consumer<List<String>> mapLineConsumer) throws LineFilteredException {
 
 		HashMap<String, String> outputValues = new HashMap<>(map.size(), 0.75f);
 
@@ -126,7 +127,7 @@ public class ValueMapping {
 				.collect(Collectors.toList());
 		map.forEach(nextMapping -> {
 			String mappedValue = nextMapping.apply(inputHeaders, line, previousLine, previousMappedLine, outputHeaders,
-					outputValues, primaryKeys, lineNumber, filteredLineNumber);
+					outputValues, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer);
 			outputValues.put(nextMapping.getOutputField(), mappedValue);
 		});
 
@@ -195,7 +196,7 @@ public class ValueMapping {
 
 	private String apply(List<String> inputHeaders, List<String> line, List<String> previousLine,
 			List<String> previousMappedLine, List<String> outputHeaders, Map<String, String> mappedLine,
-			JDefaultDict<String, Set<String>> primaryKeys, int lineNumber, int filteredLineNumber) {
+			JDefaultDict<String, Set<String>> primaryKeys, int lineNumber, int filteredLineNumber, Consumer<List<String>> mapLineConsumer) {
 		int indexOf = inputHeaders.indexOf(getInputField());
 		String nextInputValue;
 		if (indexOf >= 0) {
@@ -221,7 +222,7 @@ public class ValueMapping {
 					// from the mapping
 					return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", inputHeaders,
 							this.getInputField(), nextInputValue, outputHeaders, this.getOutputField(), line,
-							mappedLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber);
+							mappedLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer);
 				} else if (compiledScript != null) {
 					Bindings bindings = scriptEngine.createBindings();
 					// inputHeaders, inputField, inputValue, outputField, line
@@ -237,6 +238,7 @@ public class ValueMapping {
 					bindings.put("primaryKeys", primaryKeys);
 					bindings.put("lineNumber", lineNumber);
 					bindings.put("filteredLineNumber", filteredLineNumber);
+					bindings.put("mapLineConsumer", mapLineConsumer);
 					return (String) compiledScript.eval(bindings);
 				} else {
 					throw new UnsupportedOperationException(
@@ -366,6 +368,7 @@ public class ValueMapping {
 				javascriptFunction.append("var String = Java.type('java.lang.String'); \n");
 				javascriptFunction.append("var MessageDigest = Java.type('java.security.MessageDigest'); \n");
 				javascriptFunction.append("var BigInteger = Java.type('java.math.BigInteger'); \n");
+				javascriptFunction.append("var Arrays = Java.type('java.util.Arrays'); \n");
 				javascriptFunction.append("var digest = function(value, algorithm, formatPattern) { if(!algorithm) { algorithm = \"SHA-256\"; } if(!formatPattern) { formatPattern = \"%064x\";} var md = MessageDigest.getInstance(algorithm); md.update(value.getBytes(\"UTF-8\")); var digestValue = md.digest(); return String.format(formatPattern, new BigInteger(1, digestValue));}; \n");
 				javascriptFunction.append(
 						"var dateMatches = function(dateValue, format) { try {\n format.parse(dateValue); \n return true; \n } catch(e) { } \n return false; }; \n");
@@ -377,7 +380,7 @@ public class ValueMapping {
 				javascriptFunction.append(
 						"var columnFunctionMap = function(searchHeader, mapLine) { return mapLine.get(searchHeader); };\n");
 				javascriptFunction.append(
-						"var mapFunction = function(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber) { ");
+						"var mapFunction = function(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer) { ");
 				javascriptFunction.append(
 						"    var primaryKeyFilter = function(nextPrimaryKey, primaryKeyField) { \n if(!primaryKeyField) { primaryKeyField = \"Primary\"; } \n return !primaryKeys.get(primaryKeyField).add(nextPrimaryKey) ? filter() : nextPrimaryKey; }; \n ");
 				javascriptFunction.append(
@@ -396,7 +399,7 @@ public class ValueMapping {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("groovy");
 
 				scriptEngine
-						.eval("def mapFunction(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber) {  "
+						.eval("def mapFunction(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer) {  "
 								+ this.mapping + " }");
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
