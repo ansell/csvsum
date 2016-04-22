@@ -83,6 +83,8 @@ public final class CSVSummariser {
 		final OptionSpec<Integer> samplesToShow = parser.accepts("samples").withRequiredArg().ofType(Integer.class)
 				.defaultsTo(DEFAULT_SAMPLE_COUNT).describedAs(
 						"The maximum number of sample values for each field to include in the output, or -1 to dump all sample values for each field.");
+		final OptionSpec<Boolean> debug = parser.accepts("debug").withRequiredArg().ofType(Boolean.class)
+				.defaultsTo(Boolean.FALSE).describedAs("Set to true to debug.");
 
 		OptionSet options = null;
 
@@ -111,7 +113,14 @@ public final class CSVSummariser {
 			writer = new BufferedWriter(new OutputStreamWriter(System.out));
 		}
 
-		runSummarise(Files.newBufferedReader(inputPath), writer, samplesToShow.value(options));
+		int samplesToShowInt = samplesToShow.value(options);
+		boolean debugBoolean = debug.value(options);
+
+		if (debugBoolean) {
+			System.out.println("Running summarise on: " + inputPath + " samples=" + samplesToShowInt);
+		}
+
+		runSummarise(Files.newBufferedReader(inputPath), writer, samplesToShowInt, debugBoolean);
 	}
 
 	/**
@@ -140,12 +149,33 @@ public final class CSVSummariser {
 	 * @param output
 	 *            The output CSV file as a {@link Writer}.
 	 * @param maxSampleCount
-	 *            THe maximum number of sample values in the summary for each
+	 *            The maximum number of sample values in the summary for each
 	 *            field. Set to -1 to include all unique values for each field.
 	 * @throws IOException
 	 *             If there is an error reading or writing.
 	 */
 	public static void runSummarise(Reader input, Writer output, int maxSampleCount) throws IOException {
+		runSummarise(input, output, maxSampleCount, false);
+	}
+
+	/**
+	 * Summarise the CSV file from the input {@link Reader} and emit the summary
+	 * CSV file to the output {@link Writer}, including the given maximum number
+	 * of sample values in the summary for each field.
+	 * 
+	 * @param input
+	 *            The input CSV file, as a {@link Reader}.
+	 * @param output
+	 *            The output CSV file as a {@link Writer}.
+	 * @param maxSampleCount
+	 *            Te maximum number of sample values in the summary for each
+	 *            field. Set to -1 to include all unique values for each field.
+	 * @param debug
+	 *            Set to true to add debug statements.
+	 * @throws IOException
+	 *             If there is an error reading or writing.
+	 */
+	public static void runSummarise(Reader input, Writer output, int maxSampleCount, boolean debug) throws IOException {
 		final JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		final JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		final JDefaultDict<String, AtomicBoolean> possibleIntegerFields = new JDefaultDict<>(
