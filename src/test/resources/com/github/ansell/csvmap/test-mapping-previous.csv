@@ -1,4 +1,5 @@
 OldField,NewField,Shown,Language,Mapping
+,aDummyField,,Javascript,"return ""dummy-value"";"
 Field1,anotherfield,,,
 Field2,PreviousField1,,Javascript,"return previousLine.isEmpty() ? ""no-previous"" : ""found-previous"" + previousLine.get(inputHeaders.indexOf(""Field1""));"
 ,PreviousMappedField2,,Javascript,"return previousMappedLine.isEmpty() ? ""no-map-previous"" : ""found-map-previous"" + columnFunction(""PreviousField1"", outputHeaders, previousMappedLine);"
