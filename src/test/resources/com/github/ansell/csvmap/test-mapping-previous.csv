@@ -1,3 +1,4 @@
 OldField,NewField,Shown,Language,Mapping
 Field1,anotherfield,,,
 Field2,PreviousField1,,Javascript,"return previousLine.isEmpty() ? ""no-previous"" : ""found-previous"" + previousLine.get(outputHeaders.indexOf(""anotherfield""));"
+,PreviousMappedField2,,Javascript,"return previousMappedLine.isEmpty() ? ""no-map-previous"" : ""found-map-previous"" + columnFunction(""PreviousField1"", outputHeaders, previousMappedLine);"
