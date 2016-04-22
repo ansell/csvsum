@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -119,7 +120,7 @@ public class ValueMapping {
 
 	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,
 			List<String> previousMappedLine, List<ValueMapping> map, JDefaultDict<String, Set<String>> primaryKeys, int lineNumber,
-			int filteredLineNumber, Consumer<List<String>> mapLineConsumer) throws LineFilteredException {
+			int filteredLineNumber, BiConsumer<List<String>, List<String>> mapLineConsumer) throws LineFilteredException {
 
 		HashMap<String, String> outputValues = new HashMap<>(map.size(), 0.75f);
 
@@ -201,7 +202,7 @@ public class ValueMapping {
 
 	private String apply(List<String> inputHeaders, List<String> line, List<String> previousLine,
 			List<String> previousMappedLine, List<String> outputHeaders, Map<String, String> mappedLine,
-			JDefaultDict<String, Set<String>> primaryKeys, int lineNumber, int filteredLineNumber, Consumer<List<String>> mapLineConsumer) {
+			JDefaultDict<String, Set<String>> primaryKeys, int lineNumber, int filteredLineNumber, BiConsumer<List<String>, List<String>> mapLineConsumer) {
 		int indexOf = inputHeaders.indexOf(getInputField());
 		String nextInputValue;
 		if (indexOf >= 0) {

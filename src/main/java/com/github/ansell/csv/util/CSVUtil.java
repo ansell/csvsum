@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -256,7 +257,7 @@ public final class CSVUtil {
 	public static Map<String, Object> buildMatchMap(ValueMapping m, List<String> inputHeader, List<String> inputLine,
 			boolean splitFieldNamesByDot, Map<String, Object> result, String[] sourceFields, String[] destFields) {
 		Map<String, Object> originRow = map(inputHeader, inputLine);
-		
+
 		return buildMatchMap(m, originRow, splitFieldNamesByDot, result, sourceFields, destFields);
 	}
 
@@ -358,12 +359,12 @@ public final class CSVUtil {
 			AtomicInteger filteredLineNumber = new AtomicInteger(0);
 			Set<List<String>> matchedOtherLines = new LinkedHashSet<>();
 
-			Consumer<List<String>> mapLineConsumer = Unchecked.consumer(l -> {
+			BiConsumer<List<String>, List<String>> mapLineConsumer = Unchecked.biConsumer((line, mapped) -> {
 				previousLine.clear();
-				previousLine.addAll(l);
+				previousLine.addAll(line);
 				previousMappedLine.clear();
-				previousMappedLine.addAll(l);
-				csvWriter.write(l);
+				previousMappedLine.addAll(mapped);
+				csvWriter.write(mapped);
 			});
 			streamCSV(input, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)), (h, l) -> {
 				int nextLineNumber = lineNumber.incrementAndGet();
@@ -404,8 +405,11 @@ public final class CSVUtil {
 						}
 					}
 
-					return ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, previousLine, previousMappedLine,
-							map, primaryKeys, nextLineNumber, nextFilteredLineNumber, mapLineConsumer);
+					List<String> mapLine = ValueMapping.mapLine(mergedInputHeaders, nextMergedLine, previousLine,
+							previousMappedLine, map, primaryKeys, nextLineNumber, nextFilteredLineNumber,
+							mapLineConsumer);
+					mapLineConsumer.accept(nextMergedLine, mapLine);
+
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
 					// eliminate it
@@ -418,7 +422,8 @@ public final class CSVUtil {
 					}
 				}
 				return null;
-			} , mapLineConsumer);
+			} , l -> {
+			});
 
 			if (!leftOuterJoin) {
 				otherLines.stream().filter(l -> !matchedOtherLines.contains(l)).forEach(Unchecked.consumer(l -> {
@@ -435,9 +440,10 @@ public final class CSVUtil {
 							}
 						}
 
-						mapLineConsumer
-								.accept(ValueMapping.mapLine(otherH, nextMergedLine, previousLine, previousMappedLine,
-										map, primaryKeys, nextLineNumber, nextFilteredLineNumber, mapLineConsumer));
+						List<String> mapLine = ValueMapping.mapLine(otherH, nextMergedLine, previousLine,
+								previousMappedLine, map, primaryKeys, nextLineNumber, nextFilteredLineNumber,
+								mapLineConsumer);
+						mapLineConsumer.accept(nextMergedLine, mapLine);
 					} catch (final LineFilteredException e) {
 						// Swallow line filtered exception and return null below
 						// to

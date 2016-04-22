@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.junit.After;
@@ -44,7 +45,7 @@ public class ValueMappingTest {
 	private ValueMapping testDateMapping;
 	private JDefaultDict<String, Set<String>> testPrimaryKeys;
 
-	private static final Consumer<List<String>> UNEXPECTED_LINE_CONSUMER = l -> {
+	private static final BiConsumer<List<String>, List<String>> UNEXPECTED_LINE_CONSUMER = (l, m) -> {
 		fail("Not expecting mapLineConsumer to be called in this test.");
 	};
 
@@ -75,10 +76,10 @@ public class ValueMappingTest {
 				"return lineNumber % 2 != 0 ? Integer.toString(filteredLineNumber) : filter();", "");
 		testJavascriptMapLineConsumerAndReturn = ValueMapping.newMapping("Javascript", "aDifferentInput",
 				"aDifferentField",
-				"mapLineConsumer(Arrays.asList(inputValue, \"ABC-\" + inputValue)); return inputValue;", "");
+				"mapLineConsumer(line, Arrays.asList(inputValue, \"ABC-\" + inputValue)); return inputValue;", "");
 		testJavascriptMapLineConsumerFilter = ValueMapping.newMapping("Javascript", "aDifferentInput",
 				"aDifferentField",
-				"mapLineConsumer(Arrays.asList(inputValue, \"ABC-\" + inputValue)); filter(); return inputValue;", "");
+				"mapLineConsumer(line, Arrays.asList(inputValue, \"ABC-\" + inputValue)); filter(); return inputValue;", "");
 
 		testPrimaryKeys = new JDefaultDict<>(k -> new HashSet<>());
 	}
@@ -253,8 +254,8 @@ public class ValueMappingTest {
 	@Test
 	public final void testMapLineConsumerAndReturn() {
 		List<List<String>> results = new ArrayList<>();
-		Consumer<List<String>> mapLineConsumer = l -> {
-			results.add(l);
+		BiConsumer<List<String>, List<String>> mapLineConsumer = (l, m) -> {
+			results.add(m);
 		};
 		List<String> mapLine1 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
 				Arrays.asList("testKey1", "testValue1"), Collections.emptyList(), Collections.emptyList(),
@@ -272,8 +273,8 @@ public class ValueMappingTest {
 	@Test
 	public final void testMapLineConsumerFilter() {
 		List<List<String>> results = new ArrayList<>();
-		Consumer<List<String>> mapLineConsumer = l -> {
-			results.add(l);
+		BiConsumer<List<String>, List<String>> mapLineConsumer = (l, m) -> {
+			results.add(m);
 		};
 
 		try {

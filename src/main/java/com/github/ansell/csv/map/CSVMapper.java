@@ -40,6 +40,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -141,19 +142,20 @@ public final class CSVMapper {
 			JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
 			AtomicInteger lineNumber = new AtomicInteger(0);
 			AtomicInteger filteredLineNumber = new AtomicInteger(0);
-			Consumer<List<String>> mapLineConsumer = Unchecked.consumer(l -> {
+			BiConsumer<List<String>, List<String>> mapLineConsumer = Unchecked.biConsumer((l, m) -> {
 				previousLine.clear();
 				previousLine.addAll(l);
 				previousMappedLine.clear();
-				previousMappedLine.addAll(l);
-				csvWriter.write(l);
+				previousMappedLine.addAll(m);
+				csvWriter.write(m);
 			});
 			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
 				int nextLineNumber = lineNumber.incrementAndGet();
 				int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
-					return ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map, primaryKeys,
-							nextLineNumber, nextFilteredLineNumber, mapLineConsumer);
+					List<String> mapLine = ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map,
+							primaryKeys, nextLineNumber, nextFilteredLineNumber, mapLineConsumer);
+					mapLineConsumer.accept(l, mapLine);
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
 					// eliminate it
@@ -166,7 +168,8 @@ public final class CSVMapper {
 					}
 				}
 				return null;
-			} , mapLineConsumer);
+			} , l -> {
+			});
 		}
 	}
 

@@ -51,6 +51,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -288,7 +289,7 @@ public class AccessMapper {
 								joinersForThread);
 						final Consumer<Map<String, Object>> originRowConsumer = Unchecked.consumer(r -> {
 							List<String> mappedRow = mapNextRow(map, foreignKeyMappingForThread, joinersForThread,
-									nextOriginTable, r, db, primaryKeys, l -> writerQueue.add(l));
+									nextOriginTable, r, db, primaryKeys, (l, m) -> writerQueue.add(m));
 							if (mappedRow != null) {
 								writerQueue.add(mappedRow);
 							}
@@ -377,8 +378,8 @@ public class AccessMapper {
 	private static List<String> mapNextRow(List<ValueMapping> map,
 			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
 			ConcurrentMap<ValueMapping, Joiner> joiners, String originTable, Map<String, Object> nextRow,
-			Database database, JDefaultDict<String, Set<String>> primaryKeys, Consumer<List<String>> mapLineConsumer)
-					throws IOException {
+			Database database, JDefaultDict<String, Set<String>> primaryKeys,
+			BiConsumer<List<String>, List<String>> mapLineConsumer) throws IOException {
 		// Rows, indexed by the table that they came from
 		ConcurrentMap<String, Map<String, Object>> componentRowsForThisRow = new ConcurrentHashMap<>();
 		componentRowsForThisRow.put(originTable, nextRow);
