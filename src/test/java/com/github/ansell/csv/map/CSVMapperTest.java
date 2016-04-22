@@ -232,10 +232,10 @@ public class CSVMapperTest {
 		lines.get(0).forEach(k -> System.out.print("\"" + k + "\", "));
 
 		assertEquals(Arrays.asList("A1", "no-previous"), lines.get(0));
-		assertEquals(Arrays.asList("B1", "A1"), lines.get(1));
-		assertEquals(Arrays.asList("C1", "B1"), lines.get(2));
-		assertEquals(Arrays.asList("D1", "C1"), lines.get(3));
-		assertEquals(Arrays.asList("E1", "D1"), lines.get(4));
-		assertEquals(Arrays.asList("F1", "E1"), lines.get(5));
+		assertEquals(Arrays.asList("B1", "found-previousA1"), lines.get(1));
+		assertEquals(Arrays.asList("C1", "found-previousB1"), lines.get(2));
+		assertEquals(Arrays.asList("D1", "found-previousC1"), lines.get(3));
+		assertEquals(Arrays.asList("E1", "found-previousD1"), lines.get(4));
+		assertEquals(Arrays.asList("F1", "found-previousE1"), lines.get(5));
 	}
 }
