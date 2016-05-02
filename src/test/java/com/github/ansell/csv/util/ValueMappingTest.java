@@ -79,7 +79,8 @@ public class ValueMappingTest {
 				"mapLineConsumer(line, Arrays.asList(inputValue, \"ABC-\" + inputValue)); return inputValue;", "");
 		testJavascriptMapLineConsumerFilter = ValueMapping.newMapping("Javascript", "aDifferentInput",
 				"aDifferentField",
-				"mapLineConsumer(line, Arrays.asList(inputValue, \"ABC-\" + inputValue)); filter(); return inputValue;", "");
+				"mapLineConsumer(line, Arrays.asList(inputValue, \"ABC-\" + inputValue)); filter(); return inputValue;",
+				"");
 
 		testPrimaryKeys = new JDefaultDict<>(k -> new HashSet<>());
 	}
@@ -380,5 +381,12 @@ public class ValueMappingTest {
 		DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/M[M]/yyyy");
 
 		LocalDate.parse("17/2/2016", dateFormatter);
+
+		DateTimeFormatter dateFormatter2 = DateTimeFormatter.ofPattern("d[d] MMM yyyy");
+
+		// The following never seems to work with a four digit year, with and
+		// without brackets for optionals
+		// LocalDate.parse("3 Sep 07", dateFormatter2);
+		LocalDate.parse("3 Sep 2007", dateFormatter2);
 	}
 }
