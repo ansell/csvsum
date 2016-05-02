@@ -138,6 +138,9 @@ Run accessmap with a sample access file:
 
 # Changelog
 
+## 2016-05-02
+* Change mapLineConsumer to take two arguments, the unmapped and the mapped lines
+
 ## 2016-04-20
 * Release 0.1.0
 * Add mapLineConsumer to csvmap
