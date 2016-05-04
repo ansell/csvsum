@@ -138,6 +138,9 @@ Run accessmap with a sample access file:
 
 # Changelog
 
+## 2016-05-04
+* Release 0.2.0
+
 ## 2016-05-02
 * Change mapLineConsumer to take two arguments, the unmapped and the mapped lines
 
