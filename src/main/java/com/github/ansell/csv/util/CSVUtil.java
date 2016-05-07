@@ -53,6 +53,7 @@ import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
@@ -332,15 +333,25 @@ public final class CSVUtil {
     public static void runMapper(Reader input, Reader otherInput, List<ValueMapping> map,
             Writer output, String inputPrefix, String otherPrefix, boolean leftOuterJoin)
             throws ScriptException, IOException {
-        final Path tempFile = Files.createTempFile("tempOtherFile-", ".csv");
-        try (final BufferedWriter tempOutput = Files.newBufferedWriter(tempFile);) {
-            IOUtils.copy(otherInput, tempOutput);
+        // TODO: Use the following measurements to determine what processing
+        // method to use
+        int inputFileBytes = -1;
+        int otherFileBytes = -1;
+
+        final Path tempInputFile = Files.createTempFile("tempInputFile-", ".csv");
+        try (final BufferedWriter tempOutput = Files.newBufferedWriter(tempInputFile);) {
+            inputFileBytes = IOUtils.copy(input, tempOutput);
+        }
+
+        final Path tempOtherFile = Files.createTempFile("tempOtherFile-", ".csv");
+        try (final BufferedWriter tempOtherOutput = Files.newBufferedWriter(tempOtherFile);) {
+            otherFileBytes = IOUtils.copy(otherInput, tempOtherOutput);
         }
 
         final List<String> otherH = new ArrayList<>();
         final List<List<String>> otherLines = new ArrayList<>();
 
-        try (final BufferedReader otherTemp = Files.newBufferedReader(tempFile)) {
+        try (final BufferedReader otherTemp = Files.newBufferedReader(tempOtherFile)) {
             streamCSV(otherTemp,
                     otherHeader -> otherHeader.forEach(h -> otherH.add(otherPrefix + h)),
                     (otherHeader, otherL) -> {
@@ -399,62 +410,70 @@ public final class CSVUtil {
             // LinkedHashMap<>(destFields.length, 0.75f);
             final Map<String, Object> temporaryMatchMap = new ConcurrentHashMap<>(destFields.length,
                     0.75f, 4);
-            streamCSV(input, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)),
-                    (h, l) -> {
-                        final int nextLineNumber = lineNumber.incrementAndGet();
-                        final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
-                        try {
-                            final List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
-                            final List<String> nextMergedLine = new ArrayList<>(l);
+            try (final BufferedReader inputTemp = Files.newBufferedReader(tempInputFile)) {
+                streamCSV(inputTemp, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)),
+                        (h, l) -> {
+                            final int nextLineNumber = lineNumber.incrementAndGet();
+                            final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
+                            try {
+                                final List<String> mergedInputHeaders = new ArrayList<>(
+                                        inputHeaders);
+                                final List<String> nextMergedLine = new ArrayList<>(l);
 
-                            final Map<String, Object> matchMap = buildMatchMap(m,
-                                    mergedInputHeaders, nextMergedLine, false, temporaryMatchMap,
-                                    sourceFields, destFields);
-                            otherLines.parallelStream().filter(otherL -> {
-                                return !matchMap.entrySet().parallelStream()
-                                        .filter(nextOtherFieldMatcher -> {
-                                            final String key = nextOtherFieldMatcher.getKey();
-                                            return !otherH.contains(key)
-                                                    || !otherL.get(otherH.indexOf(key)).equals(
-                                                            nextOtherFieldMatcher.getValue());
-                                        }).findAny().isPresent();
-                            }).findAny().ifPresent(otherL -> {
-                                matchedOtherLines.add(otherL);
-                                final Map<String, Object> leftOuterJoinMap = leftOuterJoin(m,
-                                        mergedInputHeaders, nextMergedLine, otherH, otherL, false);
-                                nonMergeFieldsOrdered.stream()
-                                        .map(nextMapping -> nextMapping.getInputField())
-                                        .forEachOrdered(inputField -> {
-                                            if (leftOuterJoinMap.containsKey(inputField)
-                                                    && !mergedInputHeaders.contains(inputField)) {
-                                                mergedInputHeaders.add(inputField);
-                                                nextMergedLine.add(
-                                                        (String) leftOuterJoinMap.get(inputField));
-                                            }
-                                        });
-                            });
+                                final Map<String, Object> matchMap = buildMatchMap(m,
+                                        mergedInputHeaders, nextMergedLine, false,
+                                        temporaryMatchMap, sourceFields, destFields);
+                                final Predicate<? super List<String>> otherLinePredicate = otherL -> {
+                                    return !matchMap.entrySet().parallelStream()
+                                            .filter(nextOtherFieldMatcher -> {
+                                                final String key = nextOtherFieldMatcher.getKey();
+                                                return !otherH.contains(key)
+                                                        || !otherL.get(otherH.indexOf(key)).equals(
+                                                                nextOtherFieldMatcher.getValue());
+                                            }).findAny().isPresent();
+                                };
+                                final Consumer<? super List<String>> otherLineConsumer = otherL -> {
+                                    matchedOtherLines.add(otherL);
+                                    final Map<String, Object> leftOuterJoinMap = leftOuterJoin(m,
+                                            mergedInputHeaders, nextMergedLine, otherH, otherL,
+                                            false);
+                                    nonMergeFieldsOrdered.stream()
+                                            .map(nextMapping -> nextMapping.getInputField())
+                                            .forEachOrdered(inputField -> {
+                                                if (leftOuterJoinMap.containsKey(inputField)
+                                                        && !mergedInputHeaders
+                                                                .contains(inputField)) {
+                                                    mergedInputHeaders.add(inputField);
+                                                    nextMergedLine.add((String) leftOuterJoinMap
+                                                            .get(inputField));
+                                                }
+                                            });
+                                };
+                                otherLines.parallelStream().filter(otherLinePredicate).findAny()
+                                        .ifPresent(otherLineConsumer);
 
-                            final List<String> mapLine = ValueMapping.mapLine(mergedInputHeaders,
-                                    nextMergedLine, previousLine, previousMappedLine, map,
-                                    primaryKeys, nextLineNumber, nextFilteredLineNumber,
-                                    mapLineConsumer);
-                            mapLineConsumer.accept(nextMergedLine, mapLine);
+                                final List<String> mapLine = ValueMapping.mapLine(
+                                        mergedInputHeaders, nextMergedLine, previousLine,
+                                        previousMappedLine, map, primaryKeys, nextLineNumber,
+                                        nextFilteredLineNumber, mapLineConsumer);
+                                mapLineConsumer.accept(nextMergedLine, mapLine);
 
-                        } catch (final LineFilteredException e) {
-                            // Swallow line filtered exception and return null
-                            // below to eliminate it
-                            // We expect streamCSV to operate in sequential
-                            // order, print a warning if it doesn't
-                            final boolean success = filteredLineNumber.compareAndSet(
-                                    nextFilteredLineNumber, nextFilteredLineNumber - 1);
-                            if (!success) {
-                                System.out.println("Line numbers may not be consistent");
+                            } catch (final LineFilteredException e) {
+                                // Swallow line filtered exception and return
+                                // null
+                                // below to eliminate it
+                                // We expect streamCSV to operate in sequential
+                                // order, print a warning if it doesn't
+                                final boolean success = filteredLineNumber.compareAndSet(
+                                        nextFilteredLineNumber, nextFilteredLineNumber - 1);
+                                if (!success) {
+                                    System.out.println("Line numbers may not be consistent");
+                                }
                             }
-                        }
-                        return null;
-                    }, l -> {
-                    });
-
+                            return null;
+                        }, l -> {
+                        });
+            }
             if (!leftOuterJoin) {
                 otherLines.stream().filter(l -> !matchedOtherLines.contains(l))
                         .forEach(Unchecked.consumer(l -> {
