@@ -196,10 +196,8 @@ public final class CSVUtil {
      */
     public static SequenceWriter newCSVWriter(final Writer writer, CsvSchema schema)
             throws IOException {
-        final CsvMapper mapper = new CsvMapper();
-        SequenceWriter csvWriter = mapper.writerWithDefaultPrettyPrinter().with(schema)
-                .forType(List.class).writeValues(writer);
-        return csvWriter;
+        return new CsvMapper().writerWithDefaultPrettyPrinter().with(schema).forType(List.class)
+                .writeValues(writer);
     }
 
     /**
