@@ -330,7 +330,37 @@ public final class CSVUtil {
         return Seq.of(inputHeader.toArray(new String[inputHeader.size()])).zip(inputLine);
     }
 
-    public static void runMapper(Reader input, Reader otherInput, List<ValueMapping> map,
+    /**
+     * Joins the two input CSV files according to the {@link ValueMapping}s,
+     * optionally applying the given prefixes to fields in the input and other
+     * inputs respectively.
+     * 
+     * Can also perform a full outer join by setting leftOuterJoin to false.
+     * 
+     * @param input
+     *            The reference input (left)
+     * @param otherInput
+     *            The input to join against (right)
+     * @param map
+     *            The mappings to apply and use to define the join fields
+     * @param output
+     *            The Writer which will receive the output CSV file containing
+     *            the results of the join
+     * @param inputPrefix
+     *            An optional prefix to apply to all of the fields in the input
+     *            file, set to the empty string to disable it.
+     * @param otherPrefix
+     *            An optional prefix to apply to all of the fields in the other
+     *            file, set to the empty string to disable it.
+     * @param leftOuterJoin
+     *            True to use a left outer join and false to use a full outer
+     *            join.
+     * @throws ScriptException
+     *             If there are issues mapping fields.
+     * @throws IOException
+     *             If there are issues reading or writing files.
+     */
+    public static void runJoiner(Reader input, Reader otherInput, List<ValueMapping> map,
             Writer output, String inputPrefix, String otherPrefix, boolean leftOuterJoin)
             throws ScriptException, IOException {
         // TODO: Use the following measurements to determine what processing

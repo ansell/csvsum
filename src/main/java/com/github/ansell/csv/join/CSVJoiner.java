@@ -140,7 +140,7 @@ public final class CSVJoiner {
 				final BufferedReader readerInput = Files.newBufferedReader(inputPath);
 				final BufferedReader readerOtherInput = Files.newBufferedReader(otherInputPath);) {
 			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
-			CSVUtil.runMapper(readerInput, readerOtherInput, map, writer, inputPrefix.value(options),
+			CSVUtil.runJoiner(readerInput, readerOtherInput, map, writer, inputPrefix.value(options),
 					otherPrefix.value(options), leftOuterJoin.value(options));
 		} finally {
 			writer.close();
