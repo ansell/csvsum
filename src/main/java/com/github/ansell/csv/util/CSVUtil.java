@@ -325,7 +325,7 @@ public final class CSVUtil {
 
     private static Seq<Tuple2<String, String>> zip(List<String> inputHeader,
             List<String> inputLine) {
-        return Seq.of(inputHeader.toArray(new String[inputHeader.size()])).zip(inputLine);
+        return Seq.seq(inputHeader).zip(inputLine);
     }
 
     /**
