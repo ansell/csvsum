@@ -105,7 +105,8 @@ public final class CSVUtil {
      *            The validator of the header line.
      * @param lineChecker
      *            The validator and converter of lines, based on the header
-     *            line.
+     *            line. If the lineChecker returns null, the line will not be
+     *            passed to the writer.
      * @param writer
      *            The consumer of the checked lines.
      * @throws IOException
@@ -125,9 +126,8 @@ public final class CSVUtil {
 
         final MappingIterator<List<String>> it = mapper.readerFor(List.class)
                 .readValues(inputStreamReader);
-        List<String> nextLine;
         while (it.hasNext()) {
-            nextLine = it.next();
+            List<String> nextLine = it.next();
             if (headers == null) {
                 headers = nextLine.stream().map(v -> v.trim()).map(v -> v.intern())
                         .collect(Collectors.toList());
