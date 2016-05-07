@@ -332,13 +332,13 @@ public final class CSVUtil {
     public static void runMapper(Reader input, Reader otherInput, List<ValueMapping> map,
             Writer output, String inputPrefix, String otherPrefix, boolean leftOuterJoin)
             throws ScriptException, IOException {
-        Path tempFile = Files.createTempFile("tempOtherFile-", ".csv");
+        final Path tempFile = Files.createTempFile("tempOtherFile-", ".csv");
         try (final BufferedWriter tempOutput = Files.newBufferedWriter(tempFile);) {
             IOUtils.copy(otherInput, tempOutput);
         }
 
-        List<String> otherH = new ArrayList<>();
-        List<List<String>> otherLines = new ArrayList<>();
+        final List<String> otherH = new ArrayList<>();
+        final List<List<String>> otherLines = new ArrayList<>();
 
         try (final BufferedReader otherTemp = Files.newBufferedReader(tempFile)) {
             streamCSV(otherTemp,
@@ -350,16 +350,16 @@ public final class CSVUtil {
                     });
         }
 
-        Function<ValueMapping, String> outputFields = e -> e.getOutputField();
+        final Function<ValueMapping, String> outputFields = e -> e.getOutputField();
 
-        List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(outputFields)
+        final List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(outputFields)
                 .collect(Collectors.toList());
 
-        List<ValueMapping> mergeFieldsOrdered = map.stream()
+        final List<ValueMapping> mergeFieldsOrdered = map.stream()
                 .filter(k -> k.getLanguage() == ValueMappingLanguage.CSVJOIN)
                 .collect(Collectors.toList());
 
-        List<ValueMapping> nonMergeFieldsOrdered = map.stream()
+        final List<ValueMapping> nonMergeFieldsOrdered = map.stream()
                 .filter(k -> k.getLanguage() != ValueMappingLanguage.CSVJOIN)
                 .collect(Collectors.toList());
 
@@ -367,29 +367,29 @@ public final class CSVUtil {
             throw new RuntimeException("Can only support exactly one CsvJoin mapping: found "
                     + mergeFieldsOrdered.size());
         }
-        ValueMapping m = mergeFieldsOrdered.get(0);
-        String[] destFields = m.getDestFields();
-        String[] sourceFields = m.getSourceFields();
+        final ValueMapping m = mergeFieldsOrdered.get(0);
+        final String[] destFields = m.getDestFields();
+        final String[] sourceFields = m.getSourceFields();
         // Map<String, Object> temporaryMatchMap = new
         // HashMap<>(destFields.length, 0.75f);
         // Map<String, Object> temporaryMatchMap = new
         // LinkedHashMap<>(destFields.length, 0.75f);
-        Map<String, Object> temporaryMatchMap = new ConcurrentHashMap<>(destFields.length, 0.75f,
-                4);
+        final Map<String, Object> temporaryMatchMap = new ConcurrentHashMap<>(destFields.length,
+                0.75f, 4);
 
         final CsvSchema schema = buildSchema(outputHeaders);
 
         try (final SequenceWriter csvWriter = newCSVWriter(output, schema);) {
-            List<String> inputHeaders = new ArrayList<>();
-            List<String> previousLine = new ArrayList<>();
-            List<String> previousMappedLine = new ArrayList<>();
-            JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(
+            final List<String> inputHeaders = new ArrayList<>();
+            final List<String> previousLine = new ArrayList<>();
+            final List<String> previousMappedLine = new ArrayList<>();
+            final JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(
                     k -> new HashSet<>());
-            AtomicInteger lineNumber = new AtomicInteger(0);
-            AtomicInteger filteredLineNumber = new AtomicInteger(0);
-            Set<List<String>> matchedOtherLines = new LinkedHashSet<>();
+            final AtomicInteger lineNumber = new AtomicInteger(0);
+            final AtomicInteger filteredLineNumber = new AtomicInteger(0);
+            final Set<List<String>> matchedOtherLines = new LinkedHashSet<>();
 
-            BiConsumer<List<String>, List<String>> mapLineConsumer = Unchecked
+            final BiConsumer<List<String>, List<String>> mapLineConsumer = Unchecked
                     .biConsumer((line, mapped) -> {
                         previousLine.clear();
                         previousLine.addAll(line);
@@ -399,15 +399,15 @@ public final class CSVUtil {
                     });
             streamCSV(input, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)),
                     (h, l) -> {
-                        int nextLineNumber = lineNumber.incrementAndGet();
-                        int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
+                        final int nextLineNumber = lineNumber.incrementAndGet();
+                        final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
                         try {
-                            List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
-                            List<String> nextMergedLine = new ArrayList<>(l);
+                            final List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
+                            final List<String> nextMergedLine = new ArrayList<>(l);
 
-                            Map<String, Object> matchMap = buildMatchMap(m, mergedInputHeaders,
-                                    nextMergedLine, false, temporaryMatchMap, sourceFields,
-                                    destFields);
+                            final Map<String, Object> matchMap = buildMatchMap(m,
+                                    mergedInputHeaders, nextMergedLine, false, temporaryMatchMap,
+                                    sourceFields, destFields);
                             otherLines.parallelStream().filter(otherL -> {
                                 return !matchMap.entrySet().parallelStream()
                                         .filter(nextOtherFieldMatcher -> {
@@ -420,7 +420,7 @@ public final class CSVUtil {
                                 if (!matchedOtherLines.contains(otherL)) {
                                     matchedOtherLines.add(otherL);
                                 }
-                                Map<String, Object> leftOuterJoinMap = leftOuterJoin(m,
+                                final Map<String, Object> leftOuterJoinMap = leftOuterJoin(m,
                                         mergedInputHeaders, nextMergedLine, otherH, otherL, false);
                                 for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
                                     final String inputField = nextMapping.getInputField();
@@ -433,7 +433,7 @@ public final class CSVUtil {
                                 }
                             });
 
-                            List<String> mapLine = ValueMapping.mapLine(mergedInputHeaders,
+                            final List<String> mapLine = ValueMapping.mapLine(mergedInputHeaders,
                                     nextMergedLine, previousLine, previousMappedLine, map,
                                     primaryKeys, nextLineNumber, nextFilteredLineNumber,
                                     mapLineConsumer);
@@ -444,7 +444,7 @@ public final class CSVUtil {
                             // below to eliminate it
                             // We expect streamCSV to operate in sequential
                             // order, print a warning if it doesn't
-                            boolean success = filteredLineNumber.compareAndSet(
+                            final boolean success = filteredLineNumber.compareAndSet(
                                     nextFilteredLineNumber, nextFilteredLineNumber - 1);
                             if (!success) {
                                 System.out.println("Line numbers may not be consistent");
@@ -457,11 +457,12 @@ public final class CSVUtil {
             if (!leftOuterJoin) {
                 otherLines.stream().filter(l -> !matchedOtherLines.contains(l))
                         .forEach(Unchecked.consumer(l -> {
-                            int nextLineNumber = lineNumber.incrementAndGet();
-                            int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
+                            final int nextLineNumber = lineNumber.incrementAndGet();
+                            final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
                             try {
-                                List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
-                                List<String> nextMergedLine = new ArrayList<>(l);
+                                final List<String> mergedInputHeaders = new ArrayList<>(
+                                        inputHeaders);
+                                final List<String> nextMergedLine = new ArrayList<>(l);
                                 nonMergeFieldsOrdered.stream()
                                         .map(nextMapping -> nextMapping.getInputField())
                                         .forEachOrdered(inputField -> {
@@ -473,16 +474,17 @@ public final class CSVUtil {
                                             }
                                         });
 
-                                List<String> mapLine = ValueMapping.mapLine(otherH, nextMergedLine,
-                                        previousLine, previousMappedLine, map, primaryKeys,
-                                        nextLineNumber, nextFilteredLineNumber, mapLineConsumer);
+                                final List<String> mapLine = ValueMapping.mapLine(otherH,
+                                        nextMergedLine, previousLine, previousMappedLine, map,
+                                        primaryKeys, nextLineNumber, nextFilteredLineNumber,
+                                        mapLineConsumer);
                                 mapLineConsumer.accept(nextMergedLine, mapLine);
                             } catch (final LineFilteredException e) {
                                 // Swallow line filtered exception and return
                                 // null below to eliminate it
                                 // We expect streamCSV to operate in sequential
                                 // order, print a warning if it doesn't
-                                boolean success = filteredLineNumber.compareAndSet(
+                                final boolean success = filteredLineNumber.compareAndSet(
                                         nextFilteredLineNumber, nextFilteredLineNumber - 1);
                                 if (!success) {
                                     System.out.println("Line numbers may not be consistent");
