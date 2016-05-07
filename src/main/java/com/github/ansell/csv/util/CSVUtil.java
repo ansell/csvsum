@@ -370,12 +370,6 @@ public final class CSVUtil {
         final ValueMapping m = mergeFieldsOrdered.get(0);
         final String[] destFields = m.getDestFields();
         final String[] sourceFields = m.getSourceFields();
-        // Map<String, Object> temporaryMatchMap = new
-        // HashMap<>(destFields.length, 0.75f);
-        // Map<String, Object> temporaryMatchMap = new
-        // LinkedHashMap<>(destFields.length, 0.75f);
-        final Map<String, Object> temporaryMatchMap = new ConcurrentHashMap<>(destFields.length,
-                0.75f, 4);
 
         final CsvSchema schema = buildSchema(outputHeaders);
 
@@ -397,6 +391,14 @@ public final class CSVUtil {
                         previousMappedLine.addAll(mapped);
                         csvWriter.write(mapped);
                     });
+            // If the streamCSV below is parallelised, each thread must be given
+            // a separate temporaryMatchMap
+            // Map<String, Object> temporaryMatchMap = new
+            // HashMap<>(destFields.length, 0.75f);
+            // Map<String, Object> temporaryMatchMap = new
+            // LinkedHashMap<>(destFields.length, 0.75f);
+            final Map<String, Object> temporaryMatchMap = new ConcurrentHashMap<>(destFields.length,
+                    0.75f, 4);
             streamCSV(input, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)),
                     (h, l) -> {
                         final int nextLineNumber = lineNumber.incrementAndGet();
@@ -417,9 +419,7 @@ public final class CSVUtil {
                                                             nextOtherFieldMatcher.getValue());
                                         }).findAny().isPresent();
                             }).findAny().ifPresent(otherL -> {
-                                if (!matchedOtherLines.contains(otherL)) {
-                                    matchedOtherLines.add(otherL);
-                                }
+                                matchedOtherLines.add(otherL);
                                 final Map<String, Object> leftOuterJoinMap = leftOuterJoin(m,
                                         mergedInputHeaders, nextMergedLine, otherH, otherL, false);
                                 for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
