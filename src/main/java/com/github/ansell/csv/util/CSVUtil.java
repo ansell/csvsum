@@ -224,7 +224,7 @@ public final class CSVUtil {
         return formattedDate;
     }
 
-    public static Map<String, Object> leftOuterJoin(ValueMapping mapping,
+    private static Map<String, Object> leftOuterJoin(ValueMapping mapping,
             List<String> sourceHeaders, List<String> sourceLine, List<String> destHeaders,
             List<String> destLine, boolean splitFieldNamesByDot) {
         Map<String, Object> matchMap = buildMatchMap(mapping, sourceHeaders, sourceLine,
@@ -267,7 +267,7 @@ public final class CSVUtil {
                 destFields);
     }
 
-    public static Map<String, Object> buildMatchMap(ValueMapping m, List<String> inputHeader,
+    private static Map<String, Object> buildMatchMap(ValueMapping m, List<String> inputHeader,
             List<String> inputLine, boolean splitFieldNamesByDot, Map<String, Object> result,
             String[] sourceFields, String[] destFields) {
         Map<String, Object> originRow = map(inputHeader, inputLine);
@@ -275,7 +275,7 @@ public final class CSVUtil {
         return buildMatchMap(m, originRow, splitFieldNamesByDot, result, sourceFields, destFields);
     }
 
-    public static Map<String, Object> buildMatchMap(ValueMapping mapping,
+    private static Map<String, Object> buildMatchMap(ValueMapping mapping,
             Map<String, Object> originRow, boolean splitFieldNamesByDot, Map<String, Object> result,
             String[] sourceFields, String[] destFields) {
         result.clear();
@@ -312,7 +312,7 @@ public final class CSVUtil {
         return result;
     }
 
-    public static Map<String, Object> buildMatchMap(ValueMapping m, List<String> inputHeader,
+    private static Map<String, Object> buildMatchMap(ValueMapping m, List<String> inputHeader,
             List<String> inputLine, boolean splitFieldNamesByDot) {
         Map<String, Object> originRow = map(inputHeader, inputLine);
 
@@ -320,6 +320,11 @@ public final class CSVUtil {
     }
 
     private static Map<String, Object> map(List<String> inputHeader, List<String> inputLine) {
+        //Map<String, Object> result = new HashMap<>();
+        //for(int i = 0; i < inputHeader.size(); i++) {
+        //    result.put(inputHeader.get(i), inputLine.get(i));
+        //}
+        //return result;
         return zip(inputHeader, inputLine).collect(TUPLE2_TO_MAP);
     }
 
