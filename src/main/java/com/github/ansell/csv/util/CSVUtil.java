@@ -40,11 +40,13 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -344,7 +346,7 @@ public final class CSVUtil {
                     (otherHeader, otherL) -> {
                         return otherL;
                     }, otherL -> {
-                        otherLines.add(otherL);
+                        otherLines.add(new ArrayList<>(otherL));
                     });
         }
 
@@ -368,7 +370,12 @@ public final class CSVUtil {
         ValueMapping m = mergeFieldsOrdered.get(0);
         String[] destFields = m.getDestFields();
         String[] sourceFields = m.getSourceFields();
-        Map<String, Object> temporaryMatchMap = new HashMap<>(destFields.length, 0.75f);
+        // Map<String, Object> temporaryMatchMap = new
+        // HashMap<>(destFields.length, 0.75f);
+        // Map<String, Object> temporaryMatchMap = new
+        // LinkedHashMap<>(destFields.length, 0.75f);
+        Map<String, Object> temporaryMatchMap = new ConcurrentHashMap<>(destFields.length, 0.75f,
+                4);
 
         final CsvSchema schema = buildSchema(outputHeaders);
 
@@ -401,55 +408,30 @@ public final class CSVUtil {
                             Map<String, Object> matchMap = buildMatchMap(m, mergedInputHeaders,
                                     nextMergedLine, false, temporaryMatchMap, sourceFields,
                                     destFields);
-                            for (List<String> otherL : otherLines) {
-                                // Note, we check for uniqueness and throw
-                                // exception
-                                // above
-                                boolean allMatch = !matchMap.isEmpty();
-                                if (!matchMap.isEmpty()) {
-
-                                    Optional<Entry<String, Object>> findAny = matchMap.entrySet().parallelStream()
-                                            .filter(nextOtherFieldMatcher -> {
-                                                final String key = nextOtherFieldMatcher.getKey();
-                                                return (!otherH.contains(key)
-                                                        || !otherL.get(otherH.indexOf(key)).equals(
-                                                                nextOtherFieldMatcher.getValue()));
-                                            }).findAny();
-                                    
-                                    if(findAny.isPresent()) {
-                                        allMatch = false;
-                                    }
-                                    
-//                                    for (Entry<String, Object> nextOtherFieldMatcher : matchMap
-//                                            .entrySet()) {
-//                                        final String key = nextOtherFieldMatcher.getKey();
-//                                        if (!otherH.contains(key)
-//                                                || !otherL.get(otherH.indexOf(key))
-//                                                        .equals(nextOtherFieldMatcher.getValue())) {
-//                                            allMatch = false;
-//                                            break;
-//                                        }
-//                                    }
+                            otherLines.parallelStream().filter(otherL -> {
+                                return !matchMap.entrySet().parallelStream()
+                                        .filter(nextOtherFieldMatcher -> {
+                                            final String key = nextOtherFieldMatcher.getKey();
+                                            return !otherH.contains(key)
+                                                    || !otherL.get(otherH.indexOf(key)).equals(
+                                                            nextOtherFieldMatcher.getValue());
+                                        }).findAny().isPresent();
+                            }).findAny().ifPresent(otherL -> {
+                                if (!matchedOtherLines.contains(otherL)) {
+                                    matchedOtherLines.add(otherL);
                                 }
-                                if (allMatch) {
-                                    if (!matchedOtherLines.contains(otherL)) {
-                                        matchedOtherLines.add(otherL);
+                                Map<String, Object> leftOuterJoinMap = leftOuterJoin(m,
+                                        mergedInputHeaders, nextMergedLine, otherH, otherL, false);
+                                for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
+                                    final String inputField = nextMapping.getInputField();
+                                    if (leftOuterJoinMap.containsKey(inputField)
+                                            && !mergedInputHeaders.contains(inputField)) {
+                                        mergedInputHeaders.add(inputField);
+                                        nextMergedLine
+                                                .add((String) leftOuterJoinMap.get(inputField));
                                     }
-                                    Map<String, Object> leftOuterJoinMap = leftOuterJoin(m,
-                                            mergedInputHeaders, nextMergedLine, otherH, otherL,
-                                            false);
-                                    for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
-                                        final String inputField = nextMapping.getInputField();
-                                        if (leftOuterJoinMap.containsKey(inputField)
-                                                && !mergedInputHeaders.contains(inputField)) {
-                                            mergedInputHeaders.add(inputField);
-                                            nextMergedLine
-                                                    .add((String) leftOuterJoinMap.get(inputField));
-                                        }
-                                    }
-                                    break;
                                 }
-                            }
+                            });
 
                             List<String> mapLine = ValueMapping.mapLine(mergedInputHeaders,
                                     nextMergedLine, previousLine, previousMappedLine, map,
@@ -459,11 +441,9 @@ public final class CSVUtil {
 
                         } catch (final LineFilteredException e) {
                             // Swallow line filtered exception and return null
-                            // below to
-                            // eliminate it
+                            // below to eliminate it
                             // We expect streamCSV to operate in sequential
-                            // order, print
-                            // a warning if it doesn't
+                            // order, print a warning if it doesn't
                             boolean success = filteredLineNumber.compareAndSet(
                                     nextFilteredLineNumber, nextFilteredLineNumber - 1);
                             if (!success) {
@@ -498,12 +478,9 @@ public final class CSVUtil {
                                 mapLineConsumer.accept(nextMergedLine, mapLine);
                             } catch (final LineFilteredException e) {
                                 // Swallow line filtered exception and return
-                                // null below
-                                // to
-                                // eliminate it
+                                // null below to eliminate it
                                 // We expect streamCSV to operate in sequential
-                                // order,
-                                // print a warning if it doesn't
+                                // order, print a warning if it doesn't
                                 boolean success = filteredLineNumber.compareAndSet(
                                         nextFilteredLineNumber, nextFilteredLineNumber - 1);
                                 if (!success) {
