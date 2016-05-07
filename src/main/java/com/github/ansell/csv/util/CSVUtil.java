@@ -422,15 +422,16 @@ public final class CSVUtil {
                                 matchedOtherLines.add(otherL);
                                 final Map<String, Object> leftOuterJoinMap = leftOuterJoin(m,
                                         mergedInputHeaders, nextMergedLine, otherH, otherL, false);
-                                for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
-                                    final String inputField = nextMapping.getInputField();
-                                    if (leftOuterJoinMap.containsKey(inputField)
-                                            && !mergedInputHeaders.contains(inputField)) {
-                                        mergedInputHeaders.add(inputField);
-                                        nextMergedLine
-                                                .add((String) leftOuterJoinMap.get(inputField));
-                                    }
-                                }
+                                nonMergeFieldsOrdered.stream()
+                                        .map(nextMapping -> nextMapping.getInputField())
+                                        .forEachOrdered(inputField -> {
+                                            if (leftOuterJoinMap.containsKey(inputField)
+                                                    && !mergedInputHeaders.contains(inputField)) {
+                                                mergedInputHeaders.add(inputField);
+                                                nextMergedLine.add(
+                                                        (String) leftOuterJoinMap.get(inputField));
+                                            }
+                                        });
                             });
 
                             final List<String> mapLine = ValueMapping.mapLine(mergedInputHeaders,
