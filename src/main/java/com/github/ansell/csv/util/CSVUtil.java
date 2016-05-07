@@ -462,15 +462,16 @@ public final class CSVUtil {
                             try {
                                 List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
                                 List<String> nextMergedLine = new ArrayList<>(l);
-                                for (ValueMapping nextMapping : nonMergeFieldsOrdered) {
-                                    final String inputField = nextMapping.getInputField();
-                                    if (otherH.contains(inputField)
-                                            && !mergedInputHeaders.contains(inputField)) {
-                                        mergedInputHeaders.add(inputField);
-                                        nextMergedLine
-                                                .add((String) l.get(otherH.indexOf(inputField)));
-                                    }
-                                }
+                                nonMergeFieldsOrdered.stream()
+                                        .map(nextMapping -> nextMapping.getInputField())
+                                        .forEachOrdered(inputField -> {
+                                            if (otherH.contains(inputField)
+                                                    && !mergedInputHeaders.contains(inputField)) {
+                                                mergedInputHeaders.add(inputField);
+                                                nextMergedLine.add(
+                                                        (String) l.get(otherH.indexOf(inputField)));
+                                            }
+                                        });
 
                                 List<String> mapLine = ValueMapping.mapLine(otherH, nextMergedLine,
                                         previousLine, previousMappedLine, map, primaryKeys,
