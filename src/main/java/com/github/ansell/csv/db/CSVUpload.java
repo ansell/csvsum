@@ -35,6 +35,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.List;
 
 import org.jooq.lambda.Unchecked;
 
@@ -99,29 +100,47 @@ public final class CSVUpload {
 		try (final Connection conn = DriverManager.getConnection(databaseConnectionString);) {
 			conn.setAutoCommit(false);
 			if (dropTableBoolean) {
-				dropExistingTable(conn, tableString);
+				dropExistingTable(tableString, conn);
 			}
 			try (final Reader inputReader = Files.newBufferedReader(inputPath);) {
-				upload(inputReader, conn);
+				upload(tableString, inputReader, conn);
 			}
 			conn.commit();
 		}
 	}
 
-	private static void dropExistingTable(Connection conn, String tableString) throws SQLException {
+	private static void dropExistingTable(String tableString, Connection conn) throws SQLException {
 		try (final Statement stmt = conn.createStatement();) {
 			stmt.executeUpdate("DROP TABLE IF EXISTS " + tableString + ";");
 		}
 	}
 
-	private static void upload(Reader input, Connection conn) throws IOException, SQLException {
-		CSVUtil.streamCSV(input, h -> {
-		}, Unchecked.biFunction((h, l) -> {
+	private static void upload(String tableName, Reader input, Connection conn) throws IOException, SQLException {
+		CSVUtil.streamCSV(input, Unchecked.consumer(h -> {
+			createTable(tableName, h, conn);
+		}), Unchecked.biFunction((h, l) -> {
 			return l;
 		}), l -> {
 		});
 
 		throw new UnsupportedOperationException("TODO: Implement upload!");
+	}
+
+	private static void createTable(String tableName, List<String> h, Connection conn) throws SQLException {
+		final StringBuilder sb = new StringBuilder();
+		sb.append("CREATE TABLE ");
+		sb.append(tableName);
+		sb.append(" ( \n");
+		for(int i = 0; i < h.size(); i++) {
+			if(i > 0) {
+				sb.append(", \n");
+			}
+			sb.append(h.get(i)).append(" VARCHAR(MAX) ");
+		}
+		sb.append(")\n");
+		try (final Statement stmt = conn.createStatement();) {
+			stmt.executeUpdate(sb.toString());
+		}
 	}
 
 }
