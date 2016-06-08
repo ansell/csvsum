@@ -248,6 +248,7 @@ public class AccessMapper {
 
 					List<Thread> mapThreads = new ArrayList<>(parallelism);
 					List<Database> dbCopies = new ArrayList<>(parallelism);
+					List<Path> dbCopiesPaths = new ArrayList<>(parallelism);
 					final JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
 
 					Queue<Map<String, Object>> originRowQueue = new ConcurrentLinkedQueue<>();
@@ -262,6 +263,8 @@ public class AccessMapper {
 									for (Map<String, Object> nextRow : db.getTable(originTable)) {
 										originRowQueue.add(nextRow);
 									}
+								} finally {
+									Files.deleteIfExists(tempDBFileForThread);
 								}
 							} catch (IOException e) {
 								throw new RuntimeException(e);
@@ -285,6 +288,7 @@ public class AccessMapper {
 							final Path tempDBFileForThread = Files
 									.createTempFile("Source-accessdb-mapthread-" + i + "-", ".accdb");
 							Files.copy(tempDBPath, tempDBFileForThread, StandardCopyOption.REPLACE_EXISTING);
+							dbCopiesPaths.add(tempDBFileForThread);
 							final Database db = DatabaseBuilder.open(tempDBFileForThread.toFile());
 							dbCopies.add(db);
 							final String nextOriginTable = parseTableMappings(map, db, foreignKeyMappingForThread,
@@ -316,6 +320,9 @@ public class AccessMapper {
 										nextDBCopy.close();
 									} catch (Throwable e) {
 									}
+								}
+								for (Path nextDBCopyPath : dbCopiesPaths) {
+									Files.deleteIfExists(nextDBCopyPath);
 								}
 							} finally {
 								try {
@@ -591,57 +598,62 @@ public class AccessMapper {
 		Path tempFile = Files.createTempFile("Source-accessdb", ".accdb");
 		Files.copy(input, tempFile, StandardCopyOption.REPLACE_EXISTING);
 
-		final CsvSchema schema = CSVUtil.buildSchema(Arrays.asList("OldField", "NewField", "Language", "Mapping"));
-		try (final Database db = DatabaseBuilder.open(tempFile.toFile());
-				final Writer columnCsv = Files
-						.newBufferedWriter(outputDir.resolve(csvPrefix + "AutoMapping-Columns.csv"));
-				final SequenceWriter columnCsvWriter = CSVUtil.newCSVWriter(new BufferedWriter(columnCsv), schema);) {
-			for (String tableName : db.getTableNames()) {
-				Table table = db.getTable(tableName);
+		try {
+			final CsvSchema schema = CSVUtil.buildSchema(Arrays.asList("OldField", "NewField", "Language", "Mapping"));
+			try (final Database db = DatabaseBuilder.open(tempFile.toFile());
+					final Writer columnCsv = Files
+							.newBufferedWriter(outputDir.resolve(csvPrefix + "AutoMapping-Columns.csv"));
+					final SequenceWriter columnCsvWriter = CSVUtil.newCSVWriter(new BufferedWriter(columnCsv),
+							schema);) {
+				for (String tableName : db.getTableNames()) {
+					Table table = db.getTable(tableName);
 
-				if (debug) {
-					debugTable(table, columnCsvWriter);
-				}
-
-				System.out.println("");
-				String csvName = csvPrefix + tableName + ".csv";
-				Path csvPath = outputDir.resolve(csvName);
-				System.out.println("Converting " + tableName + " to CSV: " + csvPath.toAbsolutePath().toString());
-
-				String[] tempArray = new String[table.getColumnCount()];
-				int x = 0;
-				for (Column nextColumn : table.getColumns()) {
-					if (addTableNamePrefix) {
-						tempArray[x++] = tableName + "." + nextColumn.getName();
-					} else {
-						tempArray[x++] = nextColumn.getName();
+					if (debug) {
+						debugTable(table, columnCsvWriter);
 					}
-				}
 
-				final CsvSchema fullFileSchema = CSVUtil.buildSchema(Arrays.asList(tempArray));
-				try (final Writer fullFileCsv = Files.newBufferedWriter(csvPath);
-						final SequenceWriter fullFileCsvWriter = CSVUtil.newCSVWriter(new BufferedWriter(fullFileCsv),
-								fullFileSchema);) {
-					int rows = 0;
-					for (Row nextRow : table) {
-						int i = 0;
-						for (Object nextValue : nextRow.values()) {
-							if (nextValue == null) {
-								tempArray[i++] = null;
-							} else if (nextValue instanceof Date) {
-								tempArray[i++] = CSVUtil.oldDateToISO8601LocalDateTime((Date) nextValue);
-							} else {
-								tempArray[i++] = nextValue.toString();
-							}
+					System.out.println("");
+					String csvName = csvPrefix + tableName + ".csv";
+					Path csvPath = outputDir.resolve(csvName);
+					System.out.println("Converting " + tableName + " to CSV: " + csvPath.toAbsolutePath().toString());
+
+					String[] tempArray = new String[table.getColumnCount()];
+					int x = 0;
+					for (Column nextColumn : table.getColumns()) {
+						if (addTableNamePrefix) {
+							tempArray[x++] = tableName + "." + nextColumn.getName();
+						} else {
+							tempArray[x++] = nextColumn.getName();
 						}
-						fullFileCsvWriter.write(Arrays.asList(tempArray));
-						rows++;
 					}
-					System.out.println("Converted " + rows + " rows from table " + tableName);
+
+					final CsvSchema fullFileSchema = CSVUtil.buildSchema(Arrays.asList(tempArray));
+					try (final Writer fullFileCsv = Files.newBufferedWriter(csvPath);
+							final SequenceWriter fullFileCsvWriter = CSVUtil
+									.newCSVWriter(new BufferedWriter(fullFileCsv), fullFileSchema);) {
+						int rows = 0;
+						for (Row nextRow : table) {
+							int i = 0;
+							for (Object nextValue : nextRow.values()) {
+								if (nextValue == null) {
+									tempArray[i++] = null;
+								} else if (nextValue instanceof Date) {
+									tempArray[i++] = CSVUtil.oldDateToISO8601LocalDateTime((Date) nextValue);
+								} else {
+									tempArray[i++] = nextValue.toString();
+								}
+							}
+							fullFileCsvWriter.write(Arrays.asList(tempArray));
+							rows++;
+						}
+						System.out.println("Converted " + rows + " rows from table " + tableName);
+					}
+					System.out.println("");
+					System.out.println("----------------------------");
 				}
-				System.out.println("");
-				System.out.println("----------------------------");
 			}
+		} finally {
+			Files.deleteIfExists(tempFile);
 		}
 	}
 
