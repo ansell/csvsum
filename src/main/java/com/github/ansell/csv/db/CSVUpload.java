@@ -111,13 +111,13 @@ public final class CSVUpload {
 		}
 	}
 
-	private static void dropExistingTable(String tableString, Connection conn) throws SQLException {
+	static void dropExistingTable(String tableString, Connection conn) throws SQLException {
 		try (final Statement stmt = conn.createStatement();) {
 			stmt.executeUpdate("DROP TABLE IF EXISTS " + tableString + ";");
 		}
 	}
 
-	private static void createTable(String tableName, List<String> h, StringBuilder insertStmt, Connection conn)
+	static void createTable(String tableName, List<String> h, StringBuilder insertStmt, Connection conn)
 			throws SQLException {
 		final StringBuilder createStmt = new StringBuilder();
 		createStmt.append("CREATE TABLE ").append(tableName).append(" ( \n");
@@ -150,7 +150,7 @@ public final class CSVUpload {
 		}
 	}
 
-	private static void upload(String tableName, Reader input, Connection conn) throws IOException, SQLException {
+	static void upload(String tableName, Reader input, Connection conn) throws IOException, SQLException {
 		final AtomicReference<PreparedStatement> preparedStmt = new AtomicReference<>();
 		try {
 			CSVUtil.streamCSV(input, Unchecked.consumer(h -> {
@@ -171,7 +171,7 @@ public final class CSVUpload {
 		}
 	}
 
-	private static void uploadLine(List<String> h, List<String> l, PreparedStatement stmt) throws SQLException {
+	static void uploadLine(List<String> h, List<String> l, PreparedStatement stmt) throws SQLException {
 		for (int i = 0; i < h.size(); i++) {
 			stmt.setString(i, l.get(i));
 		}
