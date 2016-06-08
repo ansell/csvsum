@@ -151,10 +151,10 @@ public final class CSVUpload {
 	}
 
 	private static void upload(String tableName, Reader input, Connection conn) throws IOException, SQLException {
-		final StringBuilder insertStatement = new StringBuilder(2048);
 		final AtomicReference<PreparedStatement> preparedStmt = new AtomicReference<>();
 		try {
 			CSVUtil.streamCSV(input, Unchecked.consumer(h -> {
+				final StringBuilder insertStatement = new StringBuilder(2048);
 				createTable(tableName, h, insertStatement, conn);
 				preparedStmt.set(conn.prepareStatement(insertStatement.toString()));
 			}), Unchecked.biFunction((h, l) -> {
