@@ -34,6 +34,7 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import org.jooq.lambda.Unchecked;
 
@@ -107,8 +108,10 @@ public final class CSVUpload {
 		}
 	}
 
-	private static void dropExistingTable(Connection conn, String tableString) {
-		throw new UnsupportedOperationException("TODO: Implement dropExistingTable!");
+	private static void dropExistingTable(Connection conn, String tableString) throws SQLException {
+		try (final Statement stmt = conn.createStatement();) {
+			stmt.executeUpdate("DROP TABLE IF EXISTS " + tableString + ";");
+		}
 	}
 
 	private static void upload(Reader input, Connection conn) throws IOException, SQLException {
