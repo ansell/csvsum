@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
@@ -115,32 +116,54 @@ public final class CSVUpload {
 		}
 	}
 
-	private static void upload(String tableName, Reader input, Connection conn) throws IOException, SQLException {
-		CSVUtil.streamCSV(input, Unchecked.consumer(h -> {
-			createTable(tableName, h, conn);
-		}), Unchecked.biFunction((h, l) -> {
-			return l;
-		}), l -> {
-		});
-
-		throw new UnsupportedOperationException("TODO: Implement upload!");
-	}
-
-	private static void createTable(String tableName, List<String> h, Connection conn) throws SQLException {
+	private static void createTable(String tableName, List<String> h, StringBuilder insertStatement, Connection conn)
+			throws SQLException {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("CREATE TABLE ");
 		sb.append(tableName);
 		sb.append(" ( \n");
-		for(int i = 0; i < h.size(); i++) {
-			if(i > 0) {
+		insertStatement.append("INSERT INTO ").append(tableName).append(" ( ");
+		for (int i = 0; i < h.size(); i++) {
+			if (i > 0) {
 				sb.append(", \n");
 			}
 			sb.append(h.get(i)).append(" VARCHAR(MAX) ");
 		}
 		sb.append(")\n");
+
+		insertStatement.append(" ) ");
+
+		insertStatement.append(" VALUES ( ");
+		for (int i = 0; i < h.size(); i++) {
+			if (i > 0) {
+				insertStatement.append(", ");
+			}
+			insertStatement.append("?");
+		}
+		insertStatement.append(");");
+
 		try (final Statement stmt = conn.createStatement();) {
 			stmt.executeUpdate(sb.toString());
 		}
 	}
 
+	private static void upload(String tableName, Reader input, Connection conn) throws IOException, SQLException {
+		StringBuilder insertStatement = new StringBuilder();
+		CSVUtil.streamCSV(input, Unchecked.consumer(h -> {
+			createTable(tableName, h, insertStatement, conn);
+		}), Unchecked.biFunction((h, l) -> {
+			try (final PreparedStatement stmt = conn.prepareStatement(insertStatement.toString());) {
+				uploadLine(h, l, stmt);
+				return l;
+			}
+		}), l -> {
+		});
+	}
+
+	private static void uploadLine(List<String> h, List<String> l, PreparedStatement stmt) throws SQLException {
+		for (int i = 0; i < h.size(); i++) {
+			stmt.setString(i, l.get(i));
+		}
+		stmt.executeUpdate();
+	}
 }
