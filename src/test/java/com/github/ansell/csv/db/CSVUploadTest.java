@@ -61,19 +61,14 @@ public class CSVUploadTest {
 		// https://db.apache.org/derby/papers/DerbyTut/embedded_intro.html
 		System.out.println("Creating Derby database instance for test: " + testName.getMethodName());
 
+		testDir = tempDir.newFolder(testName.getMethodName()).toPath();
+
+		System.setProperty("derby.system.home", testDir.toAbsolutePath().toString());
+
 		databaseConnectionString = "jdbc:derby:" + testName.getMethodName();
 		conn = DriverManager.getConnection(databaseConnectionString + ";create=true");
 
 		tableString = "testTable";
-
-		try(final Statement deleteTable = conn.createStatement();) {
-			deleteTable.executeUpdate("DROP TABLE " + tableString);
-		} catch (SQLException e) {
-			assertEquals("Not sure if this exception will ever be generated", e.getMessage());
-		}
-		
-		testDir = tempDir.newFolder(testName.getMethodName()).toPath();
-
 	}
 
 	/**
@@ -84,18 +79,25 @@ public class CSVUploadTest {
 		try {
 			conn.rollback();
 		} finally {
-			try {
-				conn.close();
+			try (final Statement deleteTable = conn.createStatement();) {
+				deleteTable.executeUpdate("DROP TABLE " + tableString);
+			} catch (SQLException e) {
+				assertEquals("'DROP TABLE' cannot be performed on 'TESTTABLE' because it does not exist.",
+						e.getMessage());
 			} finally {
 				try {
-					// Shutdown embedded Apache Derby:
-					// https://db.apache.org/derby/papers/DerbyTut/embedded_intro.html
-					DriverManager.getConnection("jdbc:derby:" + testName.getMethodName() + ";shutdown=true");
-					fail("Did not find expected exception when shutting down Derby instance for test: "
-							+ testName.getMethodName());
-				} catch (SQLException e) {
-					System.out.println(e.getMessage());
-					assertEquals("Database '" + testName.getMethodName() + "' shutdown.", e.getMessage());
+					conn.close();
+				} finally {
+					try {
+						// Shutdown embedded Apache Derby:
+						// https://db.apache.org/derby/papers/DerbyTut/embedded_intro.html
+						DriverManager.getConnection("jdbc:derby:" + testName.getMethodName() + ";shutdown=true");
+						fail("Did not find expected exception when shutting down Derby instance for test: "
+								+ testName.getMethodName());
+					} catch (SQLException e) {
+						System.out.println(e.getMessage());
+						assertEquals("Database '" + testName.getMethodName() + "' shutdown.", e.getMessage());
+					}
 				}
 			}
 		}
