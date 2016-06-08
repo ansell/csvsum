@@ -5,9 +5,13 @@ package com.github.ansell.csv.db;
 
 import static org.junit.Assert.*;
 
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -97,6 +101,20 @@ public class CSVUploadTest {
 					} catch (SQLException e) {
 						System.out.println(e.getMessage());
 						assertEquals("Database '" + testName.getMethodName() + "' shutdown.", e.getMessage());
+					} finally {
+						Files.walkFileTree(testDir, new SimpleFileVisitor<Path>() {
+							@Override
+							public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+								Files.delete(file);
+								return FileVisitResult.CONTINUE;
+							}
+
+							@Override
+							public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+								Files.delete(dir);
+								return FileVisitResult.CONTINUE;
+							}
+						});
 					}
 				}
 			}
