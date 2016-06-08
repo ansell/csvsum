@@ -113,7 +113,7 @@ public final class CSVUpload {
 
 	static void dropExistingTable(String tableString, Connection conn) throws SQLException {
 		try (final Statement stmt = conn.createStatement();) {
-			stmt.executeUpdate("DROP TABLE IF EXISTS " + tableString + ";");
+			stmt.executeUpdate("DROP TABLE " + tableString + ";");
 		}
 	}
 
@@ -128,7 +128,7 @@ public final class CSVUpload {
 				createStmt.append(", \n");
 				insertStmt.append(", \n");
 			}
-			createStmt.append(h.get(i)).append(" VARCHAR(MAX) ");
+			createStmt.append(h.get(i)).append(" CLOB ");
 			insertStmt.append(h.get(i)).append(" ");
 		}
 		createStmt.append(")\n");
@@ -142,11 +142,14 @@ public final class CSVUpload {
 			}
 			insertStmt.append("?");
 		}
-		insertStmt.append(");");
+		insertStmt.append(" )");
 		insertStmt.trimToSize();
 
+		String createStatement = createStmt.toString();
+		System.out.println(createStatement);
+
 		try (final Statement stmt = conn.createStatement();) {
-			stmt.executeUpdate(createStmt.toString());
+			stmt.executeUpdate(createStatement);
 		}
 	}
 
@@ -156,7 +159,9 @@ public final class CSVUpload {
 			CSVUtil.streamCSV(input, Unchecked.consumer(h -> {
 				final StringBuilder insertStatement = new StringBuilder(2048);
 				createTable(tableName, h, insertStatement, conn);
-				preparedStmt.set(conn.prepareStatement(insertStatement.toString()));
+				String insertStatementString = insertStatement.toString();
+				System.out.println(insertStatementString);
+				preparedStmt.set(conn.prepareStatement(insertStatementString));
 			}), Unchecked.biFunction((h, l) -> {
 				uploadLine(h, l, preparedStmt.get());
 				return l;

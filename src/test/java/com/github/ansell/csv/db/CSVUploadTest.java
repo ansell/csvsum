@@ -11,6 +11,7 @@ import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import org.junit.After;
 import org.junit.AfterClass;
@@ -22,6 +23,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestName;
+
+import com.github.ansell.csv.sum.CSVSummariser;
 
 import joptsimple.OptionException;
 
@@ -63,6 +66,12 @@ public class CSVUploadTest {
 
 		tableString = "testTable";
 
+		try(final Statement deleteTable = conn.createStatement();) {
+			deleteTable.executeUpdate("DROP TABLE " + tableString);
+		} catch (SQLException e) {
+			assertEquals("Not sure if this exception will ever be generated", e.getMessage());
+		}
+		
 		testDir = tempDir.newFolder(testName.getMethodName()).toPath();
 
 	}
@@ -108,12 +117,24 @@ public class CSVUploadTest {
 	 */
 	@Test
 	public final void testMainEmpty() throws Exception {
-		Path testFile = tempDir.newFile("test-empty.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-empty.csv"), testFile,
-				StandardCopyOption.REPLACE_EXISTING);
+		Path testFile = testDir.resolve("test-empty.csv");
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-empty.csv"), testFile);
 
 		thrown.expect(RuntimeException.class);
 		thrown.expectMessage("CSV file did not contain a valid header line");
+		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
+				testFile.toAbsolutePath().toString());
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainSingleHeaderNoLines() throws Exception {
+		Path testFile = testDir.resolve("test-single-header.csv");
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header.csv"), testFile);
+
 		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
 				testFile.toAbsolutePath().toString());
 	}
