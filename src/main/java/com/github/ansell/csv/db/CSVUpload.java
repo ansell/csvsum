@@ -37,6 +37,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.jooq.lambda.Unchecked;
 
@@ -116,48 +117,58 @@ public final class CSVUpload {
 		}
 	}
 
-	private static void createTable(String tableName, List<String> h, StringBuilder insertStatement, Connection conn)
+	private static void createTable(String tableName, List<String> h, StringBuilder insertStmt, Connection conn)
 			throws SQLException {
-		final StringBuilder sb = new StringBuilder();
-		sb.append("CREATE TABLE ");
-		sb.append(tableName);
-		sb.append(" ( \n");
-		insertStatement.append("INSERT INTO ").append(tableName).append(" ( ");
+		final StringBuilder createStmt = new StringBuilder();
+		createStmt.append("CREATE TABLE ").append(tableName).append(" ( \n");
+		insertStmt.append("INSERT INTO ").append(tableName).append(" ( ");
+
 		for (int i = 0; i < h.size(); i++) {
 			if (i > 0) {
-				sb.append(", \n");
+				createStmt.append(", \n");
+				insertStmt.append(", \n");
 			}
-			sb.append(h.get(i)).append(" VARCHAR(MAX) ");
+			createStmt.append(h.get(i)).append(" VARCHAR(MAX) ");
+			insertStmt.append(h.get(i)).append(" ");
 		}
-		sb.append(")\n");
+		createStmt.append(")\n");
 
-		insertStatement.append(" ) ");
+		insertStmt.append(" ) ");
 
-		insertStatement.append(" VALUES ( ");
+		insertStmt.append(" VALUES ( ");
 		for (int i = 0; i < h.size(); i++) {
 			if (i > 0) {
-				insertStatement.append(", ");
+				insertStmt.append(", ");
 			}
-			insertStatement.append("?");
+			insertStmt.append("?");
 		}
-		insertStatement.append(");");
+		insertStmt.append(");");
+		insertStmt.trimToSize();
 
 		try (final Statement stmt = conn.createStatement();) {
-			stmt.executeUpdate(sb.toString());
+			stmt.executeUpdate(createStmt.toString());
 		}
 	}
 
 	private static void upload(String tableName, Reader input, Connection conn) throws IOException, SQLException {
-		StringBuilder insertStatement = new StringBuilder();
-		CSVUtil.streamCSV(input, Unchecked.consumer(h -> {
-			createTable(tableName, h, insertStatement, conn);
-		}), Unchecked.biFunction((h, l) -> {
-			try (final PreparedStatement stmt = conn.prepareStatement(insertStatement.toString());) {
-				uploadLine(h, l, stmt);
+		final StringBuilder insertStatement = new StringBuilder(2048);
+		final AtomicReference<PreparedStatement> preparedStmt = new AtomicReference<>();
+		try {
+			CSVUtil.streamCSV(input, Unchecked.consumer(h -> {
+				createTable(tableName, h, insertStatement, conn);
+				preparedStmt.set(conn.prepareStatement(insertStatement.toString()));
+			}), Unchecked.biFunction((h, l) -> {
+				uploadLine(h, l, preparedStmt.get());
 				return l;
+			}), l -> {
+			});
+		} finally {
+			PreparedStatement closeable = preparedStmt.get();
+			if (closeable != null) {
+				closeable.close();
 			}
-		}), l -> {
-		});
+			preparedStmt.set(null);
+		}
 	}
 
 	private static void uploadLine(List<String> h, List<String> l, PreparedStatement stmt) throws SQLException {
