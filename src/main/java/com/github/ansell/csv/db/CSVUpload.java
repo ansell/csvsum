@@ -28,19 +28,25 @@ package com.github.ansell.csv.db;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Reader;
+import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.jooq.lambda.Unchecked;
 
+import com.fasterxml.jackson.databind.SequenceWriter;
 import com.github.ansell.csv.util.CSVUtil;
 
 import joptsimple.OptionException;
@@ -74,6 +80,8 @@ public final class CSVUpload {
 		final OptionSpec<Boolean> dropTable = parser.accepts("drop-existing-table").withRequiredArg()
 				.ofType(Boolean.class).defaultsTo(Boolean.FALSE)
 				.describedAs("True to drop an existing table with this name and false otherwise.");
+		final OptionSpec<Boolean> debug = parser.accepts("debug").withRequiredArg().ofType(Boolean.class)
+				.defaultsTo(Boolean.FALSE).describedAs("True to debug and false otherwise.");
 
 		OptionSet options = null;
 
@@ -98,6 +106,7 @@ public final class CSVUpload {
 		final String databaseConnectionString = database.value(options);
 		final String tableString = table.value(options);
 		final Boolean dropTableBoolean = dropTable.value(options);
+		final Boolean debugBoolean = debug.value(options);
 
 		try (final Connection conn = DriverManager.getConnection(databaseConnectionString);) {
 			conn.setAutoCommit(false);
@@ -108,6 +117,13 @@ public final class CSVUpload {
 				upload(tableString, inputReader, conn);
 			}
 			conn.commit();
+		}
+		if (debugBoolean) {
+			try (final Connection conn = DriverManager.getConnection(databaseConnectionString);
+					final Writer output = new PrintWriter(System.out);) {
+				dumpTable(tableString, output, conn);
+				output.flush();
+			}
 		}
 	}
 
@@ -150,6 +166,28 @@ public final class CSVUpload {
 
 		try (final Statement stmt = conn.createStatement();) {
 			stmt.executeUpdate(createStatement);
+		}
+	}
+
+	static void dumpTable(String tableName, Writer output, Connection conn) throws IOException, SQLException {
+		final String sql = "SELECT * FROM " + tableName;
+		try (final Statement dumpStatement = conn.createStatement();
+				final ResultSet results = dumpStatement.executeQuery(sql);) {
+			final ResultSetMetaData metadata = results.getMetaData();
+			final int columnCount = metadata.getColumnCount();
+			final List<String> columnNames = new ArrayList<>(columnCount);
+			for (int i = 0; i < columnCount; i++) {
+				columnNames.add(metadata.getColumnLabel(i));
+			}
+			try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, columnNames);) {
+				final List<String> nextResult = new ArrayList<>(columnCount);
+				while (results.next()) {
+					for (int i = 0; i < columnCount; i++) {
+						nextResult.set(i, results.getString(i));
+					}
+					csvWriter.writeAll(nextResult);
+				}
+			}
 		}
 	}
 

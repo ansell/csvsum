@@ -156,7 +156,21 @@ public class CSVUploadTest {
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header.csv"), testFile);
 
 		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
-				testFile.toAbsolutePath().toString());
+				testFile.toAbsolutePath().toString(), "--debug", "true");
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainSingleHeaderOneLine() throws Exception {
+		Path testFile = testDir.resolve("test-single-header-one-line.csv");
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-one-line.csv"),
+				testFile);
+
+		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
+				testFile.toAbsolutePath().toString(), "--debug", "true");
 	}
 
 	/**
