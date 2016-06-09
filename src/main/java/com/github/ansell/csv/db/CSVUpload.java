@@ -30,6 +30,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.Reader;
+import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -122,7 +123,6 @@ public final class CSVUpload {
 			try (final Connection conn = DriverManager.getConnection(databaseConnectionString);
 					final Writer output = new PrintWriter(System.out);) {
 				dumpTable(tableString, output, conn);
-				output.flush();
 			}
 		}
 	}
@@ -179,14 +179,14 @@ public final class CSVUpload {
 			for (int i = 1; i <= columnCount; i++) {
 				columnNames.add(metadata.getColumnLabel(i));
 			}
-			try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, columnNames);) {
-				final List<String> nextResult = new ArrayList<>(columnCount);
-				while (results.next()) {
-					for (int i = 1; i <= columnCount; i++) {
-						nextResult.set(i - 1, results.getString(i));
-					}
-					csvWriter.writeAll(nextResult);
+			final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, columnNames);
+			final List<String> nextResult = new ArrayList<>(columnCount);
+			while (results.next()) {
+				for (int i = 1; i <= columnCount; i++) {
+					nextResult.add(i - 1, results.getString(i));
 				}
+				csvWriter.write(nextResult);
+				nextResult.clear();
 			}
 		}
 	}
@@ -216,7 +216,7 @@ public final class CSVUpload {
 
 	static void uploadLine(List<String> h, List<String> l, PreparedStatement stmt) throws SQLException {
 		for (int i = 0; i < h.size(); i++) {
-			stmt.setString(i, l.get(i));
+			stmt.setString(i + 1, l.get(i));
 		}
 		stmt.executeUpdate();
 	}
