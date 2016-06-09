@@ -183,7 +183,7 @@ public final class CSVUpload {
 				final List<String> nextResult = new ArrayList<>(columnCount);
 				while (results.next()) {
 					for (int i = 1; i <= columnCount; i++) {
-						nextResult.set(i, results.getString(i));
+						nextResult.set(i - 1, results.getString(i));
 					}
 					csvWriter.writeAll(nextResult);
 				}
