@@ -143,7 +143,7 @@ public class CSVUploadTest {
 		thrown.expect(RuntimeException.class);
 		thrown.expectMessage("CSV file did not contain a valid header line");
 		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
-				testFile.toAbsolutePath().toString());
+				testFile.toAbsolutePath().toString(), "--field-type", "CLOB");
 	}
 
 	/**
@@ -156,7 +156,7 @@ public class CSVUploadTest {
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header.csv"), testFile);
 
 		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
-				testFile.toAbsolutePath().toString(), "--debug", "true");
+				testFile.toAbsolutePath().toString(), "--debug", "true", "--field-type", "CLOB");
 	}
 
 	/**
@@ -170,7 +170,7 @@ public class CSVUploadTest {
 				testFile);
 
 		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
-				testFile.toAbsolutePath().toString(), "--debug", "true");
+				testFile.toAbsolutePath().toString(), "--debug", "true", "--field-type", "CLOB");
 	}
 
 	/**
@@ -184,7 +184,7 @@ public class CSVUploadTest {
 				testFile);
 
 		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
-				testFile.toAbsolutePath().toString(), "--debug", "true");
+				testFile.toAbsolutePath().toString(), "--debug", "true", "--field-type", "CLOB");
 	}
 
 	/**
@@ -198,7 +198,7 @@ public class CSVUploadTest {
 				testFile);
 
 		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
-				testFile.toAbsolutePath().toString(), "--debug", "true");
+				testFile.toAbsolutePath().toString(), "--debug", "true", "--field-type", "CLOB");
 	}
 
 	/**

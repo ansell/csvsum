@@ -42,8 +42,10 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 import org.jooq.lambda.Unchecked;
 
@@ -78,6 +80,8 @@ public final class CSVUpload {
 				.describedAs("The JDBC connection string for the database to upload to.");
 		final OptionSpec<String> table = parser.accepts("table").withRequiredArg().ofType(String.class).required()
 				.describedAs("The database table to upload to.");
+		final OptionSpec<String> fieldType = parser.accepts("field-type").withRequiredArg().ofType(String.class)
+				.required().describedAs("The type to use for fields in the destination table.").defaultsTo("TEXT");
 		final OptionSpec<Boolean> dropTable = parser.accepts("drop-existing-table").withRequiredArg()
 				.ofType(Boolean.class).defaultsTo(Boolean.FALSE)
 				.describedAs("True to drop an existing table with this name and false otherwise.");
@@ -115,7 +119,7 @@ public final class CSVUpload {
 				dropExistingTable(tableString, conn);
 			}
 			try (final Reader inputReader = Files.newBufferedReader(inputPath);) {
-				upload(tableString, inputReader, conn);
+				upload(tableString, fieldType.value(options), inputReader, conn);
 			}
 			conn.commit();
 		}
@@ -133,8 +137,8 @@ public final class CSVUpload {
 		}
 	}
 
-	static void createTable(String tableName, List<String> h, StringBuilder insertStmt, Connection conn)
-			throws SQLException {
+	static void createTable(String tableName, List<String> h, List<String> types, StringBuilder insertStmt,
+			Connection conn) throws SQLException {
 		final StringBuilder createStmt = new StringBuilder();
 		createStmt.append("CREATE TABLE ").append(tableName).append(" ( \n    ");
 		insertStmt.append("INSERT INTO ").append(tableName).append(" ( \n    ");
@@ -144,7 +148,7 @@ public final class CSVUpload {
 				createStmt.append(", ");
 				insertStmt.append(", ");
 			}
-			createStmt.append(h.get(i)).append(" CLOB ");
+			createStmt.append(h.get(i)).append(" ").append(types.get(i)).append(" ");
 			insertStmt.append(h.get(i)).append(" ");
 		}
 		createStmt.append("\n)");
@@ -162,7 +166,7 @@ public final class CSVUpload {
 		insertStmt.trimToSize();
 
 		String createStatement = createStmt.toString();
-		//System.out.println(createStatement);
+		// System.out.println(createStatement);
 
 		try (final Statement stmt = conn.createStatement();) {
 			stmt.executeUpdate(createStatement);
@@ -191,14 +195,15 @@ public final class CSVUpload {
 		}
 	}
 
-	static void upload(String tableName, Reader input, Connection conn) throws IOException, SQLException {
+	static void upload(String tableName, String type, Reader input, Connection conn) throws IOException, SQLException {
 		final AtomicReference<PreparedStatement> preparedStmt = new AtomicReference<>();
 		try {
 			CSVUtil.streamCSV(input, Unchecked.consumer(h -> {
 				final StringBuilder insertStatement = new StringBuilder(2048);
-				createTable(tableName, h, insertStatement, conn);
+				List<String> types = Collections.nCopies(h.size(), type);
+				createTable(tableName, h, types, insertStatement, conn);
 				String insertStatementString = insertStatement.toString();
-				//System.out.println(insertStatementString);
+				// System.out.println(insertStatementString);
 				preparedStmt.set(conn.prepareStatement(insertStatementString));
 			}), Unchecked.biFunction((h, l) -> {
 				uploadLine(h, l, preparedStmt.get());

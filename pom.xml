@@ -88,6 +88,12 @@
 		<dependency>
 			<groupId>org.apache.derby</groupId>
 			<artifactId>derby</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+			<scope>runtime</scope>
 		</dependency>
 	</dependencies>
 
@@ -187,6 +193,11 @@
 				<groupId>org.apache.derby</groupId>
 				<artifactId>derby</artifactId>
 				<version>10.12.1.1</version>
+			</dependency>
+			<dependency>
+				<groupId>org.postgresql</groupId>
+				<artifactId>postgresql</artifactId>
+				<version>9.4.1208</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
