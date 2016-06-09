@@ -81,7 +81,7 @@ public final class CSVUpload {
 		final OptionSpec<String> table = parser.accepts("table").withRequiredArg().ofType(String.class).required()
 				.describedAs("The database table to upload to.");
 		final OptionSpec<String> fieldType = parser.accepts("field-type").withRequiredArg().ofType(String.class)
-				.required().describedAs("The type to use for fields in the destination table.").defaultsTo("TEXT");
+				.describedAs("The type to use for fields in the destination table.").defaultsTo("TEXT");
 		final OptionSpec<Boolean> dropTable = parser.accepts("drop-existing-table").withRequiredArg()
 				.ofType(Boolean.class).defaultsTo(Boolean.FALSE)
 				.describedAs("True to drop an existing table with this name and false otherwise.");
