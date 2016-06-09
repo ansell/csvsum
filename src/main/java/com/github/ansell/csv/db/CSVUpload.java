@@ -176,13 +176,13 @@ public final class CSVUpload {
 			final ResultSetMetaData metadata = results.getMetaData();
 			final int columnCount = metadata.getColumnCount();
 			final List<String> columnNames = new ArrayList<>(columnCount);
-			for (int i = 0; i < columnCount; i++) {
+			for (int i = 1; i <= columnCount; i++) {
 				columnNames.add(metadata.getColumnLabel(i));
 			}
 			try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, columnNames);) {
 				final List<String> nextResult = new ArrayList<>(columnCount);
 				while (results.next()) {
-					for (int i = 0; i < columnCount; i++) {
+					for (int i = 1; i <= columnCount; i++) {
 						nextResult.set(i, results.getString(i));
 					}
 					csvWriter.writeAll(nextResult);
