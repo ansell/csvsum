@@ -136,33 +136,33 @@ public final class CSVUpload {
 	static void createTable(String tableName, List<String> h, StringBuilder insertStmt, Connection conn)
 			throws SQLException {
 		final StringBuilder createStmt = new StringBuilder();
-		createStmt.append("CREATE TABLE ").append(tableName).append(" ( \n");
-		insertStmt.append("INSERT INTO ").append(tableName).append(" ( ");
+		createStmt.append("CREATE TABLE ").append(tableName).append(" ( \n    ");
+		insertStmt.append("INSERT INTO ").append(tableName).append(" ( \n    ");
 
 		for (int i = 0; i < h.size(); i++) {
 			if (i > 0) {
-				createStmt.append(", \n");
-				insertStmt.append(", \n");
+				createStmt.append(", ");
+				insertStmt.append(", ");
 			}
 			createStmt.append(h.get(i)).append(" CLOB ");
 			insertStmt.append(h.get(i)).append(" ");
 		}
-		createStmt.append(")\n");
+		createStmt.append("\n)");
 
-		insertStmt.append(" ) ");
+		insertStmt.append("\n)");
 
-		insertStmt.append(" VALUES ( ");
+		insertStmt.append("\nVALUES ( \n    ");
 		for (int i = 0; i < h.size(); i++) {
 			if (i > 0) {
 				insertStmt.append(", ");
 			}
 			insertStmt.append("?");
 		}
-		insertStmt.append(" )");
+		insertStmt.append("\n)");
 		insertStmt.trimToSize();
 
 		String createStatement = createStmt.toString();
-		System.out.println(createStatement);
+		//System.out.println(createStatement);
 
 		try (final Statement stmt = conn.createStatement();) {
 			stmt.executeUpdate(createStatement);
@@ -198,7 +198,7 @@ public final class CSVUpload {
 				final StringBuilder insertStatement = new StringBuilder(2048);
 				createTable(tableName, h, insertStatement, conn);
 				String insertStatementString = insertStatement.toString();
-				System.out.println(insertStatementString);
+				//System.out.println(insertStatementString);
 				preparedStmt.set(conn.prepareStatement(insertStatementString));
 			}), Unchecked.biFunction((h, l) -> {
 				uploadLine(h, l, preparedStmt.get());

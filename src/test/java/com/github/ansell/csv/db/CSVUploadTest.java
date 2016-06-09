@@ -175,6 +175,34 @@ public class CSVUploadTest {
 
 	/**
 	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainMultiKey() throws Exception {
+		Path testFile = testDir.resolve("test-source-multi-key.csv");
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvjoin/test-source-multi-key.csv"),
+				testFile);
+
+		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
+				testFile.toAbsolutePath().toString(), "--debug", "true");
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainSingleHeaderTwentyOneLines() throws Exception {
+		Path testFile = testDir.resolve("test-single-header-twenty-one-lines.csv");
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-twenty-one-lines.csv"),
+				testFile);
+
+		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
+				testFile.toAbsolutePath().toString(), "--debug", "true");
+	}
+
+	/**
+	 * Test method for
 	 * {@link com.github.ansell.csv.db.CSVUpload#dropExistingTable(java.lang.String, java.sql.Connection)}
 	 * .
 	 */
