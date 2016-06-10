@@ -133,7 +133,7 @@ public final class CSVUpload {
 
 	static void dropExistingTable(String tableString, Connection conn) throws SQLException {
 		try (final Statement stmt = conn.createStatement();) {
-			stmt.executeUpdate("DROP TABLE " + tableString + ";");
+			stmt.executeUpdate("DROP TABLE \"" + tableString + "\" ;");
 		}
 	}
 
