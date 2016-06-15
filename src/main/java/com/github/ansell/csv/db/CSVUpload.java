@@ -131,9 +131,12 @@ public final class CSVUpload {
 		}
 	}
 
-	static void dropExistingTable(String tableString, Connection conn) throws SQLException {
+	static void dropExistingTable(String tableString, Connection conn) {
 		try (final Statement stmt = conn.createStatement();) {
 			stmt.executeUpdate("DROP TABLE \"" + tableString + "\" ;");
+		} catch (SQLException e) {
+			// Silent to be a substitute for DROP TABLE IF EXISTS that not all
+			// SQL databases support
 		}
 	}
 
@@ -148,7 +151,13 @@ public final class CSVUpload {
 				createStmt.append(", ");
 				insertStmt.append(", ");
 			}
-			createStmt.append("\"").append(h.get(i)).append("\" ").append(types.get(i)).append(" ");
+			String nextType = types.get(i);
+			// HACK: Get this working for now, need to make types actually map
+			// to the data
+			if (h.get(i).equals("region_id")) {
+				nextType = "TEXT";
+			}
+			createStmt.append("\"").append(h.get(i)).append("\" ").append(nextType).append(" ");
 			insertStmt.append("\"").append(h.get(i)).append("\" ");
 		}
 		createStmt.append("\n)");
@@ -198,15 +207,16 @@ public final class CSVUpload {
 	static void upload(String tableName, String type, Reader input, Connection conn) throws IOException, SQLException {
 		final AtomicReference<PreparedStatement> preparedStmt = new AtomicReference<>();
 		try {
+			final List<String> types = new ArrayList<>();
 			CSVUtil.streamCSV(input, Unchecked.consumer(h -> {
 				final StringBuilder insertStatement = new StringBuilder(2048);
-				List<String> types = Collections.nCopies(h.size(), type);
+				types.addAll(Collections.nCopies(h.size(), type));
 				createTable(tableName, h, types, insertStatement, conn);
 				String insertStatementString = insertStatement.toString();
 				System.out.println(insertStatementString);
 				preparedStmt.set(conn.prepareStatement(insertStatementString));
 			}), Unchecked.biFunction((h, l) -> {
-				uploadLine(h, l, preparedStmt.get());
+				uploadLine(h, l, types, preparedStmt.get());
 				return l;
 			}), l -> {
 			});
@@ -219,8 +229,19 @@ public final class CSVUpload {
 		}
 	}
 
-	static void uploadLine(List<String> h, List<String> l, PreparedStatement stmt) throws SQLException {
+	static void uploadLine(List<String> h, List<String> l, List<String> types, PreparedStatement stmt)
+			throws SQLException {
 		for (int i = 0; i < h.size(); i++) {
+			try {
+				if (types.get(i).equalsIgnoreCase("INTEGER")) {
+					stmt.setInt(i + 1, Integer.parseInt(l.get(i)));
+					// HACK: Get this working fast, need to get an actual map so
+					// that types is an actual representation of what is
+					// expected
+					continue;
+				}
+			} catch (NumberFormatException e) {
+			}
 			stmt.setString(i + 1, l.get(i));
 		}
 		stmt.executeUpdate();
