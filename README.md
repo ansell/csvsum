@@ -94,7 +94,7 @@ Javascript mappings also have access to helper functions to simplify common mapp
 * primaryKeyFilter : Called using the syntax primaryKeyFilter(inputValue) or primaryKeyFilter(inputValue, primaryKeyField), where inputValue is the primary key string and the optional primaryKeyField defaults to "Primary". The function returns the string if and only if it is unique so far, otherwise it calls filter() to filter out the line.
 * digest : Called using the syntax digest(value, algorithm), where algorithm defaults to 'SHA-256' if it is not specified.
 
-Javascript mappings must always return a value.
+Javascript mappings must either return a value, call mapLineConsumer to create multiple output lines from the current line, or call filter() to ignore the current line.
 
 # CSV Joiner
 
