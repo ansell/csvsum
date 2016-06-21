@@ -40,12 +40,9 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Set;
@@ -87,7 +84,7 @@ public final class CSVUtil {
 	public static final Pattern COMMA_PATTERN = Pattern.compile(COMMA_REGEX);
 
 	private static final Collector<Tuple2<String, String>, ?, Map<String, Object>> TUPLE2_TO_MAP = Collectors
-			.toMap(e -> (String) e.v1(), e -> (String) e.v2());
+			.toMap(e -> e.v1(), e -> (String) e.v2());
 
 	/**
 	 * Private constructor for static only class
@@ -485,7 +482,7 @@ public final class CSVUtil {
 									.forEachOrdered(inputField -> {
 										if (otherH.contains(inputField) && !mergedInputHeaders.contains(inputField)) {
 											mergedInputHeaders.add(inputField);
-											nextMergedLine.add((String) l.get(otherH.indexOf(inputField)));
+											nextMergedLine.add(l.get(otherH.indexOf(inputField)));
 										}
 									});
 	
