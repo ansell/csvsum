@@ -114,10 +114,10 @@ public final class CSVUpload {
 		final Boolean debugBoolean = debug.value(options);
 
 		try (final Connection conn = DriverManager.getConnection(databaseConnectionString);) {
-			conn.setAutoCommit(false);
 			if (dropTableBoolean) {
 				dropExistingTable(tableString, conn);
 			}
+			conn.setAutoCommit(false);
 			try (final Reader inputReader = Files.newBufferedReader(inputPath);) {
 				upload(tableString, fieldType.value(options), inputReader, conn);
 			}
