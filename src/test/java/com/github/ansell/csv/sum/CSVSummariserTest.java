@@ -93,6 +93,21 @@ public class CSVSummariserTest {
 	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
+	public final void testMainMappingFileExists() throws Exception {
+		Path testFile = tempDir.newFile("test-single-header.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header.csv"), testFile,
+				StandardCopyOption.REPLACE_EXISTING);
+
+		thrown.expect(FileNotFoundException.class);
+		CSVSummariser.main("--input", testFile.toAbsolutePath().toString(), "--output-mapping",
+				testFile.toAbsolutePath().toString());
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
 	public final void testMainEmpty() throws Exception {
 		Path testFile = tempDir.newFile("test-empty.csv").toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-empty.csv"), testFile,
@@ -142,6 +157,23 @@ public class CSVSummariserTest {
 
 		CSVSummariser.main("--input", testFile.toAbsolutePath().toString(), "--output",
 				testOutput.toAbsolutePath().toString());
+
+		assertEquals("Did not find enough lines in the output", 2, Files.readAllLines(testOutput).size());
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainSingleHeaderOneLineFileOutputDebug() throws Exception {
+		Path testFile = tempDir.newFile("test-single-header-one-line.csv").toPath();
+		Path testOutput = tempDir.newFile("test-single-header-one-line-output.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-one-line.csv"),
+				testFile, StandardCopyOption.REPLACE_EXISTING);
+
+		CSVSummariser.main("--input", testFile.toAbsolutePath().toString(), "--output",
+				testOutput.toAbsolutePath().toString(), "--debug", "true");
 
 		assertEquals("Did not find enough lines in the output", 2, Files.readAllLines(testOutput).size());
 	}
@@ -239,5 +271,16 @@ public class CSVSummariserTest {
 		StringWriter output = new StringWriter();
 		CSVSummariser.runSummarise(new StringReader("Test\n1.0"), output, NullWriter.NULL_WRITER,
 				CSVSummariser.DEFAULT_SAMPLE_COUNT, false);
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testSummariseAllSampleValuesDebug() throws Exception {
+		StringWriter output = new StringWriter();
+		CSVSummariser.runSummarise(new StringReader("Test\n1.0"), output, NullWriter.NULL_WRITER,
+				CSVSummariser.DEFAULT_SAMPLE_COUNT, true);
 	}
 }
