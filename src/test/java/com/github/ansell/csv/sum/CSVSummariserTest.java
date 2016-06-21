@@ -33,6 +33,7 @@ import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.stream.IntStream;
 
 import org.apache.commons.io.output.NullWriter;
 import org.junit.Rule;
@@ -280,7 +281,32 @@ public class CSVSummariserTest {
 	@Test
 	public final void testSummariseAllSampleValuesDebug() throws Exception {
 		StringWriter output = new StringWriter();
-		CSVSummariser.runSummarise(new StringReader("Test\n1.0"), output, NullWriter.NULL_WRITER,
-				CSVSummariser.DEFAULT_SAMPLE_COUNT, true);
+		CSVSummariser.runSummarise(new StringReader("Test\n1.0"), output, NullWriter.NULL_WRITER, -1, true);
 	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testSummariseAllSampleValuesLong() throws Exception {
+		StringWriter output = new StringWriter();
+		StringBuilder input = new StringBuilder("Test\n");
+		IntStream.range(0, 1000).forEach(i -> input.append("N"));
+		CSVSummariser.runSummarise(new StringReader(input.toString()), output, NullWriter.NULL_WRITER, -1, false);
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testSummariseNoSampleValuesLong() throws Exception {
+		StringWriter output = new StringWriter();
+		StringBuilder input = new StringBuilder("Test\n");
+		IntStream.range(0, 1000).forEach(i -> input.append("N"));
+		CSVSummariser.runSummarise(new StringReader(input.toString()), output, NullWriter.NULL_WRITER, 0, true);
+		System.out.println(output.toString());
+	}
+
 }

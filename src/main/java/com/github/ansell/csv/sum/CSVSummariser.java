@@ -248,12 +248,12 @@ public final class CSVSummariser {
 				}
 
 				final Stream<String> stream = valueCounts.get(h).keySet().stream();
-				if (maxSampleCount >= 0) {
+				if (maxSampleCount > 0) {
 					stream.limit(maxSampleCount).sorted().forEach(sampleHandler);
 					if (valueCount > maxSampleCount) {
 						sampleValue.append(", ...");
 					}
-				} else {
+				} else if (maxSampleCount < 0) {
 					stream.sorted().forEach(sampleHandler);
 				}
 
