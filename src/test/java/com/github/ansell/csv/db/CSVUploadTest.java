@@ -139,11 +139,14 @@ public class CSVUploadTest {
 	public final void testMainEmpty() throws Exception {
 		Path testFile = testDir.resolve("test-empty.csv");
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-empty.csv"), testFile);
+		Path testMapping = testDir.resolve("test-mapping-empty.csv");
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvupload/test-mapping-empty.csv"),
+				testMapping);
 
 		thrown.expect(RuntimeException.class);
 		thrown.expectMessage("CSV file did not contain a valid header line");
 		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
-				testFile.toAbsolutePath().toString(), "--field-type", "CLOB");
+				testFile.toAbsolutePath().toString(), "--mapping", testMapping.toAbsolutePath().toString());
 	}
 
 	/**
@@ -154,9 +157,13 @@ public class CSVUploadTest {
 	public final void testMainSingleHeaderNoLines() throws Exception {
 		Path testFile = testDir.resolve("test-single-header.csv");
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header.csv"), testFile);
+		Path testMapping = testDir.resolve("test-mapping-single-header.csv");
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvupload/test-mapping-single-header.csv"),
+				testMapping);
 
 		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
-				testFile.toAbsolutePath().toString(), "--debug", "true", "--field-type", "CLOB");
+				testFile.toAbsolutePath().toString(), "--debug", "true", "--mapping",
+				testMapping.toAbsolutePath().toString());
 	}
 
 	/**
@@ -168,9 +175,13 @@ public class CSVUploadTest {
 		Path testFile = testDir.resolve("test-single-header-one-line.csv");
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-one-line.csv"),
 				testFile);
+		Path testMapping = testDir.resolve("test-mapping-single-header-one-line.csv");
+		Files.copy(this.getClass().getResourceAsStream(
+				"/com/github/ansell/csvupload/test-mapping-single-header-one-line.csv"), testMapping);
 
 		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
-				testFile.toAbsolutePath().toString(), "--debug", "true", "--field-type", "CLOB");
+				testFile.toAbsolutePath().toString(), "--debug", "true", "--mapping",
+				testMapping.toAbsolutePath().toString());
 	}
 
 	/**
@@ -182,9 +193,14 @@ public class CSVUploadTest {
 		Path testFile = testDir.resolve("test-source-multi-key.csv");
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvjoin/test-source-multi-key.csv"),
 				testFile);
+		Path testMapping = testDir.resolve("test-mapping-source-multi-key.csv");
+		Files.copy(
+				this.getClass().getResourceAsStream("/com/github/ansell/csvupload/test-mapping-source-multi-key.csv"),
+				testMapping);
 
 		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
-				testFile.toAbsolutePath().toString(), "--debug", "true", "--field-type", "CLOB");
+				testFile.toAbsolutePath().toString(), "--debug", "true", "--mapping",
+				testMapping.toAbsolutePath().toString());
 	}
 
 	/**
@@ -194,11 +210,15 @@ public class CSVUploadTest {
 	@Test
 	public final void testMainSingleHeaderTwentyOneLines() throws Exception {
 		Path testFile = testDir.resolve("test-single-header-twenty-one-lines.csv");
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-twenty-one-lines.csv"),
-				testFile);
+		Files.copy(this.getClass()
+				.getResourceAsStream("/com/github/ansell/csvsum/test-single-header-twenty-one-lines.csv"), testFile);
+		Path testMapping = testDir.resolve("test-mapping-single-header-twenty-one-lines.csv");
+		Files.copy(this.getClass().getResourceAsStream(
+				"/com/github/ansell/csvupload/test-mapping-single-header-twenty-one-lines.csv"), testMapping);
 
 		CSVUpload.main("--database", databaseConnectionString, "--table", tableString, "--input",
-				testFile.toAbsolutePath().toString(), "--debug", "true", "--field-type", "CLOB");
+				testFile.toAbsolutePath().toString(), "--debug", "true", "--mapping",
+				testMapping.toAbsolutePath().toString());
 	}
 
 	/**

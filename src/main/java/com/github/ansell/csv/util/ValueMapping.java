@@ -68,7 +68,11 @@ public class ValueMapping {
 
 		ACCESS(""),
 
-		CSVJOIN("");
+		CSVJOIN(""),
+		
+		DBSCHEMA(""),
+		
+		;
 
 		private final String defaultMapping;
 
@@ -421,6 +425,8 @@ public class ValueMapping {
 		} else if (this.language == ValueMappingLanguage.ACCESS) {
 
 		} else if (this.language == ValueMappingLanguage.CSVJOIN) {
+
+		} else if (this.language == ValueMappingLanguage.DBSCHEMA) {
 
 		} else {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);

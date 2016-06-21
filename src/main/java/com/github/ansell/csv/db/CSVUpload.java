@@ -25,6 +25,7 @@
  */
 package com.github.ansell.csv.db;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -44,13 +45,17 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.jooq.lambda.Unchecked;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.github.ansell.csv.util.CSVUtil;
+import com.github.ansell.csv.util.ValueMapping;
 
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
@@ -80,13 +85,13 @@ public final class CSVUpload {
 				.describedAs("The JDBC connection string for the database to upload to.");
 		final OptionSpec<String> table = parser.accepts("table").withRequiredArg().ofType(String.class).required()
 				.describedAs("The database table to upload to.");
-		final OptionSpec<String> fieldType = parser.accepts("field-type").withRequiredArg().ofType(String.class)
-				.describedAs("The type to use for fields in the destination table.").defaultsTo("TEXT");
 		final OptionSpec<Boolean> dropTable = parser.accepts("drop-existing-table").withRequiredArg()
 				.ofType(Boolean.class).defaultsTo(Boolean.FALSE)
 				.describedAs("True to drop an existing table with this name and false otherwise.");
 		final OptionSpec<Boolean> debug = parser.accepts("debug").withRequiredArg().ofType(Boolean.class)
 				.defaultsTo(Boolean.FALSE).describedAs("True to debug and false otherwise.");
+		final OptionSpec<File> mapping = parser.accepts("mapping").withRequiredArg().ofType(File.class).required()
+				.describedAs("The mapping file.");
 
 		OptionSet options = null;
 
@@ -108,6 +113,11 @@ public final class CSVUpload {
 			throw new FileNotFoundException("Could not find input CSV file: " + inputPath.toString());
 		}
 
+		final Path mappingPath = mapping.value(options).toPath();
+		if (!Files.exists(mappingPath)) {
+			throw new FileNotFoundException("Could not find mapping CSV file: " + mappingPath.toString());
+		}
+
 		final String databaseConnectionString = database.value(options);
 		final String tableString = table.value(options);
 		final Boolean dropTableBoolean = dropTable.value(options);
@@ -117,11 +127,14 @@ public final class CSVUpload {
 			if (dropTableBoolean) {
 				dropExistingTable(tableString, conn);
 			}
-			conn.setAutoCommit(false);
-			try (final Reader inputReader = Files.newBufferedReader(inputPath);) {
-				upload(tableString, fieldType.value(options), inputReader, conn);
+			try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);) {
+				List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
+				conn.setAutoCommit(false);
+				try (final Reader inputReader = Files.newBufferedReader(inputPath);) {
+					upload(tableString, map, inputReader, conn);
+				}
+				conn.commit();
 			}
-			conn.commit();
 		}
 		if (debugBoolean) {
 			try (final Connection conn = DriverManager.getConnection(databaseConnectionString);
@@ -204,19 +217,32 @@ public final class CSVUpload {
 		}
 	}
 
-	static void upload(String tableName, String type, Reader input, Connection conn) throws IOException, SQLException {
+	static void upload(String tableName, List<ValueMapping> map, Reader input, Connection conn)
+			throws IOException, SQLException {
 		final AtomicReference<PreparedStatement> preparedStmt = new AtomicReference<>();
 		try {
 			final List<String> types = new ArrayList<>();
+			final List<String> outputFieldNames = new ArrayList<>();
 			CSVUtil.streamCSV(input, Unchecked.consumer(h -> {
 				final StringBuilder insertStatement = new StringBuilder(2048);
-				types.addAll(Collections.nCopies(h.size(), type));
-				createTable(tableName, h, types, insertStatement, conn);
+				h.forEach(nextH -> {
+					Optional<ValueMapping> firstMapping = map.stream()
+							.filter(m -> m.getLanguage() == ValueMapping.ValueMappingLanguage.DBSCHEMA)
+							.filter(m -> m.getInputField().equalsIgnoreCase(nextH)).findFirst();
+					if (firstMapping.isPresent()) {
+						types.add(firstMapping.get().getMapping());
+						outputFieldNames.add(firstMapping.get().getOutputField());
+					} else {
+						types.add("TEXT");
+						outputFieldNames.add(nextH);
+					}
+				});
+				createTable(tableName, outputFieldNames, types, insertStatement, conn);
 				String insertStatementString = insertStatement.toString();
 				System.out.println(insertStatementString);
 				preparedStmt.set(conn.prepareStatement(insertStatementString));
 			}), Unchecked.biFunction((h, l) -> {
-				uploadLine(h, l, types, preparedStmt.get());
+				uploadLine(outputFieldNames, l, types, preparedStmt.get());
 				return l;
 			}), l -> {
 			});
@@ -233,11 +259,13 @@ public final class CSVUpload {
 			throws SQLException {
 		for (int i = 0; i < h.size(); i++) {
 			try {
+				// HACK: Trying to be flexible here, but not sure if SQL will
+				// allow flexibility anyway, so not sure if necessary
 				if (types.get(i).equalsIgnoreCase("INTEGER")) {
 					stmt.setInt(i + 1, Integer.parseInt(l.get(i)));
-					// HACK: Get this working fast, need to get an actual map so
-					// that types is an actual representation of what is
-					// expected
+					continue;
+				} else if (types.get(i).equalsIgnoreCase("DOUBLE")) {
+					stmt.setDouble(i + 1, Double.parseDouble(l.get(i)));
 					continue;
 				}
 			} catch (NumberFormatException e) {

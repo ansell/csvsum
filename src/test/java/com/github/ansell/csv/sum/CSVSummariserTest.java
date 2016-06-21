@@ -34,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
+import org.apache.commons.io.output.NullWriter;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -214,7 +215,8 @@ public class CSVSummariserTest {
 	@Test
 	public final void testSummariseInteger() throws Exception {
 		StringWriter output = new StringWriter();
-		CSVSummariser.runSummarise(new StringReader("Test\n1"), output);
+		CSVSummariser.runSummarise(new StringReader("Test\n1"), output, NullWriter.NULL_WRITER,
+				CSVSummariser.DEFAULT_SAMPLE_COUNT, false);
 	}
 
 	/**
@@ -224,7 +226,8 @@ public class CSVSummariserTest {
 	@Test
 	public final void testSummariseDouble() throws Exception {
 		StringWriter output = new StringWriter();
-		CSVSummariser.runSummarise(new StringReader("Test\n1.0"), output);
+		CSVSummariser.runSummarise(new StringReader("Test\n1.0"), output, NullWriter.NULL_WRITER,
+				CSVSummariser.DEFAULT_SAMPLE_COUNT, false);
 	}
 
 	/**
@@ -234,6 +237,7 @@ public class CSVSummariserTest {
 	@Test
 	public final void testSummariseAllSampleValues() throws Exception {
 		StringWriter output = new StringWriter();
-		CSVSummariser.runSummarise(new StringReader("Test\n1.0"), output, -1);
+		CSVSummariser.runSummarise(new StringReader("Test\n1.0"), output, NullWriter.NULL_WRITER,
+				CSVSummariser.DEFAULT_SAMPLE_COUNT, false);
 	}
 }
