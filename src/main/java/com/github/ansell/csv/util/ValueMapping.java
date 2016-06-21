@@ -32,9 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import javax.script.Bindings;
@@ -68,7 +66,11 @@ public class ValueMapping {
 
 		ACCESS(""),
 
-		CSVJOIN("");
+		CSVJOIN(""),
+		
+		DBSCHEMA(""),
+		
+		;
 
 		private final String defaultMapping;
 
@@ -421,6 +423,8 @@ public class ValueMapping {
 		} else if (this.language == ValueMappingLanguage.ACCESS) {
 
 		} else if (this.language == ValueMappingLanguage.CSVJOIN) {
+
+		} else if (this.language == ValueMappingLanguage.DBSCHEMA) {
 
 		} else {
 			throw new UnsupportedOperationException("Mapping language not supported: " + this.language);

@@ -1,0 +1,6 @@
+OldField,NewField,Shown,Language,Mapping
+Field1,Field1,,DBSCHEMA,CLOB
+Field2,Field2,,DBSCHEMA,CLOB
+Field3,Field3,,DBSCHEMA,CLOB
+Field4,Field4,,DBSCHEMA,CLOB
+Field5,Field5,,DBSCHEMA,CLOB

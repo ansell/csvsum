@@ -41,7 +41,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -107,7 +106,7 @@ public final class CSVMapper {
 
 		final Path mappingPath = mapping.value(options).toPath();
 		if (!Files.exists(mappingPath)) {
-			throw new FileNotFoundException("Could not find mappng CSV file: " + mappingPath.toString());
+			throw new FileNotFoundException("Could not find mapping CSV file: " + mappingPath.toString());
 		}
 
 		final Writer writer;

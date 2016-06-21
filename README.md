@@ -16,6 +16,7 @@ Set the relevant programs to be executable.
     chmod a+x ./csvmap
     chmod a+x ./csvjoin
     chmod a+x ./accessmap
+    chmod a+x ./csvupload
 
 # CSV Summariser
 
@@ -128,15 +129,36 @@ Run accessmap with a sample access file:
 
     ./accessmap --input src/test/resources/com/github/ansell/csvaccess/test-source.accdb --mapping src/test/resources/com/github/ansell/csvaccess/test-mapping.csv --output target/ --debug true
 
+# CSV to SQL Uploader
+
+CSV to SQL Uploader uploads from a CSV file to a SQL Database, including dropping and creating the table as necessary.
+
+It adds another supported language, DBSchema to denote the field type for each field in the table. Stub versions of the DBSchema mappings can be created using the --output-mapping flag for csvsum.
+
+## Usage
+
+Run csvupload with --help to get usage details:
+
+    ./csvupload --help
+
+Run csvmap with a sample csv file:
+
+    ./csvupload --database "jdbc:..." --input src/test/resources/com/github/ansell/csvsum/test-single-header-one-line.csv --table test-table --mapping src/test/resources/com/github/ansell/csvupload/test-mapping-single-header-one-line.csv
+
 # Maven
 
     <dependency>
         <groupId>com.github.ansell.csv.sum</groupId>
         <artifactId>csvsum</artifactId>
-        <version>0.2.0</version>
+        <version>0.3.0</version>
     </dependency>
 
 # Changelog
+
+## 2016-06-21
+* Add functionality to parse a CSV file and upload it to a SQL database
+* Bump to 0.3.0 to take into account the new functionality and minor API changes
+* Add derby and postgresql JDBC drivers as dependencies for the runtime to optionally use out of the box
 
 ## 2016-05-04
 * Release 0.2.0

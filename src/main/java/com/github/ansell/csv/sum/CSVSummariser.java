@@ -25,6 +25,7 @@
  */
 package com.github.ansell.csv.sum;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -42,9 +43,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import org.apache.commons.io.output.NullWriter;
+
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.util.CSVUtil;
+import com.github.ansell.csv.util.ValueMapping;
 import com.github.ansell.jdefaultdict.JDefaultDict;
 
 import joptsimple.OptionException;
@@ -64,7 +68,7 @@ public final class CSVSummariser {
 	 * The default number of samples to include for each field in the summarised
 	 * CSV.
 	 */
-	private static final int DEFAULT_SAMPLE_COUNT = 20;
+	public static final int DEFAULT_SAMPLE_COUNT = 20;
 
 	/**
 	 * Private constructor for static only class
@@ -80,6 +84,8 @@ public final class CSVSummariser {
 				.describedAs("The input CSV file to be summarised.");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
 				.describedAs("The output file, or the console if not specified.");
+		final OptionSpec<File> outputMappingTemplate = parser.accepts("output-mapping").withRequiredArg()
+				.ofType(File.class).describedAs("The output mapping template file if it needs to be generated.");
 		final OptionSpec<Integer> samplesToShow = parser.accepts("samples").withRequiredArg().ofType(Integer.class)
 				.defaultsTo(DEFAULT_SAMPLE_COUNT).describedAs(
 						"The maximum number of sample values for each field to include in the output, or -1 to dump all sample values for each field.");
@@ -106,6 +112,13 @@ public final class CSVSummariser {
 			throw new FileNotFoundException("Could not find input CSV file: " + inputPath.toString());
 		}
 
+		final Path outputMappingPath = options.has(outputMappingTemplate)
+				? outputMappingTemplate.value(options).toPath() : null;
+		if (options.has(outputMappingTemplate) && Files.exists(outputMappingPath)) {
+			throw new FileNotFoundException(
+					"Output mapping template file already exists: " + outputMappingPath.toString());
+		}
+
 		final Writer writer;
 		if (options.has(output)) {
 			writer = Files.newBufferedWriter(output.value(options).toPath());
@@ -120,23 +133,11 @@ public final class CSVSummariser {
 			System.out.println("Running summarise on: " + inputPath + " samples=" + samplesToShowInt);
 		}
 
-		runSummarise(Files.newBufferedReader(inputPath), writer, samplesToShowInt, debugBoolean);
-	}
-
-	/**
-	 * Summarise the CSV file from the input {@link Reader} and emit the summary
-	 * CSV file to the output {@link Writer}, including the default maximum
-	 * number of sample values in the summary for each field.
-	 * 
-	 * @param input
-	 *            The input CSV file, as a {@link Reader}.
-	 * @param output
-	 *            The output CSV file as a {@link Writer}.
-	 * @throws IOException
-	 *             If there is an error reading or writing.
-	 */
-	public static void runSummarise(Reader input, Writer output) throws IOException {
-		runSummarise(input, output, DEFAULT_SAMPLE_COUNT);
+		try (final BufferedReader newBufferedReader = Files.newBufferedReader(inputPath);
+				final Writer mappingWriter = options.has(outputMappingTemplate)
+						? Files.newBufferedWriter(outputMappingPath) : NullWriter.NULL_WRITER) {
+			runSummarise(newBufferedReader, writer, mappingWriter, samplesToShowInt, debugBoolean);
+		}
 	}
 
 	/**
@@ -148,25 +149,8 @@ public final class CSVSummariser {
 	 *            The input CSV file, as a {@link Reader}.
 	 * @param output
 	 *            The output CSV file as a {@link Writer}.
-	 * @param maxSampleCount
-	 *            The maximum number of sample values in the summary for each
-	 *            field. Set to -1 to include all unique values for each field.
-	 * @throws IOException
-	 *             If there is an error reading or writing.
-	 */
-	public static void runSummarise(Reader input, Writer output, int maxSampleCount) throws IOException {
-		runSummarise(input, output, maxSampleCount, false);
-	}
-
-	/**
-	 * Summarise the CSV file from the input {@link Reader} and emit the summary
-	 * CSV file to the output {@link Writer}, including the given maximum number
-	 * of sample values in the summary for each field.
-	 * 
-	 * @param input
-	 *            The input CSV file, as a {@link Reader}.
-	 * @param output
-	 *            The output CSV file as a {@link Writer}.
+	 * @param mappingWriter
+	 *            The output mapping template file as a {@link Writer}.
 	 * @param maxSampleCount
 	 *            Te maximum number of sample values in the summary for each
 	 *            field. Set to -1 to include all unique values for each field.
@@ -175,7 +159,8 @@ public final class CSVSummariser {
 	 * @throws IOException
 	 *             If there is an error reading or writing.
 	 */
-	public static void runSummarise(Reader input, Writer output, int maxSampleCount, boolean debug) throws IOException {
+	public static void runSummarise(Reader input, Writer output, Writer mappingOutput, int maxSampleCount,
+			boolean debug) throws IOException {
 		final JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		final JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		final JDefaultDict<String, AtomicBoolean> possibleIntegerFields = new JDefaultDict<>(
@@ -208,7 +193,7 @@ public final class CSVSummariser {
 				}
 			}
 			return l;
-		} , l -> {
+		}, l -> {
 			// We are a streaming summariser, and do not store the raw original
 			// lines. Only unique, non-empty, values are stored in the
 			// valueCounts map for uniqueness summaries
@@ -216,7 +201,7 @@ public final class CSVSummariser {
 
 		// This schema defines the fields and order for the columns in the
 		// summary CSV file
-		final CsvSchema schema = CsvSchema.builder().addColumn("fieldName")
+		final CsvSchema summarySchema = CsvSchema.builder().addColumn("fieldName")
 				.addColumn("emptyCount", CsvSchema.ColumnType.NUMBER)
 				.addColumn("nonEmptyCount", CsvSchema.ColumnType.NUMBER)
 				.addColumn("uniqueValueCount", CsvSchema.ColumnType.NUMBER)
@@ -224,6 +209,12 @@ public final class CSVSummariser {
 				.addColumn("possiblyInteger", CsvSchema.ColumnType.BOOLEAN)
 				.addColumn("possiblyFloatingPoint", CsvSchema.ColumnType.BOOLEAN).addColumn("sampleValues")
 				.setUseHeader(true).build();
+		final CsvSchema mappingSchema = CsvSchema.builder()
+				.addColumn(ValueMapping.OLD_FIELD, CsvSchema.ColumnType.STRING)
+				.addColumn(ValueMapping.NEW_FIELD, CsvSchema.ColumnType.STRING)
+				.addColumn(ValueMapping.SHOWN, CsvSchema.ColumnType.STRING)
+				.addColumn(ValueMapping.LANGUAGE, CsvSchema.ColumnType.STRING)
+				.addColumn(ValueMapping.MAPPING, CsvSchema.ColumnType.STRING).setUseHeader(true).build();
 
 		// Shared StringBuilder across fields for efficiency
 		// After each field the StringBuilder is truncated
@@ -240,7 +231,8 @@ public final class CSVSummariser {
 			}
 		};
 
-		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);) {
+		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, summarySchema);
+				final SequenceWriter mappingWriter = CSVUtil.newCSVWriter(mappingOutput, mappingSchema);) {
 			headers.forEach(h -> {
 				final int emptyCount = emptyCounts.get(h).get();
 				final int nonEmptyCount = nonEmptyCounts.get(h).get();
@@ -256,18 +248,21 @@ public final class CSVSummariser {
 				}
 
 				final Stream<String> stream = valueCounts.get(h).keySet().stream();
-				if (maxSampleCount >= 0) {
+				if (maxSampleCount > 0) {
 					stream.limit(maxSampleCount).sorted().forEach(sampleHandler);
 					if (valueCount > maxSampleCount) {
 						sampleValue.append(", ...");
 					}
-				} else {
+				} else if (maxSampleCount < 0) {
 					stream.sorted().forEach(sampleHandler);
 				}
 
 				try {
 					csvWriter.write(Arrays.asList(h, emptyCount, nonEmptyCount, valueCount, possiblePrimaryKey,
 							possiblyInteger, possiblyDouble, sampleValue));
+					final String mappingFieldType = possiblyInteger ? "INTEGER" : possiblyDouble ? "DECIMAL" : "TEXT";
+					mappingWriter.write(Arrays.asList(h, h, "", ValueMapping.ValueMappingLanguage.DBSCHEMA.name(),
+							mappingFieldType));
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				} finally {
