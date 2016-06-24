@@ -149,10 +149,10 @@ public final class CSVSummariser {
 	 *            The input CSV file, as a {@link Reader}.
 	 * @param output
 	 *            The output CSV file as a {@link Writer}.
-	 * @param mappingWriter
+	 * @param mappingOutput
 	 *            The output mapping template file as a {@link Writer}.
 	 * @param maxSampleCount
-	 *            Te maximum number of sample values in the summary for each
+	 *            The maximum number of sample values in the summary for each
 	 *            field. Set to -1 to include all unique values for each field.
 	 * @param debug
 	 *            Set to true to add debug statements.

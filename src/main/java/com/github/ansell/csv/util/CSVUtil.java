@@ -98,6 +98,7 @@ public final class CSVUtil {
 	 * checked/converted line to the consumer.
 	 * 
 	 * @param inputStreamReader
+	 *            The {@link Reader} containing the CSV file.
 	 * @param headerValidator
 	 *            The validator of the header line.
 	 * @param lineChecker
@@ -106,6 +107,9 @@ public final class CSVUtil {
 	 *            passed to the writer.
 	 * @param writer
 	 *            The consumer of the checked lines.
+	 * @param <T>
+	 *            The type of the results that will be created by the
+	 *            lineChecker and pushed into the writer {@link Consumer}.
 	 * @throws IOException
 	 *             If an error occurred accessing the input.
 	 */
@@ -363,7 +367,7 @@ public final class CSVUtil {
 		try {
 			final List<String> otherH = new ArrayList<>();
 			final List<List<String>> otherLines = new ArrayList<>();
-	
+
 			try (final BufferedReader otherTemp = Files.newBufferedReader(tempOtherFile)) {
 				streamCSV(otherTemp, otherHeader -> otherHeader.forEach(h -> otherH.add(otherPrefix + h)),
 						(otherHeader, otherL) -> {
@@ -372,32 +376,32 @@ public final class CSVUtil {
 							otherLines.add(new ArrayList<>(otherL));
 						});
 			}
-	
+
 			final Function<ValueMapping, String> outputFields = e -> e.getOutputField();
-	
+
 			final List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(outputFields)
 					.collect(Collectors.toList());
-	
+
 			final List<ValueMapping> mergeFieldsOrdered = map.stream()
 					.filter(k -> k.getLanguage() == ValueMappingLanguage.CSVJOIN).collect(Collectors.toList());
 			if (mergeFieldsOrdered.size() != 1) {
 				throw new RuntimeException(
 						"Can only support exactly one CsvJoin mapping: found " + mergeFieldsOrdered.size());
 			}
-	
+
 			final List<ValueMapping> nonMergeFieldsOrdered = map.stream()
 					.filter(k -> k.getLanguage() != ValueMappingLanguage.CSVJOIN).collect(Collectors.toList());
-	
+
 			final ValueMapping m = mergeFieldsOrdered.get(0);
 			final String[] destFields = m.getDestFields();
 			final String[] sourceFields = m.getSourceFields();
-	
+
 			final CsvSchema schema = buildSchema(outputHeaders);
-	
+
 			try (final SequenceWriter csvWriter = newCSVWriter(output, schema);) {
 				final JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
 				final Set<List<String>> matchedOtherLines = new LinkedHashSet<>();
-	
+
 				final List<String> previousLine = new ArrayList<>();
 				final List<String> previousMappedLine = new ArrayList<>();
 				final AtomicInteger lineNumber = new AtomicInteger(0);
@@ -409,14 +413,15 @@ public final class CSVUtil {
 					previousMappedLine.addAll(mapped);
 					csvWriter.write(mapped);
 				});
-				// If the streamCSV below is parallelised, each thread must be given
+				// If the streamCSV below is parallelised, each thread must be
+				// given
 				// a separate temporaryMatchMap
 				// Map<String, Object> temporaryMatchMap = new
 				// HashMap<>(destFields.length, 0.75f);
 				// Map<String, Object> temporaryMatchMap = new
 				// LinkedHashMap<>(destFields.length, 0.75f);
 				final Map<String, Object> temporaryMatchMap = new ConcurrentHashMap<>(destFields.length, 0.75f, 4);
-	
+
 				final List<String> inputHeaders = new ArrayList<>();
 				try (final BufferedReader inputTemp = Files.newBufferedReader(tempInputFile)) {
 					streamCSV(inputTemp, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)), (h, l) -> {
@@ -425,14 +430,14 @@ public final class CSVUtil {
 						try {
 							final List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
 							final List<String> nextMergedLine = new ArrayList<>(l);
-	
-							final Map<String, Object> matchMap = buildMatchMap(m, mergedInputHeaders, nextMergedLine, false,
-									temporaryMatchMap, sourceFields, destFields);
+
+							final Map<String, Object> matchMap = buildMatchMap(m, mergedInputHeaders, nextMergedLine,
+									false, temporaryMatchMap, sourceFields, destFields);
 							final Predicate<List<String>> otherLinePredicate = otherL -> {
 								return !matchMap.entrySet().parallelStream().filter(nextOtherFieldMatcher -> {
 									final String key = nextOtherFieldMatcher.getKey();
-									return !otherH.contains(key)
-											|| !otherL.get(otherH.indexOf(key)).equals(nextOtherFieldMatcher.getValue());
+									return !otherH.contains(key) || !otherL.get(otherH.indexOf(key))
+											.equals(nextOtherFieldMatcher.getValue());
 								}).findAny().isPresent();
 							};
 							final Consumer<List<String>> otherLineConsumer = otherL -> {
@@ -448,13 +453,14 @@ public final class CSVUtil {
 											}
 										});
 							};
-							otherLines.parallelStream().filter(otherLinePredicate).findAny().ifPresent(otherLineConsumer);
-	
+							otherLines.parallelStream().filter(otherLinePredicate).findAny()
+									.ifPresent(otherLineConsumer);
+
 							final List<String> mapLine = ValueMapping.mapLine(mergedInputHeaders, nextMergedLine,
 									previousLine, previousMappedLine, map, primaryKeys, nextLineNumber,
 									nextFilteredLineNumber, mapLineConsumer);
 							mapLineConsumer.accept(nextMergedLine, mapLine);
-	
+
 						} catch (final LineFilteredException e) {
 							// Swallow line filtered exception and return
 							// null
@@ -485,7 +491,7 @@ public final class CSVUtil {
 											nextMergedLine.add(l.get(otherH.indexOf(inputField)));
 										}
 									});
-	
+
 							final List<String> mapLine = ValueMapping.mapLine(otherH, nextMergedLine, previousLine,
 									previousMappedLine, map, primaryKeys, nextLineNumber, nextFilteredLineNumber,
 									mapLineConsumer);
@@ -506,7 +512,7 @@ public final class CSVUtil {
 					otherLines.stream().filter(fullOuterJoinPredicate).forEach(fullOuterJoinConsumer);
 				}
 			}
-	
+
 			return outputHeaders;
 		} finally {
 			Files.deleteIfExists(tempInputFile);
