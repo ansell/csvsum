@@ -259,7 +259,7 @@ public final class CSVUpload {
 				if (types.get(i).equalsIgnoreCase("INTEGER")) {
 					stmt.setInt(i + 1, Integer.parseInt(l.get(i)));
 					continue;
-				} else if (types.get(i).equalsIgnoreCase("DOUBLE")) {
+				} else if (types.get(i).equalsIgnoreCase("DOUBLE") || types.get(i).equalsIgnoreCase("DECIMAL")) {
 					stmt.setDouble(i + 1, Double.parseDouble(l.get(i)));
 					continue;
 				}
