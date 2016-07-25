@@ -155,6 +155,10 @@ Run csvmap with a sample csv file:
 
 # Changelog
 
+## 2016-07-25
+* Release 0.3.1
+* Support Decimal type for csvupload
+
 ## 2016-06-21
 * Add functionality to parse a CSV file and upload it to a SQL database
 * Bump to 0.3.0 to take into account the new functionality and minor API changes
