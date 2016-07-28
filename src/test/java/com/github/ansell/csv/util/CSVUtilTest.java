@@ -32,6 +32,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,12 +56,14 @@ public class CSVUtilTest {
 	 * .
 	 */
 	@Test
-	public final void testStreamCSVIllegalHeader() throws Exception {
+	public final void testStreamCSVIllegalHeader()
+		throws Exception
+	{
 		thrown.expect(RuntimeException.class);
 		thrown.expectMessage("Could not verify headers for csv file");
 		CSVUtil.streamCSV(new StringReader("Header1"), h -> {
 			throw new IllegalArgumentException("Did not find header: Header2");
-		} , (h, l) -> l, l -> {
+		}, (h, l) -> l, l -> {
 		});
 	}
 
@@ -70,7 +73,9 @@ public class CSVUtilTest {
 	 * .
 	 */
 	@Test
-	public final void testStreamCSVEmpty() throws Exception {
+	public final void testStreamCSVEmpty()
+		throws Exception
+	{
 		List<String> headers = new ArrayList<>();
 
 		thrown.expect(RuntimeException.class);
@@ -85,12 +90,14 @@ public class CSVUtilTest {
 	 * .
 	 */
 	@Test
-	public final void testStreamCSVSingleColumnMoreOnRow() throws Exception {
+	public final void testStreamCSVSingleColumnMoreOnRow()
+		throws Exception
+	{
 		List<String> headers = new ArrayList<>();
 
 		thrown.expect(RuntimeException.class);
-		CSVUtil.streamCSV(new StringReader("Test1\nAnswer1,Answer2,Answer3"), h -> headers.addAll(h), (h, l) -> l,
-				l -> {
+		CSVUtil.streamCSV(new StringReader("Test1\nAnswer1,Answer2,Answer3"), h -> headers.addAll(h),
+				(h, l) -> l, l -> {
 				});
 	}
 
@@ -100,12 +107,14 @@ public class CSVUtilTest {
 	 * .
 	 */
 	@Test
-	public final void testStreamCSVMultipleColumnsLessOnRow() throws Exception {
+	public final void testStreamCSVMultipleColumnsLessOnRow()
+		throws Exception
+	{
 		List<String> headers = new ArrayList<>();
 
 		thrown.expect(RuntimeException.class);
-		CSVUtil.streamCSV(new StringReader("Test1, Another2, Else3\nAnswer1"), h -> headers.addAll(h), (h, l) -> l,
-				l -> {
+		CSVUtil.streamCSV(new StringReader("Test1, Another2, Else3\nAnswer1"), h -> headers.addAll(h),
+				(h, l) -> l, l -> {
 				});
 	}
 
@@ -115,7 +124,9 @@ public class CSVUtilTest {
 	 * .
 	 */
 	@Test
-	public final void testStreamCSVHeaderOnlySingleColumn() throws Exception {
+	public final void testStreamCSVHeaderOnlySingleColumn()
+		throws Exception
+	{
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 
@@ -131,7 +142,9 @@ public class CSVUtilTest {
 	 * .
 	 */
 	@Test
-	public final void testStreamCSVHeaderOnlyMultipleColumns() throws Exception {
+	public final void testStreamCSVHeaderOnlyMultipleColumns()
+		throws Exception
+	{
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 
@@ -150,11 +163,14 @@ public class CSVUtilTest {
 	 * .
 	 */
 	@Test
-	public final void testStreamCSVSingleRowSingleColumn() throws Exception {
+	public final void testStreamCSVSingleRowSingleColumn()
+		throws Exception
+	{
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 
-		CSVUtil.streamCSV(new StringReader("Test1\nAnswer1"), h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+		CSVUtil.streamCSV(new StringReader("Test1\nAnswer1"), h -> headers.addAll(h), (h, l) -> l,
+				l -> lines.add(l));
 		assertEquals(1, headers.size());
 		assertTrue(headers.contains("Test1"));
 		assertEquals(1, lines.size());
@@ -167,7 +183,9 @@ public class CSVUtilTest {
 	 * .
 	 */
 	@Test
-	public final void testStreamCSVSingleRowMultipleColumns() throws Exception {
+	public final void testStreamCSVSingleRowMultipleColumns()
+		throws Exception
+	{
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 
@@ -187,12 +205,14 @@ public class CSVUtilTest {
 	 * .
 	 */
 	@Test
-	public final void testStreamCSVMultipleRowsSingleColumn() throws Exception {
+	public final void testStreamCSVMultipleRowsSingleColumn()
+		throws Exception
+	{
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 
-		CSVUtil.streamCSV(new StringReader("Test1\nAnswer1\nAnswer2\nAnswer3"), h -> headers.addAll(h), (h, l) -> l,
-				l -> lines.add(l));
+		CSVUtil.streamCSV(new StringReader("Test1\nAnswer1\nAnswer2\nAnswer3"), h -> headers.addAll(h),
+				(h, l) -> l, l -> lines.add(l));
 		assertEquals(1, headers.size());
 		assertTrue(headers.contains("Test1"));
 		assertEquals(3, lines.size());
@@ -207,7 +227,9 @@ public class CSVUtilTest {
 	 * .
 	 */
 	@Test
-	public final void testStreamCSVMultipleRowsMultipleColumns() throws Exception {
+	public final void testStreamCSVMultipleRowsMultipleColumns()
+		throws Exception
+	{
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 
@@ -226,20 +248,41 @@ public class CSVUtilTest {
 	}
 
 	@Test
-	public final void testWriteEmpty() throws Exception {
+	public final void testWriteEmpty()
+		throws Exception
+	{
 		List<String> headers = Arrays.asList("TestHeader1");
 		StringWriter writer = new StringWriter();
 		CSVUtil.newCSVWriter(writer, headers).writeAll(Arrays.asList(Arrays.asList()));
 		System.out.println(writer.toString());
 		assertEquals("TestHeader1\n", writer.toString());
 	}
-	
+
 	@Test
-	public final void testWriteSingleEmptyString() throws Exception {
+	public final void testWriteSingleEmptyString()
+		throws Exception
+	{
 		List<String> headers = Arrays.asList("TestHeader1");
 		StringWriter writer = new StringWriter();
 		CSVUtil.newCSVWriter(writer, headers).writeAll(Arrays.asList(Arrays.asList("")));
 		System.out.println(writer.toString());
 		assertEquals("TestHeader1\n\n", writer.toString());
+
+		AtomicBoolean headersGood = new AtomicBoolean(false);
+		AtomicBoolean lineGood = new AtomicBoolean(false);
+		CSVUtil.streamCSV(new StringReader(writer.toString()), h -> {
+			if (headers.size() == 1 && headers.contains("TestHeader1")) {
+				headersGood.set(true);
+			}
+		}, (h, l) -> {
+			if (l.size() == 1 && l.contains("")) {
+				lineGood.set(true);
+			}
+			return l;
+		}, l -> {
+		});
+
+		assertTrue("Headers were not recognised", headersGood.get());
+		assertTrue("Line was not recognised", lineGood.get());
 	}
 }
