@@ -233,6 +233,11 @@ public final class CSVSummariser {
 
 		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, summarySchema);
 				final SequenceWriter mappingWriter = CSVUtil.newCSVWriter(mappingOutput, mappingSchema);) {
+			// Need to do this to get the header line written out in this case
+			if(rowCount.get() == 0) {
+				csvWriter.write(Arrays.asList());
+				mappingWriter.write(Arrays.asList());
+			}
 			headers.forEach(h -> {
 				final int emptyCount = emptyCounts.get(h).get();
 				final int nonEmptyCount = nonEmptyCounts.get(h).get();
