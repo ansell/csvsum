@@ -28,6 +28,7 @@ package com.github.ansell.csv.util;
 import static org.junit.Assert.*;
 
 import java.io.StringReader;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -224,4 +225,21 @@ public class CSVUtilTest {
 		assertTrue(lines.contains(Arrays.asList("Answer7", "Alternative8", "Attempt9")));
 	}
 
+	@Test
+	public final void testWriteEmpty() throws Exception {
+		List<String> headers = Arrays.asList("TestHeader1");
+		StringWriter writer = new StringWriter();
+		CSVUtil.newCSVWriter(writer, headers).writeAll(Arrays.asList(Arrays.asList()));
+		System.out.println(writer.toString());
+		assertEquals("TestHeader1\n", writer.toString());
+	}
+	
+	@Test
+	public final void testWriteSingleEmptyString() throws Exception {
+		List<String> headers = Arrays.asList("TestHeader1");
+		StringWriter writer = new StringWriter();
+		CSVUtil.newCSVWriter(writer, headers).writeAll(Arrays.asList(Arrays.asList("")));
+		System.out.println(writer.toString());
+		assertEquals("TestHeader1\n\n", writer.toString());
+	}
 }
