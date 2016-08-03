@@ -38,6 +38,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.fasterxml.jackson.databind.SequenceWriter;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.util.CSVUtil;
 
 /**
@@ -248,7 +251,46 @@ public class CSVUtilTest {
 	}
 
 	@Test
-	public final void testWriteEmpty()
+	public final void testWriteFullCode()
+		throws Exception
+	{
+		List<String> headers = Arrays.asList("TestHeader1", "TestHeader2");
+		List<List<String>> dataSource = Arrays.asList();
+		// Or alternatively,
+		// List<List<String>> dataSource = Arrays.asList(Arrays.asList("TestValue1", "TestValue2"));
+		java.io.Writer writer = new StringWriter();
+		CsvSchema.Builder builder = CsvSchema.builder();
+		for (String nextHeader : headers) {
+			builder = builder.addColumn(nextHeader);
+		}
+		CsvSchema schema = builder.setUseHeader(true).build();
+		try (SequenceWriter csvWriter = new CsvMapper().writerWithDefaultPrettyPrinter().with(schema).forType(
+				List.class).writeValues(writer);)
+		{
+			for (List<String> nextRow : dataSource) {
+				csvWriter.write(nextRow);
+			}
+			// Check to see whether dataSource is empty and if so write a single empty list to trigger header output
+			if (dataSource.isEmpty()) {
+				csvWriter.write(Arrays.asList());
+			}
+		}
+		System.out.println(writer.toString());
+	}
+
+	@Test
+	public final void testWriteEmptySingle()
+		throws Exception
+	{
+		List<String> headers = Arrays.asList("TestHeader1");
+		StringWriter writer = new StringWriter();
+		CSVUtil.newCSVWriter(writer, headers).write(Arrays.asList());
+		System.out.println(writer.toString());
+		assertEquals("TestHeader1\n", writer.toString());
+	}
+
+	@Test
+	public final void testWriteEmptyAll()
 		throws Exception
 	{
 		List<String> headers = Arrays.asList("TestHeader1");
