@@ -270,7 +270,8 @@ public class CSVUtilTest {
 			for (List<String> nextRow : dataSource) {
 				csvWriter.write(nextRow);
 			}
-			// Check to see whether dataSource is empty and if so write a single empty list to trigger header output
+			// Check to see whether dataSource is empty 
+			// and if so write a single empty list to trigger header output
 			if (dataSource.isEmpty()) {
 				csvWriter.write(Arrays.asList());
 			}
