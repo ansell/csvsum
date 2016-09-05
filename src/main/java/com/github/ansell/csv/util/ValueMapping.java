@@ -377,6 +377,8 @@ public class ValueMapping {
 				javascriptFunction.append("var MessageDigest = Java.type('java.security.MessageDigest'); \n");
 				javascriptFunction.append("var BigInteger = Java.type('java.math.BigInteger'); \n");
 				javascriptFunction.append("var Arrays = Java.type('java.util.Arrays'); \n");
+				javascriptFunction.append("var UTM = Java.type('com.github.ansell.shp.UTM'); \n");
+				javascriptFunction.append("var WGS84 = Java.type('com.github.ansell.shp.WGS84'); \n");
 				javascriptFunction.append("var digest = function(value, algorithm, formatPattern) { if(!algorithm) { algorithm = \"SHA-256\"; } if(!formatPattern) { formatPattern = \"%064x\";} var md = MessageDigest.getInstance(algorithm); md.update(value.getBytes(\"UTF-8\")); var digestValue = md.digest(); return String.format(formatPattern, new BigInteger(1, digestValue));}; \n");
 				javascriptFunction.append(
 						"var dateMatches = function(dateValue, format) { try {\n format.parse(dateValue); \n return true; \n } catch(e) { } \n return false; }; \n");

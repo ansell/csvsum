@@ -95,6 +95,10 @@
 			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.github.ansell.shp</groupId>
+			<artifactId>utm2wgs</artifactId>
+		</dependency>
 	</dependencies>
 
 	<dependencyManagement>
@@ -198,6 +202,11 @@
 				<groupId>org.postgresql</groupId>
 				<artifactId>postgresql</artifactId>
 				<version>9.4.1208</version>
+			</dependency>
+			<dependency>
+				<groupId>com.github.ansell.shp</groupId>
+				<artifactId>utm2wgs</artifactId>
+				<version>0.0.1-SNAPSHOT</version>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>
