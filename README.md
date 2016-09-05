@@ -79,6 +79,8 @@ Javascript mappings have access to some global functions included from Java:
 * MessageDigest : The java.security.MessageDigest class
 * BigInteger : The java.math.BigInteger class
 * Arrays : The java.util.Arrays class
+* WGS84 : The com.github.ansell.shp.WGS84 class from https://github.com/ansell/utm2wgs
+* UTM : The com.github.ansell.shp.UTM class from https://github.com/ansell/utm2wgs
 
 Other Java classes can be accessed by assigning their type to a global variable using the syntax:
 
@@ -154,6 +156,9 @@ Run csvmap with a sample csv file:
     </dependency>
 
 # Changelog
+
+## 2016-09-05
+* Add dependency and javascript links to utm2wgs, including UTM and WGS84
 
 ## 2016-07-25
 * Release 0.3.1
