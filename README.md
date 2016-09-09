@@ -157,6 +157,10 @@ Run csvmap with a sample csv file:
 
 # Changelog
 
+## 2016-09-09
+* Release 0.4.0
+* Add dependency on csvstream and remove/redirect code locally to it
+
 ## 2016-09-05
 * Add dependency and javascript links to utm2wgs, including UTM and WGS84
 
