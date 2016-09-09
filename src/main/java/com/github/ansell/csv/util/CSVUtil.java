@@ -89,94 +89,6 @@ public final class CSVUtil {
 	private CSVUtil() {
 	}
 
-	/**
-	 * Stream a CSV file from the given Reader through the header validator,
-	 * line checker, and if the line checker succeeds, send the
-	 * checked/converted line to the consumer.
-	 * 
-	 * @param inputStreamReader
-	 *            The {@link Reader} containing the CSV file.
-	 * @param headerValidator
-	 *            The validator of the header line.
-	 * @param lineChecker
-	 *            The validator and converter of lines, based on the header
-	 *            line. If the lineChecker returns null, the line will not be
-	 *            passed to the writer.
-	 * @param writer
-	 *            The consumer of the checked lines.
-	 * @param <T>
-	 *            The type of the results that will be created by the
-	 *            lineChecker and pushed into the writer {@link Consumer}.
-	 * @throws IOException
-	 *             If an error occurred accessing the input.
-	 * @deprecated Use
-	 *             {@link CSVStream#parse(Reader, Consumer, BiFunction, Consumer)}
-	 *             instead.
-	 */
-	@Deprecated
-	public static <T> void streamCSV(final Reader inputStreamReader, final Consumer<List<String>> headerValidator,
-			final BiFunction<List<String>, List<String>, T> lineChecker, final Consumer<T> writer) throws IOException {
-		CSVStream.parse(inputStreamReader, headerValidator, lineChecker, writer);
-	}
-
-	/**
-	 * Returns a Jackson {@link SequenceWriter} which will write CSV lines to
-	 * the given {@link Writer} using the headers provided.
-	 * 
-	 * @param writer
-	 *            The writer which will receive the CSV file.
-	 * @param header
-	 *            The column headers that will be used by the returned Jackson
-	 *            {@link SequenceWriter}.
-	 * @return A Jackson {@link SequenceWriter} that can have
-	 *         {@link SequenceWriter#write(Object)} called on it to emit CSV
-	 *         lines to the given {@link Writer}.
-	 * @throws IOException
-	 *             If there is a problem writing the CSV header line to the
-	 *             {@link Writer}.
-	 * @deprecated Use {@link CSVStream#newCSVWriter(Writer, List)} instead.
-	 */
-	@Deprecated
-	public static SequenceWriter newCSVWriter(final Writer writer, List<String> header) throws IOException {
-		return CSVStream.newCSVWriter(writer, header);
-	}
-
-	/**
-	 * Returns a Jackson {@link SequenceWriter} which will write CSV lines to
-	 * the given {@link Writer} using the {@link CsvSchema}.
-	 * 
-	 * @param writer
-	 *            The writer which will receive the CSV file.
-	 * @param schema
-	 *            The {@link CsvSchema} that will be used by the returned
-	 *            Jackson {@link SequenceWriter}.
-	 * @return A Jackson {@link SequenceWriter} that can have
-	 *         {@link SequenceWriter#write(Object)} called on it to emit CSV
-	 *         lines to the given {@link Writer}.
-	 * @throws IOException
-	 *             If there is a problem writing the CSV header line to the
-	 *             {@link Writer}.
-	 * @deprecated Use {@link CSVStream#newCSVWriter(Writer, CsvSchema)}
-	 *             instead.
-	 */
-	@Deprecated
-	public static SequenceWriter newCSVWriter(final Writer writer, CsvSchema schema) throws IOException {
-		return CSVStream.newCSVWriter(writer, schema);
-	}
-
-	/**
-	 * Build a {@link CsvSchema} object using the given headers.
-	 * 
-	 * @param header
-	 *            The list of strings in the header.
-	 * @return A {@link CsvSchema} object including the given header items.
-	 * @deprecated Use {@link CSVStream#buildSchema(List)} instead.
-	 */
-	@Deprecated
-	public static CsvSchema buildSchema(List<String> header) {
-		return CSVStream.buildSchema(header);
-	}
-
 	public static String oldDateToISO8601LocalDateTime(Date nextColumnDate) {
 		LocalDateTime localDateTime = nextColumnDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
 		String formattedDate = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(localDateTime);
@@ -336,7 +248,7 @@ public final class CSVUtil {
 			final List<List<String>> otherLines = new ArrayList<>();
 
 			try (final BufferedReader otherTemp = Files.newBufferedReader(tempOtherFile)) {
-				streamCSV(otherTemp, otherHeader -> otherHeader.forEach(h -> otherH.add(otherPrefix + h)),
+				CSVStream.parse(otherTemp, otherHeader -> otherHeader.forEach(h -> otherH.add(otherPrefix + h)),
 						(otherHeader, otherL) -> {
 							return otherL;
 						}, otherL -> {
@@ -392,7 +304,7 @@ public final class CSVUtil {
 
 				final List<String> inputHeaders = new ArrayList<>();
 				try (final BufferedReader inputTemp = Files.newBufferedReader(tempInputFile)) {
-					streamCSV(inputTemp, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)), (h, l) -> {
+					CSVStream.parse(inputTemp, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)), (h, l) -> {
 						final int nextLineNumber = lineNumber.incrementAndGet();
 						final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 						try {
