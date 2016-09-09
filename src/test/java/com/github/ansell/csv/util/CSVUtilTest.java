@@ -57,7 +57,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.util.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csv.util.CSVStream#parse(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -66,7 +66,7 @@ public class CSVUtilTest {
 	{
 		thrown.expect(RuntimeException.class);
 		thrown.expectMessage("Could not verify headers for csv file");
-		CSVUtil.streamCSV(new StringReader("Header1"), h -> {
+		CSVStream.parse(new StringReader("Header1"), h -> {
 			throw new IllegalArgumentException("Did not find header: Header2");
 		}, (h, l) -> l, l -> {
 		});
@@ -74,7 +74,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.util.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csv.util.CSVStream#parse(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -85,13 +85,13 @@ public class CSVUtilTest {
 
 		thrown.expect(RuntimeException.class);
 		thrown.expectMessage("CSV file did not contain a valid header line");
-		CSVUtil.streamCSV(new StringReader(""), h -> headers.addAll(h), (h, l) -> l, l -> {
+		CSVStream.parse(new StringReader(""), h -> headers.addAll(h), (h, l) -> l, l -> {
 		});
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.util.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csv.util.CSVStream#parse(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -101,14 +101,14 @@ public class CSVUtilTest {
 		List<String> headers = new ArrayList<>();
 
 		thrown.expect(RuntimeException.class);
-		CSVUtil.streamCSV(new StringReader("Test1\nAnswer1,Answer2,Answer3"), h -> headers.addAll(h),
+		CSVStream.parse(new StringReader("Test1\nAnswer1,Answer2,Answer3"), h -> headers.addAll(h),
 				(h, l) -> l, l -> {
 				});
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.util.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csv.util.CSVStream#parse(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -118,14 +118,14 @@ public class CSVUtilTest {
 		List<String> headers = new ArrayList<>();
 
 		thrown.expect(RuntimeException.class);
-		CSVUtil.streamCSV(new StringReader("Test1, Another2, Else3\nAnswer1"), h -> headers.addAll(h),
+		CSVStream.parse(new StringReader("Test1, Another2, Else3\nAnswer1"), h -> headers.addAll(h),
 				(h, l) -> l, l -> {
 				});
 	}
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.util.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csv.util.CSVStream#parse(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -135,7 +135,7 @@ public class CSVUtilTest {
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 
-		CSVUtil.streamCSV(new StringReader("Test1"), h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+		CSVStream.parse(new StringReader("Test1"), h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
 		assertEquals(1, headers.size());
 		assertTrue(headers.contains("Test1"));
 		assertEquals(0, lines.size());
@@ -143,7 +143,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.util.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csv.util.CSVStream#parse(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -153,7 +153,7 @@ public class CSVUtilTest {
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 
-		CSVUtil.streamCSV(new StringReader("Test1, Another2, Else3"), h -> headers.addAll(h), (h, l) -> l,
+		CSVStream.parse(new StringReader("Test1, Another2, Else3"), h -> headers.addAll(h), (h, l) -> l,
 				l -> lines.add(l));
 		assertEquals(3, headers.size());
 		assertTrue(headers.contains("Test1"));
@@ -164,7 +164,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.util.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csv.util.CSVStream#parse(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -174,7 +174,7 @@ public class CSVUtilTest {
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 
-		CSVUtil.streamCSV(new StringReader("Test1\nAnswer1"), h -> headers.addAll(h), (h, l) -> l,
+		CSVStream.parse(new StringReader("Test1\nAnswer1"), h -> headers.addAll(h), (h, l) -> l,
 				l -> lines.add(l));
 		assertEquals(1, headers.size());
 		assertTrue(headers.contains("Test1"));
@@ -184,7 +184,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.util.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csv.util.CSVStream#parse(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -194,7 +194,7 @@ public class CSVUtilTest {
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 
-		CSVUtil.streamCSV(new StringReader("Test1, Another2, Else3\nAnswer1, Alternative2, Attempt3"),
+		CSVStream.parse(new StringReader("Test1, Another2, Else3\nAnswer1, Alternative2, Attempt3"),
 				h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
 		assertEquals(3, headers.size());
 		assertTrue(headers.contains("Test1"));
@@ -206,7 +206,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.util.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csv.util.CSVStream#parse(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -216,7 +216,7 @@ public class CSVUtilTest {
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 
-		CSVUtil.streamCSV(new StringReader("Test1\nAnswer1\nAnswer2\nAnswer3"), h -> headers.addAll(h),
+		CSVStream.parse(new StringReader("Test1\nAnswer1\nAnswer2\nAnswer3"), h -> headers.addAll(h),
 				(h, l) -> l, l -> lines.add(l));
 		assertEquals(1, headers.size());
 		assertTrue(headers.contains("Test1"));
@@ -228,7 +228,7 @@ public class CSVUtilTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.util.CSVUtil#streamCSV(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
+	 * {@link com.github.ansell.csv.util.CSVStream#parse(java.io.Reader, java.util.function.Consumer, java.util.function.BiFunction, java.util.function.Consumer)}
 	 * .
 	 */
 	@Test
@@ -238,7 +238,7 @@ public class CSVUtilTest {
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 
-		CSVUtil.streamCSV(
+		CSVStream.parse(
 				new StringReader(
 						"Test1, Another2, Else3\nAnswer1, Alternative2, Attempt3\nAnswer4, Alternative5, Attempt6\nAnswer7, Alternative8, Attempt9"),
 				h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
@@ -318,7 +318,7 @@ public class CSVUtilTest {
 
 		AtomicBoolean headersGood = new AtomicBoolean(false);
 		AtomicBoolean lineGood = new AtomicBoolean(false);
-		CSVUtil.streamCSV(new StringReader(writer.toString()), h -> {
+		CSVStream.parse(new StringReader(writer.toString()), h -> {
 			if (headers.size() == 1 && headers.contains("TestHeader1")) {
 				headersGood.set(true);
 			}

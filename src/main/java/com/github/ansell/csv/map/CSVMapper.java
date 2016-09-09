@@ -150,7 +150,7 @@ public final class CSVMapper {
 				previousMappedLine.addAll(m);
 				csvWriter.write(m);
 			});
-			CSVUtil.streamCSV(input, h -> inputHeaders.addAll(h), (h, l) -> {
+			CSVStream.parse(input, h -> inputHeaders.addAll(h), (h, l) -> {
 				int nextLineNumber = lineNumber.incrementAndGet();
 				int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {

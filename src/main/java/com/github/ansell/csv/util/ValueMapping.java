@@ -44,6 +44,7 @@ import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
+import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.jdefaultdict.JDefaultDict;
 
 /**
@@ -111,7 +112,7 @@ public class ValueMapping {
 	public static List<ValueMapping> extractMappings(Reader input) throws IOException {
 		List<ValueMapping> result = new ArrayList<>();
 
-		CSVUtil.streamCSV(input, h -> {
+		CSVStream.parse(input, h -> {
 		} , (h, l) -> {
 			return newMapping(l.get(h.indexOf(LANGUAGE)), l.get(h.indexOf(OLD_FIELD)), l.get(h.indexOf(NEW_FIELD)),
 					l.get(h.indexOf(MAPPING)), l.get(h.indexOf(SHOWN)));

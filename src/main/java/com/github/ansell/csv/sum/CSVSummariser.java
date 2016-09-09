@@ -173,7 +173,7 @@ public final class CSVSummariser {
 		final List<String> headers = new ArrayList<String>();
 		final AtomicInteger rowCount = new AtomicInteger();
 
-		CSVUtil.streamCSV(input, h -> headers.addAll(h), (h, l) -> {
+		CSVStream.parse(input, h -> headers.addAll(h), (h, l) -> {
 			rowCount.incrementAndGet();
 			for (int i = 0; i < h.size(); i++) {
 				if (l.get(i).trim().isEmpty()) {

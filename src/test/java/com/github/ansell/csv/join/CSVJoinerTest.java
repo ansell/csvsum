@@ -44,6 +44,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import com.github.ansell.csv.join.CSVJoiner;
+import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.csv.util.CSVUtil;
 
 import joptsimple.OptionException;
@@ -219,7 +220,7 @@ public class CSVJoinerTest {
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 		try (BufferedReader reader = Files.newBufferedReader(testDirectory.resolve("test-output.csv"));) {
-			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+			CSVStream.parse(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
 		}
 		assertEquals(12, headers.size());
 		assertEquals(4, lines.size());
@@ -254,7 +255,7 @@ public class CSVJoinerTest {
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 		try (BufferedReader reader = Files.newBufferedReader(testDirectory.resolve("test-output.csv"));) {
-			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+			CSVStream.parse(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
 		}
 		assertEquals(10, headers.size());
 		assertEquals(3, lines.size());
@@ -288,7 +289,7 @@ public class CSVJoinerTest {
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 		try (BufferedReader reader = Files.newBufferedReader(testDirectory.resolve("test-output.csv"));) {
-			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+			CSVStream.parse(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
 		}
 		assertEquals(10, headers.size());
 		assertEquals(3, lines.size());
@@ -321,7 +322,7 @@ public class CSVJoinerTest {
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 		try (BufferedReader reader = Files.newBufferedReader(testDirectory.resolve("test-output.csv"));) {
-			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+			CSVStream.parse(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
 		}
 		assertEquals(10, headers.size());
 		assertEquals(3, lines.size());
@@ -354,7 +355,7 @@ public class CSVJoinerTest {
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 		try (BufferedReader reader = Files.newBufferedReader(testDirectory.resolve("test-output.csv"));) {
-			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+			CSVStream.parse(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
 		}
 		assertEquals(11, headers.size());
 		assertEquals(6, lines.size());

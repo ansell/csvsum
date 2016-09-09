@@ -220,7 +220,7 @@ public final class CSVUpload {
 		try {
 			final List<String> types = new ArrayList<>();
 			final List<String> outputFieldNames = new ArrayList<>();
-			CSVUtil.streamCSV(input, Unchecked.consumer(h -> {
+			CSVStream.parse(input, Unchecked.consumer(h -> {
 				final StringBuilder insertStatement = new StringBuilder(2048);
 				h.forEach(nextH -> {
 					Optional<ValueMapping> firstMapping = map.stream()

@@ -45,6 +45,7 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
+import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.csv.util.CSVUtil;
 
 import joptsimple.OptionException;
@@ -153,7 +154,7 @@ public class AccessMapperTest {
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 		try (BufferedReader reader = Files.newBufferedReader(testOutput.resolve("Mapped-Single-tblData.csv"));) {
-			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+			CSVStream.parse(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
 		}
 		assertEquals(30, headers.size());
 		assertEquals(85519, lines.size());
@@ -181,7 +182,7 @@ public class AccessMapperTest {
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 		try (BufferedReader reader = Files.newBufferedReader(testOutput.resolve("Mapped-Single-tblData.csv"));) {
-			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+			CSVStream.parse(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
 		}
 		assertEquals(28, headers.size());
 		assertEquals(85519, lines.size());
@@ -240,7 +241,7 @@ public class AccessMapperTest {
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 		try (BufferedReader reader = Files.newBufferedReader(testOutput.resolve("Mapped-Single-tblData.csv"));) {
-			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+			CSVStream.parse(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
 		}
 		assertEquals(29, headers.size());
 		assertEquals(85519, lines.size());
@@ -284,7 +285,7 @@ public class AccessMapperTest {
 		List<String> headers = new ArrayList<>();
 		List<List<String>> lines = new ArrayList<>();
 		try (BufferedReader reader = Files.newBufferedReader(testOutput.resolve("Mapped-Single-tblData.csv"));) {
-			CSVUtil.streamCSV(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+			CSVStream.parse(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
 		}
 		assertEquals(30, headers.size());
 		assertEquals(85519, lines.size());
