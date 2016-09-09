@@ -47,6 +47,7 @@ import org.apache.commons.io.output.NullWriter;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.csv.util.CSVUtil;
 import com.github.ansell.csv.util.ValueMapping;
 import com.github.ansell.jdefaultdict.JDefaultDict;
@@ -230,9 +231,11 @@ public final class CSVSummariser {
 				sampleValue.append(s);
 			}
 		};
+		final Writer writer = output;
+		final Writer writer1 = mappingOutput;
 
-		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, summarySchema);
-				final SequenceWriter mappingWriter = CSVUtil.newCSVWriter(mappingOutput, mappingSchema);) {
+		try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(writer, summarySchema);
+				final SequenceWriter mappingWriter = CSVStream.newCSVWriter(writer1, mappingSchema);) {
 			// Need to do this to get the header line written out in this case
 			if(rowCount.get() == 0) {
 				csvWriter.write(Arrays.asList());

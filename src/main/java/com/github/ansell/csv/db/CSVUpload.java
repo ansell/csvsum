@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.jooq.lambda.Unchecked;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
+import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.csv.util.CSVUtil;
 import com.github.ansell.csv.util.ValueMapping;
 
@@ -200,7 +201,8 @@ public final class CSVUpload {
 			for (int i = 1; i <= columnCount; i++) {
 				columnNames.add(metadata.getColumnLabel(i));
 			}
-			final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, columnNames);
+			final Writer writer = output;
+			final SequenceWriter csvWriter = CSVStream.newCSVWriter(writer, columnNames);
 			final List<String> nextResult = new ArrayList<>(columnCount);
 			while (results.next()) {
 				for (int i = 1; i <= columnCount; i++) {

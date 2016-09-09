@@ -50,6 +50,7 @@ import org.jooq.lambda.Unchecked;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.csv.util.CSVUtil;
 import com.github.ansell.csv.util.LineFilteredException;
 import com.github.ansell.csv.util.ValueMapping;
@@ -132,9 +133,10 @@ public final class CSVMapper {
 
 		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(outputFields)
 				.collect(Collectors.toList());
-		final CsvSchema schema = CSVUtil.buildSchema(outputHeaders);
+		final CsvSchema schema = CSVStream.buildSchema(outputHeaders);
+		final Writer writer = output;
 
-		try (final SequenceWriter csvWriter = CSVUtil.newCSVWriter(output, schema);) {
+		try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(writer, schema);) {
 			List<String> inputHeaders = new ArrayList<>();
 			List<String> previousLine = new ArrayList<>();
 			List<String> previousMappedLine = new ArrayList<>();

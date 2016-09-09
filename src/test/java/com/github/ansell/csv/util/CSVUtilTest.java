@@ -29,6 +29,7 @@ import static org.junit.Assert.*;
 
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -41,6 +42,7 @@ import org.junit.rules.ExpectedException;
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.csv.util.CSVUtil;
 
 /**
@@ -285,7 +287,8 @@ public class CSVUtilTest {
 	{
 		List<String> headers = Arrays.asList("TestHeader1");
 		StringWriter writer = new StringWriter();
-		CSVUtil.newCSVWriter(writer, headers).write(Arrays.asList());
+		final Writer writer1 = writer;
+		CSVStream.newCSVWriter(writer1, headers).write(Arrays.asList());
 		System.out.println(writer.toString());
 		assertEquals("TestHeader1\n", writer.toString());
 	}
@@ -296,7 +299,8 @@ public class CSVUtilTest {
 	{
 		List<String> headers = Arrays.asList("TestHeader1");
 		StringWriter writer = new StringWriter();
-		CSVUtil.newCSVWriter(writer, headers).writeAll(Arrays.asList(Arrays.asList()));
+		final Writer writer1 = writer;
+		CSVStream.newCSVWriter(writer1, headers).writeAll(Arrays.asList(Arrays.asList()));
 		System.out.println(writer.toString());
 		assertEquals("TestHeader1\n", writer.toString());
 	}
@@ -307,7 +311,8 @@ public class CSVUtilTest {
 	{
 		List<String> headers = Arrays.asList("TestHeader1");
 		StringWriter writer = new StringWriter();
-		CSVUtil.newCSVWriter(writer, headers).writeAll(Arrays.asList(Arrays.asList("")));
+		final Writer writer1 = writer;
+		CSVStream.newCSVWriter(writer1, headers).writeAll(Arrays.asList(Arrays.asList("")));
 		System.out.println(writer.toString());
 		assertEquals("TestHeader1\n\n", writer.toString());
 

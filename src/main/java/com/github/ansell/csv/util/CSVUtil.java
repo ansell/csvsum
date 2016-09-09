@@ -363,9 +363,10 @@ public final class CSVUtil {
 			final String[] destFields = m.getDestFields();
 			final String[] sourceFields = m.getSourceFields();
 
-			final CsvSchema schema = buildSchema(outputHeaders);
+			final CsvSchema schema = CSVStream.buildSchema(outputHeaders);
+			final Writer writer = output;
 
-			try (final SequenceWriter csvWriter = newCSVWriter(output, schema);) {
+			try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(writer, schema);) {
 				final JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
 				final Set<List<String>> matchedOtherLines = new LinkedHashSet<>();
 

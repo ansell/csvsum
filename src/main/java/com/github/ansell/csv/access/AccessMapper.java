@@ -61,6 +61,7 @@ import org.jooq.lambda.tuple.Tuple2;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.csv.util.CSVUtil;
 import com.github.ansell.csv.util.ConsumerRunnable;
 import com.github.ansell.csv.util.LineFilteredException;
@@ -231,10 +232,10 @@ public class AccessMapper {
 			if (originTable != null) {
 				List<String> headers = map.stream().filter(k -> k.getShown()).map(m -> m.getOutputField())
 						.collect(Collectors.toList());
-				final CsvSchema schema = CSVUtil.buildSchema(headers);
+				final CsvSchema schema = CSVStream.buildSchema(headers);
 
 				try (final Writer csv = Files.newBufferedWriter(csvPath.resolve(csvPrefix + originTable + ".csv"));
-						final SequenceWriter csvWriter = CSVUtil.newCSVWriter(new BufferedWriter(csv), schema);) {
+						final SequenceWriter csvWriter = CSVStream.newCSVWriter(new BufferedWriter(csv), schema);) {
 
 					// Setup the writer first
 					final Queue<List<String>> writerQueue = new ConcurrentLinkedQueue<>();
@@ -599,12 +600,11 @@ public class AccessMapper {
 		Files.copy(input, tempFile, StandardCopyOption.REPLACE_EXISTING);
 
 		try {
-			final CsvSchema schema = CSVUtil.buildSchema(Arrays.asList("OldField", "NewField", "Language", "Mapping"));
+			final CsvSchema schema = CSVStream.buildSchema(Arrays.asList("OldField", "NewField", "Language", "Mapping"));
 			try (final Database db = DatabaseBuilder.open(tempFile.toFile());
 					final Writer columnCsv = Files
 							.newBufferedWriter(outputDir.resolve(csvPrefix + "AutoMapping-Columns.csv"));
-					final SequenceWriter columnCsvWriter = CSVUtil.newCSVWriter(new BufferedWriter(columnCsv),
-							schema);) {
+					final SequenceWriter columnCsvWriter = CSVStream.newCSVWriter(new BufferedWriter(columnCsv), schema);) {
 				for (String tableName : db.getTableNames()) {
 					Table table = db.getTable(tableName);
 
@@ -627,10 +627,9 @@ public class AccessMapper {
 						}
 					}
 
-					final CsvSchema fullFileSchema = CSVUtil.buildSchema(Arrays.asList(tempArray));
+					final CsvSchema fullFileSchema = CSVStream.buildSchema(Arrays.asList(tempArray));
 					try (final Writer fullFileCsv = Files.newBufferedWriter(csvPath);
-							final SequenceWriter fullFileCsvWriter = CSVUtil
-									.newCSVWriter(new BufferedWriter(fullFileCsv), fullFileSchema);) {
+							final SequenceWriter fullFileCsvWriter = CSVStream.newCSVWriter(new BufferedWriter(fullFileCsv), fullFileSchema);) {
 						int rows = 0;
 						for (Row nextRow : table) {
 							int i = 0;
