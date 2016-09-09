@@ -62,12 +62,9 @@ import org.jooq.lambda.Seq;
 import org.jooq.lambda.Unchecked;
 import org.jooq.lambda.tuple.Tuple2;
 
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.databind.SequenceWriter;
-import com.fasterxml.jackson.dataformat.csv.CsvMapper;
-import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.csv.util.ValueMapping.ValueMappingLanguage;
 import com.github.ansell.jdefaultdict.JDefaultDict;
 
@@ -112,45 +109,14 @@ public final class CSVUtil {
 	 *            lineChecker and pushed into the writer {@link Consumer}.
 	 * @throws IOException
 	 *             If an error occurred accessing the input.
+	 * @deprecated Use
+	 *             {@link CSVStream#parse(Reader, Consumer, BiFunction, Consumer)}
+	 *             instead.
 	 */
+	@Deprecated
 	public static <T> void streamCSV(final Reader inputStreamReader, final Consumer<List<String>> headerValidator,
 			final BiFunction<List<String>, List<String>, T> lineChecker, final Consumer<T> writer) throws IOException {
-		final CsvMapper mapper = new CsvMapper();
-		// important: we need "array wrapping" (see next section) here:
-		mapper.enable(CsvParser.Feature.TRIM_SPACES);
-		mapper.enable(CsvParser.Feature.WRAP_AS_ARRAY);
-		mapper.configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true);
-
-		List<String> headers = null;
-
-		final MappingIterator<List<String>> it = mapper.readerFor(List.class).readValues(inputStreamReader);
-		while (it.hasNext()) {
-			List<String> nextLine = it.next();
-			if (headers == null) {
-				headers = nextLine.stream().map(v -> v.trim()).map(v -> v.intern()).collect(Collectors.toList());
-				try {
-					headerValidator.accept(headers);
-				} catch (final IllegalArgumentException e) {
-					throw new RuntimeException("Could not verify headers for csv file", e);
-				}
-			} else {
-				if (nextLine.size() != headers.size()) {
-					throw new RuntimeException("Line and header sizes were different: " + headers + " " + nextLine);
-				}
-
-				final T apply = lineChecker.apply(headers, nextLine);
-
-				// Line checker returning null indicates that a value was not
-				// found.
-				if (apply != null) {
-					writer.accept(apply);
-				}
-			}
-		}
-
-		if (headers == null) {
-			throw new RuntimeException("CSV file did not contain a valid header line");
-		}
+		CSVStream.parse(inputStreamReader, headerValidator, lineChecker, writer);
 	}
 
 	/**
@@ -168,9 +134,11 @@ public final class CSVUtil {
 	 * @throws IOException
 	 *             If there is a problem writing the CSV header line to the
 	 *             {@link Writer}.
+	 * @deprecated Use {@link CSVStream#newCSVWriter(Writer, List)} instead.
 	 */
+	@Deprecated
 	public static SequenceWriter newCSVWriter(final Writer writer, List<String> header) throws IOException {
-		return newCSVWriter(writer, buildSchema(header));
+		return CSVStream.newCSVWriter(writer, header);
 	}
 
 	/**
@@ -188,9 +156,12 @@ public final class CSVUtil {
 	 * @throws IOException
 	 *             If there is a problem writing the CSV header line to the
 	 *             {@link Writer}.
+	 * @deprecated Use {@link CSVStream#newCSVWriter(Writer, CsvSchema)}
+	 *             instead.
 	 */
+	@Deprecated
 	public static SequenceWriter newCSVWriter(final Writer writer, CsvSchema schema) throws IOException {
-		return new CsvMapper().writerWithDefaultPrettyPrinter().with(schema).forType(List.class).writeValues(writer);
+		return CSVStream.newCSVWriter(writer, schema);
 	}
 
 	/**
@@ -199,15 +170,11 @@ public final class CSVUtil {
 	 * @param header
 	 *            The list of strings in the header.
 	 * @return A {@link CsvSchema} object including the given header items.
+	 * @deprecated Use {@link CSVStream#buildSchema(List)} instead.
 	 */
+	@Deprecated
 	public static CsvSchema buildSchema(List<String> header) {
-		CsvSchema.Builder result = CsvSchema.builder();
-
-		for (String nextHeader : header) {
-			result = result.addColumn(nextHeader);
-		}
-
-		return result.setUseHeader(true).build();
+		return CSVStream.buildSchema(header);
 	}
 
 	public static String oldDateToISO8601LocalDateTime(Date nextColumnDate) {
