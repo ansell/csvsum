@@ -68,9 +68,9 @@ public class ValueMapping {
 		ACCESS(""),
 
 		CSVJOIN(""),
-		
+
 		DBSCHEMA(""),
-		
+
 		;
 
 		private final String defaultMapping;
@@ -113,17 +113,18 @@ public class ValueMapping {
 		List<ValueMapping> result = new ArrayList<>();
 
 		CSVStream.parse(input, h -> {
-		} , (h, l) -> {
+		}, (h, l) -> {
 			return newMapping(l.get(h.indexOf(LANGUAGE)), l.get(h.indexOf(OLD_FIELD)), l.get(h.indexOf(NEW_FIELD)),
 					l.get(h.indexOf(MAPPING)), l.get(h.indexOf(SHOWN)));
-		} , l -> result.add(l));
+		}, l -> result.add(l));
 
 		return result;
 	}
 
 	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,
-			List<String> previousMappedLine, List<ValueMapping> map, JDefaultDict<String, Set<String>> primaryKeys, int lineNumber,
-			int filteredLineNumber, BiConsumer<List<String>, List<String>> mapLineConsumer) throws LineFilteredException {
+			List<String> previousMappedLine, List<ValueMapping> map, JDefaultDict<String, Set<String>> primaryKeys,
+			int lineNumber, int filteredLineNumber, BiConsumer<List<String>, List<String>> mapLineConsumer)
+			throws LineFilteredException {
 
 		HashMap<String, String> outputValues = new HashMap<>(map.size(), 0.75f);
 
@@ -185,7 +186,7 @@ public class ValueMapping {
 
 	private final String[] destFields;
 	private final String[] sourceFields;
-	
+
 	private transient ScriptEngine scriptEngine;
 	private transient CompiledScript compiledScript;
 
@@ -205,7 +206,8 @@ public class ValueMapping {
 
 	private String apply(List<String> inputHeaders, List<String> line, List<String> previousLine,
 			List<String> previousMappedLine, List<String> outputHeaders, Map<String, String> mappedLine,
-			JDefaultDict<String, Set<String>> primaryKeys, int lineNumber, int filteredLineNumber, BiConsumer<List<String>, List<String>> mapLineConsumer) {
+			JDefaultDict<String, Set<String>> primaryKeys, int lineNumber, int filteredLineNumber,
+			BiConsumer<List<String>, List<String>> mapLineConsumer) {
 		int indexOf = inputHeaders.indexOf(getInputField());
 		String nextInputValue;
 		if (indexOf >= 0) {
@@ -231,7 +233,8 @@ public class ValueMapping {
 					// from the mapping
 					return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", inputHeaders,
 							this.getInputField(), nextInputValue, outputHeaders, this.getOutputField(), line,
-							mappedLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer);
+							mappedLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber,
+							mapLineConsumer);
 				} else if (compiledScript != null) {
 					Bindings bindings = scriptEngine.createBindings();
 					// inputHeaders, inputField, inputValue, outputField, line
@@ -361,7 +364,7 @@ public class ValueMapping {
 		if (this.language == ValueMappingLanguage.JAVASCRIPT) {
 			try {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("javascript");
-				
+
 				StringBuilder javascriptFunction = new StringBuilder();
 				javascriptFunction
 						.append("var LFE = Java.type(\"com.github.ansell.csv.util.LineFilteredException\"); \n");
@@ -372,6 +375,8 @@ public class ValueMapping {
 				javascriptFunction.append("var LocalDateTime = Java.type('java.time.LocalDateTime'); \n");
 				javascriptFunction.append("var LocalTime = Java.type('java.time.LocalTime'); \n");
 				javascriptFunction.append("var Format = Java.type('java.time.format.DateTimeFormatter'); \n");
+				javascriptFunction.append(
+						"var DateTimeFormatterBuilder = Java.type('java.time.format.DateTimeFormatterBuilder'); \n");
 				javascriptFunction.append("var ChronoUnit = Java.type('java.time.temporal.ChronoUnit'); \n");
 				javascriptFunction.append("var Math = Java.type('java.lang.Math'); \n");
 				javascriptFunction.append("var String = Java.type('java.lang.String'); \n");
@@ -380,7 +385,10 @@ public class ValueMapping {
 				javascriptFunction.append("var Arrays = Java.type('java.util.Arrays'); \n");
 				javascriptFunction.append("var UTM = Java.type('com.github.ansell.shp.UTM'); \n");
 				javascriptFunction.append("var WGS84 = Java.type('com.github.ansell.shp.WGS84'); \n");
-				javascriptFunction.append("var digest = function(value, algorithm, formatPattern) { if(!algorithm) { algorithm = \"SHA-256\"; } if(!formatPattern) { formatPattern = \"%064x\";} var md = MessageDigest.getInstance(algorithm); md.update(value.getBytes(\"UTF-8\")); var digestValue = md.digest(); return String.format(formatPattern, new BigInteger(1, digestValue));}; \n");
+				javascriptFunction.append(
+						"var digest = function(value, algorithm, formatPattern) { if(!algorithm) { algorithm = \"SHA-256\"; } if(!formatPattern) { formatPattern = \"%064x\";} var md = MessageDigest.getInstance(algorithm); md.update(value.getBytes(\"UTF-8\")); var digestValue = md.digest(); return String.format(formatPattern, new BigInteger(1, digestValue));}; \n");
+				javascriptFunction.append(
+						"var newDateFormat = function(formatPattern) { return new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern(formatPattern).toFormatter(); }; \n");
 				javascriptFunction.append(
 						"var dateMatches = function(dateValue, format) { try {\n format.parse(dateValue); \n return true; \n } catch(e) { } \n return false; }; \n");
 				javascriptFunction.append(
@@ -443,7 +451,7 @@ public class ValueMapping {
 	public String[] getDestFields() {
 		return this.destFields;
 	}
-	
+
 	public String[] getSourceFields() {
 		return this.sourceFields;
 	}

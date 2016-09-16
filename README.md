@@ -70,6 +70,7 @@ Javascript mappings have access to some global functions included from Java:
 * Double : The java.lang.Double class
 * Long : The java.lang.Long class
 * Format : The java.time.format.DateTimeFormatter class
+* DateTimeFormatterBuilder : The java.time.format.DateTimeFormatterBuilder class
 * LocalDate : The java.time.LocalDate class
 * LocalTime : The java.time.LocalTime class
 * LocalDateTime : The java.time.LocalDateTime class
@@ -91,6 +92,7 @@ Javascript mappings also have access to helper functions to simplify common mapp
 * col : Called using the syntax col('columnName'), and returns the value for that column on the current line
 * outCol : Called using the syntax outCol('outputColumnName'), and returns the value that has been mapped so far for that column on the current line.
 * filter : Called using the syntax filter(), and will make the line not appear in the results and short-circuit processing of the line for mapping purposes
+* newDateFormat : Called using the syntax newDateFormat(formatPattern), where formatPattern is a String containing a DateTimeFormatter pattern such as dd-MM-yyyy
 * dateMatches : Called using the syntax dateMatches(inputValue, dateFormat), where dateFormat is a DateTimeFormatter instance, such as Format.ISO_LOCAL_DATE
 * dateConvert : Called using the syntax dateConvert(inputValue, inputFormat, outputFormat), where inputFormat and outputFormat are instances of DateTimeFormatter, such as Format.ISO_LOCAL_DATE. This function also accepts an optional fourth parameter specifying the class to use, which can be any of LocalDate, LocalTime, LocalDateTime, or other similar functions that support the parse method. The default is to use LocalDate.
 * primaryKeyFilter : Called using the syntax primaryKeyFilter(inputValue) or primaryKeyFilter(inputValue, primaryKeyField), where inputValue is the primary key string and the optional primaryKeyField defaults to "Primary". The function returns the string if and only if it is unique so far, otherwise it calls filter() to filter out the line.

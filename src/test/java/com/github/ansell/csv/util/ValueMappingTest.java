@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -388,5 +389,9 @@ public class ValueMappingTest {
 		// without brackets for optionals
 		// LocalDate.parse("3 Sep 07", dateFormatter2);
 		LocalDate.parse("3 Sep 2007", dateFormatter2);
+
+		DateTimeFormatter dateFormatter3 = DateTimeFormatter.ofPattern("dd-MMM-yy").withLocale(Locale.US);
+		
+		LocalDate.parse("07-Oct-76", dateFormatter3);
 	}
 }
