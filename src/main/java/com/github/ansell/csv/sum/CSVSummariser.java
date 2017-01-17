@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -90,6 +91,9 @@ public final class CSVSummariser {
 		final OptionSpec<Integer> samplesToShow = parser.accepts("samples").withRequiredArg().ofType(Integer.class)
 				.defaultsTo(DEFAULT_SAMPLE_COUNT).describedAs(
 						"The maximum number of sample values for each field to include in the output, or -1 to dump all sample values for each field.");
+		final OptionSpec<Boolean> showSampleCounts = parser.accepts("show-sample-counts").withRequiredArg().ofType(Boolean.class)
+				.defaultsTo(Boolean.FALSE).describedAs(
+						"Set to true to add counts for each of the samples shown after the sample display value.");
 		final OptionSpec<Boolean> debug = parser.accepts("debug").withRequiredArg().ofType(Boolean.class)
 				.defaultsTo(Boolean.FALSE).describedAs("Set to true to debug.");
 
@@ -137,7 +141,7 @@ public final class CSVSummariser {
 		try (final BufferedReader newBufferedReader = Files.newBufferedReader(inputPath);
 				final Writer mappingWriter = options.has(outputMappingTemplate)
 						? Files.newBufferedWriter(outputMappingPath) : NullWriter.NULL_WRITER) {
-			runSummarise(newBufferedReader, writer, mappingWriter, samplesToShowInt, debugBoolean);
+			runSummarise(newBufferedReader, writer, mappingWriter, samplesToShowInt, showSampleCounts.value(options), debugBoolean);
 		}
 	}
 
@@ -159,9 +163,35 @@ public final class CSVSummariser {
 	 *            Set to true to add debug statements.
 	 * @throws IOException
 	 *             If there is an error reading or writing.
+	 * @deprecated Use {@link #runSummarise(Reader,Writer,Writer,int,boolean,boolean)} instead
 	 */
 	public static void runSummarise(Reader input, Writer output, Writer mappingOutput, int maxSampleCount,
 			boolean debug) throws IOException {
+				runSummarise(input, output, mappingOutput, maxSampleCount, false, debug);
+			}
+
+	/**
+	 * Summarise the CSV file from the input {@link Reader} and emit the summary
+	 * CSV file to the output {@link Writer}, including the given maximum number
+	 * of sample values in the summary for each field.
+	 * 
+	 * @param input
+	 *            The input CSV file, as a {@link Reader}.
+	 * @param output
+	 *            The output CSV file as a {@link Writer}.
+	 * @param mappingOutput
+	 *            The output mapping template file as a {@link Writer}.
+	 * @param maxSampleCount
+	 *            The maximum number of sample values in the summary for each
+	 *            field. Set to -1 to include all unique values for each field.
+	 * @param showSampleCounts TODO
+	 * @param debug
+	 *            Set to true to add debug statements.
+	 * @throws IOException
+	 *             If there is an error reading or writing.
+	 */
+	public static void runSummarise(Reader input, Writer output, Writer mappingOutput, int maxSampleCount,
+			boolean showSampleCounts, boolean debug) throws IOException {
 		final JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		final JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		final JDefaultDict<String, AtomicBoolean> possibleIntegerFields = new JDefaultDict<>(
@@ -220,7 +250,7 @@ public final class CSVSummariser {
 		// Shared StringBuilder across fields for efficiency
 		// After each field the StringBuilder is truncated
 		final StringBuilder sampleValue = new StringBuilder();
-		final Consumer<? super String> sampleHandler = s -> {
+		final BiConsumer<? super String, ? super String> sampleHandler = (s, c) -> {
 			if (sampleValue.length() > 0) {
 				sampleValue.append(", ");
 			}
@@ -229,6 +259,9 @@ public final class CSVSummariser {
 				sampleValue.append("...");
 			} else {
 				sampleValue.append(s);
+			}
+			if(showSampleCounts) {
+				sampleValue.append("(*" + c + ")");
 			}
 		};
 		final Writer writer = output;
@@ -242,30 +275,32 @@ public final class CSVSummariser {
 				mappingWriter.write(Arrays.asList());
 			}
 			headers.forEach(h -> {
-				final int emptyCount = emptyCounts.get(h).get();
-				final int nonEmptyCount = nonEmptyCounts.get(h).get();
-				final int valueCount = valueCounts.get(h).keySet().size();
-				final boolean possiblePrimaryKey = valueCount == nonEmptyCount && valueCount == rowCount.get();
-
-				boolean possiblyInteger = false;
-				boolean possiblyDouble = false;
-				// Only expose our numeric type guess if non-empty values found
-				if (nonEmptyCount > 0) {
-					possiblyInteger = possibleIntegerFields.get(h).get();
-					possiblyDouble = possibleDoubleFields.get(h).get();
-				}
-
-				final Stream<String> stream = valueCounts.get(h).keySet().stream();
-				if (maxSampleCount > 0) {
-					stream.limit(maxSampleCount).sorted().forEach(sampleHandler);
-					if (valueCount > maxSampleCount) {
-						sampleValue.append(", ...");
-					}
-				} else if (maxSampleCount < 0) {
-					stream.sorted().forEach(sampleHandler);
-				}
-
 				try {
+					final int emptyCount = emptyCounts.get(h).get();
+					final int nonEmptyCount = nonEmptyCounts.get(h).get();
+					JDefaultDict<String, AtomicInteger> nextValueCount = valueCounts.get(h);
+					final int valueCount = nextValueCount.keySet().size();
+					final boolean possiblePrimaryKey = valueCount == nonEmptyCount && valueCount == rowCount.get();
+	
+					boolean possiblyInteger = false;
+					boolean possiblyDouble = false;
+					// Only expose our numeric type guess if non-empty values found
+					// This is important, as it may default to true unless evidence to the contrary is found
+					if (nonEmptyCount > 0) {
+						possiblyInteger = possibleIntegerFields.get(h).get();
+						possiblyDouble = possibleDoubleFields.get(h).get();
+					}
+
+					final Stream<String> stream = nextValueCount.keySet().stream();
+					if (maxSampleCount > 0) {
+						stream.limit(maxSampleCount).sorted().forEach(s -> sampleHandler.accept(s, nextValueCount.get(s).toString()));
+						if (valueCount > maxSampleCount) {
+							sampleValue.append(", ...");
+						}
+					} else if (maxSampleCount < 0) {
+						stream.sorted().forEach(s -> sampleHandler.accept(s, nextValueCount.get(s).toString()));
+					}
+
 					csvWriter.write(Arrays.asList(h, emptyCount, nonEmptyCount, valueCount, possiblePrimaryKey,
 							possiblyInteger, possiblyDouble, sampleValue));
 					final String mappingFieldType = possiblyInteger ? "INTEGER" : possiblyDouble ? "DECIMAL" : "TEXT";

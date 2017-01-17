@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
@@ -364,7 +365,7 @@ public class ValueMapping {
 		if (this.language == ValueMappingLanguage.JAVASCRIPT) {
 			try {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("javascript");
-
+				
 				StringBuilder javascriptFunction = new StringBuilder();
 				javascriptFunction
 						.append("var LFE = Java.type(\"com.github.ansell.csv.util.LineFilteredException\"); \n");

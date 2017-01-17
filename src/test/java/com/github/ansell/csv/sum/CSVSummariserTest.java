@@ -249,7 +249,7 @@ public class CSVSummariserTest {
 	public final void testSummariseInteger() throws Exception {
 		StringWriter output = new StringWriter();
 		CSVSummariser.runSummarise(new StringReader("Test\n1"), output, NullWriter.NULL_WRITER,
-				CSVSummariser.DEFAULT_SAMPLE_COUNT, false);
+				CSVSummariser.DEFAULT_SAMPLE_COUNT, false, false);
 	}
 
 	/**
@@ -260,7 +260,7 @@ public class CSVSummariserTest {
 	public final void testSummariseDouble() throws Exception {
 		StringWriter output = new StringWriter();
 		CSVSummariser.runSummarise(new StringReader("Test\n1.0"), output, NullWriter.NULL_WRITER,
-				CSVSummariser.DEFAULT_SAMPLE_COUNT, false);
+				CSVSummariser.DEFAULT_SAMPLE_COUNT, false, false);
 	}
 
 	/**
@@ -271,7 +271,7 @@ public class CSVSummariserTest {
 	public final void testSummariseAllSampleValues() throws Exception {
 		StringWriter output = new StringWriter();
 		CSVSummariser.runSummarise(new StringReader("Test\n1.0"), output, NullWriter.NULL_WRITER,
-				CSVSummariser.DEFAULT_SAMPLE_COUNT, false);
+				CSVSummariser.DEFAULT_SAMPLE_COUNT, false, false);
 	}
 
 	/**
@@ -281,7 +281,7 @@ public class CSVSummariserTest {
 	@Test
 	public final void testSummariseAllSampleValuesDebug() throws Exception {
 		StringWriter output = new StringWriter();
-		CSVSummariser.runSummarise(new StringReader("Test\n1.0"), output, NullWriter.NULL_WRITER, -1, true);
+		CSVSummariser.runSummarise(new StringReader("Test\n1.0"), output, NullWriter.NULL_WRITER, -1, false, true);
 	}
 
 	/**
@@ -293,7 +293,7 @@ public class CSVSummariserTest {
 		StringWriter output = new StringWriter();
 		StringBuilder input = new StringBuilder("Test\n");
 		IntStream.range(0, 1000).forEach(i -> input.append("N"));
-		CSVSummariser.runSummarise(new StringReader(input.toString()), output, NullWriter.NULL_WRITER, -1, false);
+		CSVSummariser.runSummarise(new StringReader(input.toString()), output, NullWriter.NULL_WRITER, -1, false, false);
 	}
 
 	/**
@@ -305,7 +305,7 @@ public class CSVSummariserTest {
 		StringWriter output = new StringWriter();
 		StringBuilder input = new StringBuilder("Test\n");
 		IntStream.range(0, 1000).forEach(i -> input.append("N"));
-		CSVSummariser.runSummarise(new StringReader(input.toString()), output, NullWriter.NULL_WRITER, 0, true);
+		CSVSummariser.runSummarise(new StringReader(input.toString()), output, NullWriter.NULL_WRITER, 0, false, true);
 		System.out.println(output.toString());
 	}
 

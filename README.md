@@ -159,6 +159,9 @@ Run csvmap with a sample csv file:
 
 # Changelog
 
+## 2017-01-17
+* Add --show-sample-counts to csvsum to annotate sample values with their counts
+
 ## 2016-09-09
 * Release 0.4.0
 * Add dependency on csvstream and remove/redirect code locally to it

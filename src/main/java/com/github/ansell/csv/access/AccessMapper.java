@@ -217,9 +217,10 @@ public class AccessMapper {
 			int parallelism) throws IOException, InterruptedException {
 
 		final Path tempDBPath = Files.createTempFile("Source-accessdb", ".accdb");
-		Files.copy(readerDB, tempDBPath, StandardCopyOption.REPLACE_EXISTING);
 
 		try {
+			Files.copy(readerDB, tempDBPath, StandardCopyOption.REPLACE_EXISTING);
+			
 			// Ordered mappings so that the first table in the mapping is the
 			// one to perform the base joins on
 			final JDefaultDict<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping = new JDefaultDict<>(
@@ -493,9 +494,8 @@ public class AccessMapper {
 
 			Map<String, Object> originRow = componentRowsForThisRow.get(origin);
 			if (originRow == null) {
-				// System.out.println("Could not find row: Maybe the order of
-				// the mapping file needs changing: origin="
-				// + origin + " mapping=" + nextMapping);
+				System.out.println("Could not find row: Maybe the order of the mapping file needs changing: origin="
+				 + origin + " mapping=" + nextMapping);
 				continue;
 			}
 
