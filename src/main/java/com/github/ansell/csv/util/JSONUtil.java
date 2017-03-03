@@ -90,17 +90,17 @@ public class JSONUtil {
 		
 		String postVariableString = serialisedVariables.toString();
 		
-		System.out.println(postVariableString);
+		//System.out.println(postVariableString);
 		
 		String result = Request.Post(url).useExpectContinue().version(HttpVersion.HTTP_1_1)
 				.bodyString(postVariableString, ContentType.DEFAULT_TEXT).execute().returnContent()
 				.asString(StandardCharsets.UTF_8);
 
-		System.out.println(result);
+		//System.out.println(result);
 		
 		String result2 = queryJSON(new StringReader(result), jpath);
 		
-		System.out.println(result2);
+		//System.out.println(result2);
 		
 		return result2;
 	}
