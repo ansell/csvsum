@@ -154,10 +154,13 @@ Run csvmap with a sample csv file:
     <dependency>
         <groupId>com.github.ansell.csv.sum</groupId>
         <artifactId>csvsum</artifactId>
-        <version>0.3.0</version>
+        <version>0.4.0</version>
     </dependency>
 
 # Changelog
+
+## 2017-03-03
+* Add HTTP POST JSON utility method, JSONUtil.queryJSONPost(url, postVariables, jpath)
 
 ## 2017-01-17
 * Add --show-sample-counts to csvsum to annotate sample values with their counts
