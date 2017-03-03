@@ -139,10 +139,31 @@ public class JSONUtilTest {
 	@Test
 	public final void testQueryJSONPost() throws Exception {
 		Map<String, Object> postVariables = new LinkedHashMap<>();
-		postVariables.put("filenames", Arrays.asList("X01860.mp3"));
+		//postVariables.put("filenames", Arrays.asList("X01860.mp3"));
 		//postVariables.put("filenames", "X01860.mp3");
-		String result = JSONUtil.queryJSONPost("http://images.ala.org.au/ws/findImagesByOriginalFilename", postVariables , "/");
+		//postVariables.put("filenames", Arrays.asList("X01860"));
+		//postVariables.put("filenames", Arrays.asList("file:///data/biocache-media/dr341/13723/c5d7dd2a-1b3f-4e7c-a5ab-02136008a4e9/X01860.mp3"));
+		//postVariables.put("filenames", Arrays.asList("dr341"));
+		//String result = JSONUtil.queryJSONPost("http://images.ala.org.au/ws/findImagesByOriginalFilename", postVariables , "/");
+		//postVariables.put("q", "X01860.mp3");
+		//postVariables.put("key", "originalFilename");
+		//String result = JSONUtil.queryJSONPost("http://images.ala.org.au/ws/getImageLinksForMetaDataValues", postVariables , "/");
 		
-		//assertEquals(result, "TODO: What should I be");
+		postVariables.put("key", "originalFilename");
+		postVariables.put("values", Arrays.asList("X01860.mp3"));
+		String result = JSONUtil.queryJSONPost("http://images.ala.org.au/ws/findImagesByMetadata", postVariables , "/images/X01860.mp3/0/imageUrl");
+		
+		assertEquals(result, "http://images.ala.org.au/store/c/f/d/a/a20a793f-335e-4aae-a7c7-10cf2069adfc/original");
+	}
+	
+	/**
+	 * Test method for {@link JSONUtil#queryJSON(String, String)}.
+	 */
+	@Test
+	public final void testQueryJSONImageSearch() throws Exception {
+		Map<String, Object> postVariables = new LinkedHashMap<>();
+		String result = JSONUtil.queryJSONPost("http://images.ala.org.au/ws/getImageLinksForMetaDataValues?key=originalFilename&q=X01860.mp3", postVariables , "/");
+		//String result = JSONUtil.queryJSON("http://images.ala.org.au/ws/getImageLinksForMetaDataValues?key=originalFilename&q=X01860.mp3", "/");
+		System.out.println(result);		
 	}
 }
