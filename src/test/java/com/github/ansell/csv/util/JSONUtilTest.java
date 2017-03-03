@@ -159,6 +159,7 @@ public class JSONUtilTest {
 	/**
 	 * Test method for {@link JSONUtil#queryJSON(String, String)}.
 	 */
+	@Ignore
 	@Test
 	public final void testQueryJSONImageSearch() throws Exception {
 		Map<String, Object> postVariables = new LinkedHashMap<>();
