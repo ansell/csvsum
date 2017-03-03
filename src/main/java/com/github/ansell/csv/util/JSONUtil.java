@@ -30,7 +30,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.apache.http.HttpVersion;
+import org.apache.http.client.fluent.Request;
+import org.apache.http.entity.ContentType;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -51,38 +60,62 @@ public class JSONUtil {
 	private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 	private static final JsonFactory JSON_FACTORY = new JsonFactory(JSON_MAPPER);
 
-	public static String queryJSON(String url, String jpath)
-			throws JsonProcessingException, IOException {
+	public static String queryJSON(String url, String jpath) throws JsonProcessingException, IOException {
 		return queryJSON(url, JsonPointer.compile(jpath));
 	}
 
-	public static String queryJSON(String url, JsonPointer jpath)
-			throws JsonProcessingException, IOException {
-		try (final InputStream stream = JsonUtils.openStreamForURL(
-				new java.net.URL(url), JsonUtils.getDefaultHttpClient());
-				final Reader input = new BufferedReader(new InputStreamReader(
-						stream));) {
+	public static String queryJSON(String url, JsonPointer jpath) throws JsonProcessingException, IOException {
+		try (final InputStream stream = JsonUtils.openStreamForURL(new java.net.URL(url),
+				JsonUtils.getDefaultHttpClient());
+				final Reader input = new BufferedReader(new InputStreamReader(stream));) {
 			return queryJSON(input, jpath);
 		}
 	}
 
-	public static String queryJSON(Reader input, String jpath)
-			throws JsonProcessingException, IOException {
+	public static String queryJSON(Reader input, String jpath) throws JsonProcessingException, IOException {
 		return queryJSON(input, JsonPointer.compile(jpath));
 	}
 
-	public static String queryJSON(Reader input, JsonPointer jpath)
-			throws JsonProcessingException, IOException {
+	public static String queryJSON(Reader input, JsonPointer jpath) throws JsonProcessingException, IOException {
 		JsonNode root = JSON_MAPPER.readTree(input);
 		return root.at(jpath).asText();
 	}
 
-	public static void toPrettyPrint(Reader input, Writer output)
-			throws IOException {
+	public static String queryJSONPost(String url, Map<String, Object> postVariables, String jpath)
+			throws JsonProcessingException, IOException {
+
+		StringWriter serialisedVariables = new StringWriter();
+		
+		toPrettyPrint(postVariables, serialisedVariables);
+		
+		String postVariableString = serialisedVariables.toString();
+		
+		//System.out.println(postVariableString);
+		
+		String result = Request.Post(url).useExpectContinue().version(HttpVersion.HTTP_1_1)
+				.bodyString(postVariableString, ContentType.DEFAULT_TEXT).execute().returnContent()
+				.asString(StandardCharsets.UTF_8);
+
+		//System.out.println(result);
+		
+		String result2 = queryJSON(new StringReader(result), jpath);
+		
+		//System.out.println(result2);
+		
+		return result2;
+	}
+
+	public static void toPrettyPrint(Reader input, Writer output) throws IOException {
 		final JsonGenerator jw = JSON_FACTORY.createGenerator(output);
 		jw.useDefaultPrettyPrinter();
 		JsonParser parser = JSON_FACTORY.createParser(input);
 		jw.writeObject(parser.readValueAsTree());
+	}
+
+	public static void toPrettyPrint(Map<String, Object> input, Writer output) throws IOException {
+		final JsonGenerator jw = JSON_FACTORY.createGenerator(output);
+		jw.useDefaultPrettyPrinter();
+		jw.writeObject(input);
 	}
 
 }

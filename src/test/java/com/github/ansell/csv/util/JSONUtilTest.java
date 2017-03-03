@@ -38,6 +38,9 @@ import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -74,7 +77,7 @@ public class JSONUtilTest {
 		assertTrue(output.toString().contains("\"test\" : \"something\""));
 	}
 
-	@Ignore("ALA website is broken w.r.t chunked encoding and GitHub is picky about lots of things")
+	//@Ignore("ALA website is broken w.r.t chunked encoding and GitHub is picky about lots of things")
 	@Test
 	public final void testPrettyPrintURL() throws Exception {
 		StringWriter output = new StringWriter();
@@ -89,7 +92,8 @@ public class JSONUtilTest {
 
 		String avatar = JSONUtil.queryJSON(new StringReader(output.toString()), "/owner/avatar_url");
 
-		assertTrue(avatar.startsWith("https://avatars.githubusercontent.com/"));
+		assertTrue(avatar, avatar.contains(".githubusercontent.com/"));
+		assertTrue(avatar, avatar.startsWith("https://avatar"));
 
 		// JSONUtil.queryJSON(
 		// "http://bie.ala.org.au/search.json?q=Banksia+occidentalis",
@@ -128,5 +132,39 @@ public class JSONUtilTest {
 		System.out.println(result2);
 		assertEquals("something", result2);
 	}
-
+	
+	/**
+	 * Test method for {@link JSONUtil#queryJSONPost(String, java.util.Map, String)}.
+	 */
+	@Test
+	public final void testQueryJSONPost() throws Exception {
+		Map<String, Object> postVariables = new LinkedHashMap<>();
+		//postVariables.put("filenames", Arrays.asList("X01860.mp3"));
+		//postVariables.put("filenames", "X01860.mp3");
+		//postVariables.put("filenames", Arrays.asList("X01860"));
+		//postVariables.put("filenames", Arrays.asList("file:///data/biocache-media/dr341/13723/c5d7dd2a-1b3f-4e7c-a5ab-02136008a4e9/X01860.mp3"));
+		//postVariables.put("filenames", Arrays.asList("dr341"));
+		//String result = JSONUtil.queryJSONPost("http://images.ala.org.au/ws/findImagesByOriginalFilename", postVariables , "/");
+		//postVariables.put("q", "X01860.mp3");
+		//postVariables.put("key", "originalFilename");
+		//String result = JSONUtil.queryJSONPost("http://images.ala.org.au/ws/getImageLinksForMetaDataValues", postVariables , "/");
+		
+		postVariables.put("key", "originalFilename");
+		postVariables.put("values", Arrays.asList("X01860.mp3"));
+		String result = JSONUtil.queryJSONPost("http://images.ala.org.au/ws/findImagesByMetadata", postVariables , "/images/X01860.mp3/0/imageUrl");
+		
+		assertEquals(result, "http://images.ala.org.au/store/c/f/d/a/a20a793f-335e-4aae-a7c7-10cf2069adfc/original");
+	}
+	
+	/**
+	 * Test method for {@link JSONUtil#queryJSON(String, String)}.
+	 */
+	@Ignore
+	@Test
+	public final void testQueryJSONImageSearch() throws Exception {
+		Map<String, Object> postVariables = new LinkedHashMap<>();
+		String result = JSONUtil.queryJSONPost("http://images.ala.org.au/ws/getImageLinksForMetaDataValues?key=originalFilename&q=X01860.mp3", postVariables , "/");
+		//String result = JSONUtil.queryJSON("http://images.ala.org.au/ws/getImageLinksForMetaDataValues?key=originalFilename&q=X01860.mp3", "/");
+		System.out.println(result);		
+	}
 }
