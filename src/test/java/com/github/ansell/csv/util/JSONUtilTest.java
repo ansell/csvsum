@@ -38,6 +38,9 @@ import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -74,7 +77,7 @@ public class JSONUtilTest {
 		assertTrue(output.toString().contains("\"test\" : \"something\""));
 	}
 
-	@Ignore("ALA website is broken w.r.t chunked encoding and GitHub is picky about lots of things")
+	//@Ignore("ALA website is broken w.r.t chunked encoding and GitHub is picky about lots of things")
 	@Test
 	public final void testPrettyPrintURL() throws Exception {
 		StringWriter output = new StringWriter();
@@ -89,7 +92,8 @@ public class JSONUtilTest {
 
 		String avatar = JSONUtil.queryJSON(new StringReader(output.toString()), "/owner/avatar_url");
 
-		assertTrue(avatar.startsWith("https://avatars.githubusercontent.com/"));
+		assertTrue(avatar, avatar.contains(".githubusercontent.com/"));
+		assertTrue(avatar, avatar.startsWith("https://avatar"));
 
 		// JSONUtil.queryJSON(
 		// "http://bie.ala.org.au/search.json?q=Banksia+occidentalis",
@@ -128,5 +132,17 @@ public class JSONUtilTest {
 		System.out.println(result2);
 		assertEquals("something", result2);
 	}
-
+	
+	/**
+	 * Test method for {@link JSONUtil#queryJSONPost(String, java.util.Map, String)}.
+	 */
+	@Test
+	public final void testQueryJSONPost() throws Exception {
+		Map<String, Object> postVariables = new LinkedHashMap<>();
+		postVariables.put("filenames", Arrays.asList("X01860.mp3"));
+		//postVariables.put("filenames", "X01860.mp3");
+		String result = JSONUtil.queryJSONPost("http://images.ala.org.au/ws/findImagesByOriginalFilename", postVariables , "/");
+		
+		//assertEquals(result, "TODO: What should I be");
+	}
 }
