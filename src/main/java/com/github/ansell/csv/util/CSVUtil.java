@@ -404,6 +404,7 @@ public final class CSVUtil {
 							}
 						}
 					});
+					// Any line that nevermatched any join lines must, for left outer join, be emitted separately
 					final Predicate<List<String>> fullOuterJoinPredicate = l -> !matchedOtherLines.contains(l);
 					otherLines.stream().filter(fullOuterJoinPredicate).forEach(fullOuterJoinConsumer);
 				}
