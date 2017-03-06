@@ -31,6 +31,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -107,9 +108,9 @@ public final class CSVJoiner {
 
 		final Writer writer;
 		if (options.has(output)) {
-			writer = Files.newBufferedWriter(output.value(options).toPath());
+			writer = Files.newBufferedWriter(output.value(options).toPath(), StandardCharsets.UTF_8);
 		} else {
-			writer = new BufferedWriter(new OutputStreamWriter(System.out));
+			writer = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
 		}
 
 		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);
