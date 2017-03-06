@@ -320,7 +320,7 @@ public final class CSVUtil {
 						if(nextLineNumber % 1000 == 0) {
 							double secondsSinceStart = (System.currentTimeMillis() - startTime)/1000.0d;
 							System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n", nextLineNumber, secondsSinceStart, 
-									secondsSinceStart/nextLineNumber);
+									nextLineNumber/secondsSinceStart);
 						}
 						final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 						try {
