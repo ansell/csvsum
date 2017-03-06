@@ -30,6 +30,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -234,20 +235,25 @@ public final class CSVUtil {
 		int otherFileBytes = -1;
 
 		final Path tempInputFile = Files.createTempFile("tempInputFile-", ".csv");
-		try (final BufferedWriter tempOutput = Files.newBufferedWriter(tempInputFile);) {
+		try (final BufferedWriter tempOutput = Files.newBufferedWriter(tempInputFile, StandardCharsets.UTF_8);) {
 			inputFileBytes = IOUtils.copy(input, tempOutput);
 		}
 
 		final Path tempOtherFile = Files.createTempFile("tempOtherFile-", ".csv");
-		try (final BufferedWriter tempOtherOutput = Files.newBufferedWriter(tempOtherFile);) {
+		try (final BufferedWriter tempOtherOutput = Files.newBufferedWriter(tempOtherFile, StandardCharsets.UTF_8);) {
 			otherFileBytes = IOUtils.copy(otherInput, tempOtherOutput);
 		}
 
+		if(inputFileBytes < otherFileBytes) {
+			// TODO: Swap source and destination so that in-memory set is the smaller of the two
+		}
+		
 		try {
 			final List<String> otherH = new ArrayList<>();
 			final List<List<String>> otherLines = new ArrayList<>();
 
-			try (final BufferedReader otherTemp = Files.newBufferedReader(tempOtherFile)) {
+			System.out.println("Starting adding other lines to in-memory list...");
+			try (final BufferedReader otherTemp = Files.newBufferedReader(tempOtherFile, StandardCharsets.UTF_8)) {
 				CSVStream.parse(otherTemp, otherHeader -> otherHeader.forEach(h -> otherH.add(otherPrefix + h)),
 						(otherHeader, otherL) -> {
 							return otherL;
@@ -255,6 +261,9 @@ public final class CSVUtil {
 							otherLines.add(new ArrayList<>(otherL));
 						});
 			}
+			System.out.println("Completed adding other lines to in-memory list.");
+			// Create a set for efficient lookup
+			final Set<String> otherHSet = new HashSet<>(otherH);
 
 			final Function<ValueMapping, String> outputFields = e -> e.getOutputField();
 
@@ -286,6 +295,7 @@ public final class CSVUtil {
 				final List<String> previousMappedLine = new ArrayList<>();
 				final AtomicInteger lineNumber = new AtomicInteger(0);
 				final AtomicInteger filteredLineNumber = new AtomicInteger(0);
+				final long startTime = System.currentTimeMillis();
 				final BiConsumer<List<String>, List<String>> mapLineConsumer = Unchecked.biConsumer((line, mapped) -> {
 					previousLine.clear();
 					previousLine.addAll(line);
@@ -300,12 +310,18 @@ public final class CSVUtil {
 				// HashMap<>(destFields.length, 0.75f);
 				// Map<String, Object> temporaryMatchMap = new
 				// LinkedHashMap<>(destFields.length, 0.75f);
-				final Map<String, Object> temporaryMatchMap = new ConcurrentHashMap<>(destFields.length, 0.75f, 4);
-
+				//final Map<String, Object> temporaryMatchMap = new ConcurrentHashMap<>(destFields.length, 0.75f, 4);
+				final Map<String, Object> temporaryMatchMap = new HashMap<>(destFields.length, 0.75f);
+				
 				final List<String> inputHeaders = new ArrayList<>();
-				try (final BufferedReader inputTemp = Files.newBufferedReader(tempInputFile)) {
+				try (final BufferedReader inputTemp = Files.newBufferedReader(tempInputFile, StandardCharsets.UTF_8)) {
 					CSVStream.parse(inputTemp, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)), (h, l) -> {
 						final int nextLineNumber = lineNumber.incrementAndGet();
+						if(nextLineNumber % 1000 == 0) {
+							double secondsSinceStart = (System.currentTimeMillis() - startTime)/1000.0d;
+							System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n", nextLineNumber, secondsSinceStart, 
+									secondsSinceStart/nextLineNumber);
+						}
 						final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 						try {
 							final List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
@@ -316,7 +332,7 @@ public final class CSVUtil {
 							final Predicate<List<String>> otherLinePredicate = otherL -> {
 								return !matchMap.entrySet().parallelStream().filter(nextOtherFieldMatcher -> {
 									final String key = nextOtherFieldMatcher.getKey();
-									return !otherH.contains(key) || !otherL.get(otherH.indexOf(key))
+									return !otherHSet.contains(key) || !otherL.get(otherH.indexOf(key))
 											.equals(nextOtherFieldMatcher.getValue());
 								}).findAny().isPresent();
 							};
