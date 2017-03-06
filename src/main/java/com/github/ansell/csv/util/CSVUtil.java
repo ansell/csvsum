@@ -330,7 +330,7 @@ public final class CSVUtil {
 							final Map<String, Object> matchMap = buildMatchMap(m, mergedInputHeaders, nextMergedLine,
 									false, temporaryMatchMap, sourceFields, destFields);
 							final Predicate<List<String>> otherLinePredicate = otherL -> {
-								return !matchMap.entrySet().parallelStream().filter(nextOtherFieldMatcher -> {
+								return !matchMap.entrySet().stream().filter(nextOtherFieldMatcher -> {
 									final String key = nextOtherFieldMatcher.getKey();
 									return !otherHSet.contains(key) || !otherL.get(otherH.indexOf(key))
 											.equals(nextOtherFieldMatcher.getValue());
