@@ -129,21 +129,22 @@ public final class CSVMapper {
 	private static void runMapper(Reader input, List<ValueMapping> map, Writer output)
 			throws ScriptException, IOException {
 
-		Function<ValueMapping, String> outputFields = e -> e.getOutputField();
+		final Function<ValueMapping, String> outputFields = e -> e.getOutputField();
 
-		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(outputFields)
+		final List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(outputFields)
 				.collect(Collectors.toList());
 		final CsvSchema schema = CSVStream.buildSchema(outputHeaders);
 		final Writer writer = output;
 
 		try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(writer, schema);) {
-			List<String> inputHeaders = new ArrayList<>();
-			List<String> previousLine = new ArrayList<>();
-			List<String> previousMappedLine = new ArrayList<>();
-			JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
-			AtomicInteger lineNumber = new AtomicInteger(0);
-			AtomicInteger filteredLineNumber = new AtomicInteger(0);
-			BiConsumer<List<String>, List<String>> mapLineConsumer = Unchecked.biConsumer((l, m) -> {
+			final List<String> inputHeaders = new ArrayList<>();
+			final List<String> previousLine = new ArrayList<>();
+			final List<String> previousMappedLine = new ArrayList<>();
+			final JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
+			final AtomicInteger lineNumber = new AtomicInteger(0);
+			final AtomicInteger filteredLineNumber = new AtomicInteger(0);
+			final long startTime = System.currentTimeMillis();
+			final BiConsumer<List<String>, List<String>> mapLineConsumer = Unchecked.biConsumer((l, m) -> {
 				previousLine.clear();
 				previousLine.addAll(l);
 				previousMappedLine.clear();
@@ -151,8 +152,13 @@ public final class CSVMapper {
 				csvWriter.write(m);
 			});
 			CSVStream.parse(input, h -> inputHeaders.addAll(h), (h, l) -> {
-				int nextLineNumber = lineNumber.incrementAndGet();
-				int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
+				final int nextLineNumber = lineNumber.incrementAndGet();
+				if(nextLineNumber % 1000 == 0) {
+					double secondsSinceStart = (System.currentTimeMillis() - startTime)/1000.0d;
+					System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n", nextLineNumber, secondsSinceStart, 
+							nextLineNumber/secondsSinceStart);
+				}
+				final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
 					List<String> mapLine = ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map,
 							primaryKeys, nextLineNumber, nextFilteredLineNumber, mapLineConsumer);
