@@ -33,6 +33,7 @@ import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.stream.IntStream;
 
 import org.apache.commons.io.output.NullWriter;
@@ -294,6 +295,20 @@ public class CSVSummariserTest {
 		StringBuilder input = new StringBuilder("Test\n");
 		IntStream.range(0, 1000).forEach(i -> input.append("N"));
 		CSVSummariser.runSummarise(new StringReader(input.toString()), output, NullWriter.NULL_WRITER, -1, false, false);
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testSummariseOverrideHeaders() throws Exception {
+		StringWriter output = new StringWriter();
+		StringBuilder input = new StringBuilder("TestShouldNotBeSeen\nValue1");
+		CSVSummariser.runSummarise(new StringReader(input.toString()), output, NullWriter.NULL_WRITER, -1, false, false, Arrays.asList("TestHeader"), 1);
+		assertTrue(output.toString().contains("TestHeader"));
+		assertTrue(output.toString().contains("Value1"));
+		assertFalse(output.toString().contains("TestShouldNotBeSeen"));
 	}
 
 	/**
