@@ -40,6 +40,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -84,6 +85,14 @@ public final class CSVSummariser {
 		final OptionSpec<Void> help = parser.accepts("help").forHelp();
 		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
 				.describedAs("The input CSV file to be summarised.");
+		final OptionSpec<File> overrideHeadersFile = parser.accepts("override-headers-file").withRequiredArg()
+				.ofType(File.class).describedAs(
+						"A file whose first line contains the headers to use, to override those found in the file.");
+		final OptionSpec<Integer> headerLineCount = parser.accepts("headerLineCount").withRequiredArg()
+				.ofType(Integer.class)
+				.describedAs(
+						"The number of header lines present in the file. Can be used in conjunction with override-headers-file to substitute a different set of headers")
+				.defaultsTo(1);
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
 				.describedAs("The output file, or the console if not specified.");
 		final OptionSpec<File> outputMappingTemplate = parser.accepts("output-mapping").withRequiredArg()
@@ -91,9 +100,9 @@ public final class CSVSummariser {
 		final OptionSpec<Integer> samplesToShow = parser.accepts("samples").withRequiredArg().ofType(Integer.class)
 				.defaultsTo(DEFAULT_SAMPLE_COUNT).describedAs(
 						"The maximum number of sample values for each field to include in the output, or -1 to dump all sample values for each field.");
-		final OptionSpec<Boolean> showSampleCounts = parser.accepts("show-sample-counts").withRequiredArg().ofType(Boolean.class)
-				.defaultsTo(Boolean.FALSE).describedAs(
-						"Set to true to add counts for each of the samples shown after the sample display value.");
+		final OptionSpec<Boolean> showSampleCounts = parser.accepts("show-sample-counts").withRequiredArg()
+				.ofType(Boolean.class).defaultsTo(Boolean.FALSE)
+				.describedAs("Set to true to add counts for each of the samples shown after the sample display value.");
 		final OptionSpec<Boolean> debug = parser.accepts("debug").withRequiredArg().ofType(Boolean.class)
 				.defaultsTo(Boolean.FALSE).describedAs("Set to true to debug.");
 
@@ -132,7 +141,22 @@ public final class CSVSummariser {
 		}
 
 		int samplesToShowInt = samplesToShow.value(options);
+		int headerLineCountInt = headerLineCount.value(options);
 		boolean debugBoolean = debug.value(options);
+
+		// Defaults to null, with any strings in the file overriding that
+		AtomicReference<List<String>> overrideHeadersList = new AtomicReference<>();
+		if(options.has(overrideHeadersFile)) {
+			try (final BufferedReader newBufferedReader = Files
+					.newBufferedReader(overrideHeadersFile.value(options).toPath());) {
+				CSVStream.parse(newBufferedReader, h -> {
+					overrideHeadersList.set(h);
+				}, (h, l) -> {
+					return l;
+				}, l -> {
+				}, null, CSVStream.DEFAULT_HEADER_COUNT);
+			}
+		}
 
 		if (debugBoolean) {
 			System.out.println("Running summarise on: " + inputPath + " samples=" + samplesToShowInt);
@@ -141,7 +165,8 @@ public final class CSVSummariser {
 		try (final BufferedReader newBufferedReader = Files.newBufferedReader(inputPath);
 				final Writer mappingWriter = options.has(outputMappingTemplate)
 						? Files.newBufferedWriter(outputMappingPath) : NullWriter.NULL_WRITER) {
-			runSummarise(newBufferedReader, writer, mappingWriter, samplesToShowInt, showSampleCounts.value(options), debugBoolean);
+			runSummarise(newBufferedReader, writer, mappingWriter, samplesToShowInt, showSampleCounts.value(options),
+					debugBoolean, overrideHeadersList.get(), headerLineCountInt);
 		}
 	}
 
@@ -159,15 +184,17 @@ public final class CSVSummariser {
 	 * @param maxSampleCount
 	 *            The maximum number of sample values in the summary for each
 	 *            field. Set to -1 to include all unique values for each field.
+	 * @param showSampleCounts
+	 *            Show counts next to sample values
 	 * @param debug
 	 *            Set to true to add debug statements.
 	 * @throws IOException
 	 *             If there is an error reading or writing.
-	 * @deprecated Use {@link #runSummarise(Reader,Writer,Writer,int,boolean,boolean)} instead
 	 */
 	public static void runSummarise(Reader input, Writer output, Writer mappingOutput, int maxSampleCount,
-			boolean debug) throws IOException {
-				runSummarise(input, output, mappingOutput, maxSampleCount, false, debug);
+			boolean showSampleCounts, boolean debug) throws IOException {
+				runSummarise(input, output, mappingOutput, maxSampleCount, showSampleCounts, debug, null,
+						CSVStream.DEFAULT_HEADER_COUNT);
 			}
 
 	/**
@@ -184,14 +211,17 @@ public final class CSVSummariser {
 	 * @param maxSampleCount
 	 *            The maximum number of sample values in the summary for each
 	 *            field. Set to -1 to include all unique values for each field.
-	 * @param showSampleCounts TODO
+	 * @param showSampleCounts
+	 *            Show counts next to sample values
 	 * @param debug
 	 *            Set to true to add debug statements.
+	 * @param overrideHeaders A set of headers to override those in the file or null to use the headers from the file. If this is null and headerLineCount is set to 0, an IllegalArgumentException ill be thrown.
+	 * @param headerLineCount The number of header lines to expect
 	 * @throws IOException
 	 *             If there is an error reading or writing.
 	 */
 	public static void runSummarise(Reader input, Writer output, Writer mappingOutput, int maxSampleCount,
-			boolean showSampleCounts, boolean debug) throws IOException {
+			boolean showSampleCounts, boolean debug, List<String> overrideHeaders, int headerLineCount) throws IOException {
 		final JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		final JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		final JDefaultDict<String, AtomicBoolean> possibleIntegerFields = new JDefaultDict<>(
@@ -228,7 +258,7 @@ public final class CSVSummariser {
 			// We are a streaming summariser, and do not store the raw original
 			// lines. Only unique, non-empty, values are stored in the
 			// valueCounts map for uniqueness summaries
-		});
+		}, overrideHeaders, headerLineCount);
 
 		// This schema defines the fields and order for the columns in the
 		// summary CSV file
@@ -260,7 +290,7 @@ public final class CSVSummariser {
 			} else {
 				sampleValue.append(s);
 			}
-			if(showSampleCounts) {
+			if (showSampleCounts) {
 				sampleValue.append("(*" + c + ")");
 			}
 		};
@@ -270,7 +300,7 @@ public final class CSVSummariser {
 		try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(writer, summarySchema);
 				final SequenceWriter mappingWriter = CSVStream.newCSVWriter(writer1, mappingSchema);) {
 			// Need to do this to get the header line written out in this case
-			if(rowCount.get() == 0) {
+			if (rowCount.get() == 0) {
 				csvWriter.write(Arrays.asList());
 				mappingWriter.write(Arrays.asList());
 			}
@@ -281,11 +311,13 @@ public final class CSVSummariser {
 					JDefaultDict<String, AtomicInteger> nextValueCount = valueCounts.get(h);
 					final int valueCount = nextValueCount.keySet().size();
 					final boolean possiblePrimaryKey = valueCount == nonEmptyCount && valueCount == rowCount.get();
-	
+
 					boolean possiblyInteger = false;
 					boolean possiblyDouble = false;
-					// Only expose our numeric type guess if non-empty values found
-					// This is important, as it may default to true unless evidence to the contrary is found
+					// Only expose our numeric type guess if non-empty values
+					// found
+					// This is important, as it may default to true unless
+					// evidence to the contrary is found
 					if (nonEmptyCount > 0) {
 						possiblyInteger = possibleIntegerFields.get(h).get();
 						possiblyDouble = possibleDoubleFields.get(h).get();
@@ -293,7 +325,8 @@ public final class CSVSummariser {
 
 					final Stream<String> stream = nextValueCount.keySet().stream();
 					if (maxSampleCount > 0) {
-						stream.limit(maxSampleCount).sorted().forEach(s -> sampleHandler.accept(s, nextValueCount.get(s).toString()));
+						stream.limit(maxSampleCount).sorted()
+								.forEach(s -> sampleHandler.accept(s, nextValueCount.get(s).toString()));
 						if (valueCount > maxSampleCount) {
 							sampleValue.append(", ...");
 						}
