@@ -30,9 +30,11 @@ import static org.junit.Assert.*;
 import java.io.FileNotFoundException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Arrays;
 import java.util.stream.IntStream;
 
 import org.apache.commons.io.output.NullWriter;
@@ -246,6 +248,24 @@ public class CSVSummariserTest {
 	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
+	public final void testMainSingleHeaderTwentyOneLinesOverride() throws Exception {
+		Path testFile = tempDir.newFile("test-single-header-twenty-one-lines.csv").toPath();
+		Files.copy(
+				this.getClass()
+						.getResourceAsStream("/com/github/ansell/csvsum/test-single-header-twenty-one-lines.csv"),
+				testFile, StandardCopyOption.REPLACE_EXISTING);
+
+		Path testOverrideHeader = tempDir.newFile("test-header-override.csv").toPath();
+		Files.write(testOverrideHeader, Arrays.asList("OverriddenHeader"), StandardCharsets.UTF_8);
+		
+		CSVSummariser.main("--input", testFile.toAbsolutePath().toString(), "--override-headers-file", testOverrideHeader.toAbsolutePath().toString(), "--header-line-count", "1");
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
 	public final void testSummariseInteger() throws Exception {
 		StringWriter output = new StringWriter();
 		CSVSummariser.runSummarise(new StringReader("Test\n1"), output, NullWriter.NULL_WRITER,
@@ -294,6 +314,20 @@ public class CSVSummariserTest {
 		StringBuilder input = new StringBuilder("Test\n");
 		IntStream.range(0, 1000).forEach(i -> input.append("N"));
 		CSVSummariser.runSummarise(new StringReader(input.toString()), output, NullWriter.NULL_WRITER, -1, false, false);
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testSummariseOverrideHeaders() throws Exception {
+		StringWriter output = new StringWriter();
+		StringBuilder input = new StringBuilder("TestShouldNotBeSeen\nValue1");
+		CSVSummariser.runSummarise(new StringReader(input.toString()), output, NullWriter.NULL_WRITER, -1, false, false, Arrays.asList("TestHeader"), 1);
+		assertTrue(output.toString().contains("TestHeader"));
+		assertTrue(output.toString().contains("Value1"));
+		assertFalse(output.toString().contains("TestShouldNotBeSeen"));
 	}
 
 	/**
