@@ -30,6 +30,7 @@ import static org.junit.Assert.*;
 import java.io.FileNotFoundException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -240,6 +241,24 @@ public class CSVSummariserTest {
 				testFile, StandardCopyOption.REPLACE_EXISTING);
 
 		CSVSummariser.main("--input", testFile.toAbsolutePath().toString());
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainSingleHeaderTwentyOneLinesOverride() throws Exception {
+		Path testFile = tempDir.newFile("test-single-header-twenty-one-lines.csv").toPath();
+		Files.copy(
+				this.getClass()
+						.getResourceAsStream("/com/github/ansell/csvsum/test-single-header-twenty-one-lines.csv"),
+				testFile, StandardCopyOption.REPLACE_EXISTING);
+
+		Path testOverrideHeader = tempDir.newFile("test-header-override.csv").toPath();
+		Files.write(testOverrideHeader, Arrays.asList("OverriddenHeader"), StandardCharsets.UTF_8);
+		
+		CSVSummariser.main("--input", testFile.toAbsolutePath().toString(), "--override-headers-file", testOverrideHeader.toAbsolutePath().toString(), "--header-line-count", "1");
 	}
 
 	/**

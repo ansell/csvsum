@@ -88,7 +88,7 @@ public final class CSVSummariser {
 		final OptionSpec<File> overrideHeadersFile = parser.accepts("override-headers-file").withRequiredArg()
 				.ofType(File.class).describedAs(
 						"A file whose first line contains the headers to use, to override those found in the file.");
-		final OptionSpec<Integer> headerLineCount = parser.accepts("headerLineCount").withRequiredArg()
+		final OptionSpec<Integer> headerLineCount = parser.accepts("header-line-count").withRequiredArg()
 				.ofType(Integer.class)
 				.describedAs(
 						"The number of header lines present in the file. Can be used in conjunction with override-headers-file to substitute a different set of headers")
