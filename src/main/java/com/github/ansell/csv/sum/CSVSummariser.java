@@ -232,9 +232,15 @@ public final class CSVSummariser {
 				k -> new JDefaultDict<>(l -> new AtomicInteger()));
 		final List<String> headers = new ArrayList<String>();
 		final AtomicInteger rowCount = new AtomicInteger();
+		final long startTime = System.currentTimeMillis();
 
 		CSVStream.parse(input, h -> headers.addAll(h), (h, l) -> {
-			rowCount.incrementAndGet();
+			int nextLineNumber = rowCount.incrementAndGet();
+			if(nextLineNumber % 10000 == 0) {
+				double secondsSinceStart = (System.currentTimeMillis() - startTime)/1000.0d;
+				System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n", nextLineNumber, secondsSinceStart, 
+						nextLineNumber/secondsSinceStart);
+			}
 			for (int i = 0; i < h.size(); i++) {
 				if (l.get(i).trim().isEmpty()) {
 					emptyCounts.get(h.get(i)).incrementAndGet();
