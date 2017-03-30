@@ -159,6 +159,9 @@ Run csvmap with a sample csv file:
 
 # Changelog
 
+## 2017-03-30
+* Add support for header substitution for files with no header line
+
 ## 2017-03-03
 * Add HTTP POST JSON utility method, JSONUtil.queryJSONPost(url, postVariables, jpath)
 
