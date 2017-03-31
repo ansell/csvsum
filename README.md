@@ -161,7 +161,7 @@ Run csvmap with a sample csv file:
 
 ## 2017-03-31
 # Add progress output for csvsum/csvmap/csvjoin
-# Add JSON uttility functions to allow programmatic iteration of JSON files
+# Add JSON utility functions to allow programmatic iteration of JSON files
 
 ## 2017-03-30
 * Add support for header substitution for files with no header line
