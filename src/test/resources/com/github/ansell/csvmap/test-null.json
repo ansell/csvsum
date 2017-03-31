@@ -1,0 +1,110 @@
+{
+  "searchResults" : {
+    "pageSize" : null,
+    "startIndex" : 0,
+    "totalRecords" : 3,
+    "sort" : "score",
+    "dir" : "desc",
+    "status" : "OK",
+    "facetResults" : [ {
+      "fieldName" : "idxtype",
+      "fieldResult" : [ {
+        "label" : "TAXON",
+        "count" : 3,
+        "fieldValue" : "TAXON"
+      } ]
+    }, {
+      "fieldName" : "australian_s",
+      "fieldResult" : [ {
+        "label" : "recorded",
+        "count" : 3,
+        "fieldValue" : "recorded"
+      } ]
+    }, {
+      "fieldName" : "speciesGroup",
+      "fieldResult" : [ {
+        "label" : "Plants",
+        "count" : 1,
+        "fieldValue" : "Plants"
+      } ]
+    }, {
+      "fieldName" : "rank",
+      "fieldResult" : [ {
+        "label" : "species",
+        "count" : 3,
+        "fieldValue" : "species"
+      } ]
+    } ],
+    "query" : " (commonName:banksia AND commonName:occidentalis) OR  text:\"banksia occidentalis\" OR  (scientificNameText:banksia AND scientificNameText:occidentalis) OR  (name_complete:banksia AND name_complete:occidentalis) OR  concat_name:\"banksiaoccidentalis\" OR  (stopped_common_name:banksia AND stopped_common_name:occidentalis) OR  exact_text:\"banksia occidentalis\"^100000000000 OR  text:\"Banksia occidentalis\"",
+    "results" : [ {
+      "guid" : "urn:lsid:biodiversity.org.au:apni.taxon:293711",
+      "name" : "Banksia occidentalis",
+      "idxType" : "TAXON",
+      "score" : 14.466862,
+      "parentGuid" : "urn:lsid:biodiversity.org.au:apni.taxon:318387",
+      "commonName" : "Red Swamp Banksia, Water Bush Banksia, Waterbush",
+      "nameComplete" : "Banksia occidentalis",
+      "commonNameSingle" : "Red Swamp Banksia",
+      "hasChildren" : false,
+      "rank" : "species",
+      "rankId" : 7000,
+      "rawRank" : "Species",
+      "isAustralian" : "recorded",
+      "highlight" : "<strong>banksia occidentalis</strong>",
+      "image" : "/data/bie/1034/123/1235500/raw.jpg",
+      "thumbnail" : "/data/bie/1034/123/1235500/thumbnail.jpg",
+      "left" : 284409,
+      "right" : 284410,
+      "kingdom" : "Plantae",
+      "phylum" : "Charophyta",
+      "classs" : "Equisetopsida",
+      "order" : "Proteales",
+      "family" : "Proteaceae",
+      "genus" : "Banksia",
+      "author" : "R.Br.",
+      "linkIdentifier" : "Banksia+occidentalis",
+      "occCount" : 306,
+      "imageSource" : "dr413",
+      "imageCount" : 16,
+      "isExcluded" : false,
+      "imageUrl" : "http://bie.ala.org.au/repo/1034/123/1235500/raw.jpg",
+      "largeImageUrl" : "http://bie.ala.org.au/repo/1034/123/1235500/largeRaw.jpg",
+      "smallImageUrl" : "http://bie.ala.org.au/repo/1034/123/1235500/smallRaw.jpg",
+      "thumbnailUrl" : "http://bie.ala.org.au/repo/1034/123/1235500/thumbnail.jpg",
+      "imageMetadataUrl" : "http://bie.ala.org.au/repo/1034/123/1235500/dc"
+    }, {
+      "guid" : "urn:lsid:biodiversity.org.au:apni.taxon:293711",
+      "name" : "Banksia occidentalis R.Br. subsp. occidentalis  ",
+      "idxType" : "TAXON",
+      "score" : 1.1726418E-10,
+      "commonName" : "Red Swamp Banksia, Water Bush Banksia, Waterbush",
+      "acceptedConceptName" : "Banksia occidentalis",
+      "synonymRelationship" : "includes",
+      "synonymDescription" : "nomenclatural",
+      "hasChildren" : false,
+      "rank" : "species",
+      "rankId" : 7000,
+      "rawRank" : "Species",
+      "isAustralian" : "recorded",
+      "highlight" : "<strong>banksia occidentalis</strong>",
+      "occCount" : 306
+    }, {
+      "guid" : "urn:lsid:biodiversity.org.au:apni.taxon:293711",
+      "name" : "Banksia occidentalis subsp. formosa Hopper  ",
+      "idxType" : "TAXON",
+      "score" : 1.0981921E-10,
+      "commonName" : "Red Swamp Banksia, Water Bush Banksia, Waterbush",
+      "acceptedConceptName" : "Banksia occidentalis",
+      "synonymRelationship" : "includes",
+      "synonymDescription" : "taxonomic",
+      "hasChildren" : false,
+      "rank" : "species",
+      "rankId" : 7000,
+      "rawRank" : "Species",
+      "isAustralian" : "recorded",
+      "highlight" : "<strong>banksia occidentalis</strong>",
+      "author" : "Hopper",
+      "occCount" : 306
+    } ]
+  }
+}

@@ -35,8 +35,11 @@ import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -49,6 +52,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import com.fasterxml.jackson.core.JsonPointer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.github.jsonldjava.utils.JsonUtils;
 
 /**
@@ -77,6 +81,15 @@ public class JSONUtilTest {
 		assertTrue(output.toString().contains("\"test\" : \"something\""));
 	}
 
+	@Ignore("Requires offline resource")
+	@Test
+	public final void testToPrettyPrintLarge() throws Exception {
+		try(Writer output = Files.newBufferedWriter(Paths.get("/tmp/test-pretty.json"), StandardCharsets.UTF_8);
+				Reader input = Files.newBufferedReader(Paths.get("/tmp/test.json"), StandardCharsets.UTF_8);) {
+			JSONUtil.toPrettyPrint(input, output);
+		}
+	}
+	
 	//@Ignore("ALA website is broken w.r.t chunked encoding and GitHub is picky about lots of things")
 	@Test
 	public final void testPrettyPrintURL() throws Exception {
@@ -166,5 +179,21 @@ public class JSONUtilTest {
 		String result = JSONUtil.queryJSONPost("http://images.ala.org.au/ws/getImageLinksForMetaDataValues?key=originalFilename&q=X01860.mp3", postVariables , "/");
 		//String result = JSONUtil.queryJSON("http://images.ala.org.au/ws/getImageLinksForMetaDataValues?key=originalFilename&q=X01860.mp3", "/");
 		System.out.println(result);		
+	}
+	
+	@Test
+	public final void testLoadJSONNullProperty() throws Exception {
+		Path testNullFile = tempDir.newFolder("jsonutiltest").toPath().resolve("test-null.json");
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-null.json"), testNullFile);
+		JsonNode rootNode = JSONUtil.loadJSON(testNullFile);
+		
+		JsonNode searchResultsNode = rootNode.get("searchResults");
+		
+		JsonNode pageSizeNode = searchResultsNode.get("pageSize");
+		
+		JsonNode startIndexNode = searchResultsNode.get("startIndex");
+		
+		System.out.println("pageSize=" + pageSizeNode.toString());
+		System.out.println("startIndex=" + startIndexNode.toString());
 	}
 }

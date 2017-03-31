@@ -34,8 +34,9 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.http.HttpVersion;
 import org.apache.http.client.fluent.Request;
@@ -80,6 +81,12 @@ public class JSONUtil {
 		}
 	}
 
+	public static JsonNode loadJSON(Path path) throws JsonProcessingException, IOException {
+		try(final Reader input = Files.newBufferedReader(path, StandardCharsets.UTF_8);) {
+			return JSON_MAPPER.readTree(input);
+		}
+	}
+	
 	public static String queryJSON(Reader input, String jpath) throws JsonProcessingException, IOException {
 		return queryJSON(input, JsonPointer.compile(jpath));
 	}
