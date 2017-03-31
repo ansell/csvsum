@@ -60,6 +60,14 @@ public class JSONUtil {
 	private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 	private static final JsonFactory JSON_FACTORY = new JsonFactory(JSON_MAPPER);
 
+	public static JsonNode httpGetJSON(String url) throws JsonProcessingException, IOException {
+		try (final InputStream stream = JsonUtils.openStreamForURL(new java.net.URL(url),
+				JsonUtils.getDefaultHttpClient());
+				final Reader input = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));) {
+			return JSON_MAPPER.readTree(input);
+		}
+	}
+
 	public static String queryJSON(String url, String jpath) throws JsonProcessingException, IOException {
 		return queryJSON(url, JsonPointer.compile(jpath));
 	}
@@ -67,7 +75,7 @@ public class JSONUtil {
 	public static String queryJSON(String url, JsonPointer jpath) throws JsonProcessingException, IOException {
 		try (final InputStream stream = JsonUtils.openStreamForURL(new java.net.URL(url),
 				JsonUtils.getDefaultHttpClient());
-				final Reader input = new BufferedReader(new InputStreamReader(stream));) {
+				final Reader input = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));) {
 			return queryJSON(input, jpath);
 		}
 	}
@@ -90,19 +98,30 @@ public class JSONUtil {
 		
 		String postVariableString = serialisedVariables.toString();
 		
-		//System.out.println(postVariableString);
-		
 		String result = Request.Post(url).useExpectContinue().version(HttpVersion.HTTP_1_1)
 				.bodyString(postVariableString, ContentType.DEFAULT_TEXT).execute().returnContent()
 				.asString(StandardCharsets.UTF_8);
 
-		//System.out.println(result);
-		
 		String result2 = queryJSON(new StringReader(result), jpath);
 		
-		//System.out.println(result2);
-		
 		return result2;
+	}
+
+	public static JsonNode httpPostJSON(String url, Map<String, Object> postVariables)
+			throws JsonProcessingException, IOException {
+
+		StringWriter serialisedVariables = new StringWriter();
+		
+		toPrettyPrint(postVariables, serialisedVariables);
+		
+		String postVariableString = serialisedVariables.toString();
+		
+		try(InputStream inputStream = Request.Post(url).useExpectContinue().version(HttpVersion.HTTP_1_1)
+				.bodyString(postVariableString, ContentType.DEFAULT_TEXT).execute().returnContent()
+				.asStream();
+				Reader inputReader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+			return JSON_MAPPER.readTree(inputReader);
+		}		
 	}
 
 	public static void toPrettyPrint(Reader input, Writer output) throws IOException {
