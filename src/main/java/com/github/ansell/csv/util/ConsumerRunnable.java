@@ -56,6 +56,10 @@ public class ConsumerRunnable<T> implements Runnable, Consumer<T> {
 	public void run() {
 		while (true) {
 			try {
+				if (Thread.currentThread().isInterrupted()) {
+					return;
+				}
+
 				T take = queue.poll();
 
 				if(take == null) {
@@ -70,6 +74,7 @@ public class ConsumerRunnable<T> implements Runnable, Consumer<T> {
 				
 				this.accept(take);
 			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
 				throw new RuntimeException(e);
 			}
 		}
