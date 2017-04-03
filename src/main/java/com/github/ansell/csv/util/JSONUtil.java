@@ -40,7 +40,16 @@ import java.util.Map;
 
 import org.apache.http.HttpVersion;
 import org.apache.http.client.fluent.Request;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.protocol.RequestAcceptEncoding;
+import org.apache.http.client.protocol.ResponseContentEncoding;
 import org.apache.http.entity.ContentType;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.cache.BasicHttpCacheStorage;
+import org.apache.http.impl.client.cache.CacheConfig;
+import org.apache.http.impl.client.cache.CachingHttpClientBuilder;
 
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
@@ -49,7 +58,7 @@ import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.jsonldjava.utils.JsonUtils;
+import com.github.jsonldjava.utils.JarCacheStorage;
 
 /**
  * JSON utilities used by CSV processors.
@@ -58,12 +67,14 @@ import com.github.jsonldjava.utils.JsonUtils;
  */
 public class JSONUtil {
 
+    private static final String ACCEPT_HEADER = "application/json, application/javascript;q=0.5, text/javascript;q=0.5, text/plain;q=0.2, */*;q=0.1";
 	private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 	private static final JsonFactory JSON_FACTORY = new JsonFactory(JSON_MAPPER);
+	private static volatile CloseableHttpClient DEFAULT_HTTP_CLIENT = null;
 
 	public static JsonNode httpGetJSON(String url) throws JsonProcessingException, IOException {
-		try (final InputStream stream = JsonUtils.openStreamForURL(new java.net.URL(url),
-				JsonUtils.getDefaultHttpClient());
+		try (final InputStream stream = openStreamForURL(new java.net.URL(url),
+				getDefaultHttpClient());
 				final Reader input = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));) {
 			return JSON_MAPPER.readTree(input);
 		}
@@ -74,8 +85,8 @@ public class JSONUtil {
 	}
 
 	public static String queryJSON(String url, JsonPointer jpath) throws JsonProcessingException, IOException {
-		try (final InputStream stream = JsonUtils.openStreamForURL(new java.net.URL(url),
-				JsonUtils.getDefaultHttpClient());
+		try (final InputStream stream = openStreamForURL(new java.net.URL(url),
+				getDefaultHttpClient());
 				final Reader input = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));) {
 			return queryJSON(input, jpath);
 		}
@@ -144,4 +155,57 @@ public class JSONUtil {
 		jw.writeObject(input);
 	}
 
+    static InputStream openStreamForURL(java.net.URL url, CloseableHttpClient httpClient) throws IOException {
+        final String protocol = url.getProtocol();
+        if (!protocol.equalsIgnoreCase("http") && !protocol.equalsIgnoreCase("https")) {
+            return url.openStream();
+        }
+        final HttpUriRequest request = new HttpGet(url.toExternalForm());
+        request.addHeader("Accept", ACCEPT_HEADER);
+    
+        try (final CloseableHttpResponse response = httpClient.execute(request);) {
+            final int status = response.getStatusLine().getStatusCode();
+            if (status != 200 && status != 203) {
+                throw new IOException("Can't retrieve " + url + ", status code: " + status);
+            }
+            return response.getEntity().getContent();
+        }
+    }
+    
+    private static CloseableHttpClient getDefaultHttpClient() {
+        CloseableHttpClient result = DEFAULT_HTTP_CLIENT;
+        if (result == null) {
+            synchronized (JSONUtil.class) {
+                result = DEFAULT_HTTP_CLIENT;
+                if (result == null) {
+                    result = DEFAULT_HTTP_CLIENT = JSONUtil.createDefaultHttpClient();
+                }
+            }
+        }
+        return result;
+    }
+
+    private static CloseableHttpClient createDefaultHttpClient() {
+        // Common CacheConfig for both the JarCacheStorage and the underlying
+        // BasicHttpCacheStorage
+        final CacheConfig cacheConfig = CacheConfig.custom().setMaxCacheEntries(1000)
+                .setMaxObjectSize(1024 * 128).build();
+    
+        CloseableHttpClient result = CachingHttpClientBuilder
+                .create()
+                // allow caching
+                .setCacheConfig(cacheConfig)
+                // Wrap the local JarCacheStorage around a BasicHttpCacheStorage
+                .setHttpCacheStorage(
+                        new JarCacheStorage(null, cacheConfig, new BasicHttpCacheStorage(
+                                cacheConfig)))
+                // Support compressed data
+                // http://hc.apache.org/httpcomponents-client-ga/tutorial/html/httpagent.html#d5e1238
+                .addInterceptorFirst(new RequestAcceptEncoding())
+                .addInterceptorFirst(new ResponseContentEncoding())
+                // use system defaults for proxy etc.
+                .useSystemProperties().build();
+    
+        return result;
+    }
 }

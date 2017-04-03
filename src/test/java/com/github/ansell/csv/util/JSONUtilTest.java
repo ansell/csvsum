@@ -94,7 +94,7 @@ public class JSONUtilTest {
 	@Test
 	public final void testPrettyPrintURL() throws Exception {
 		StringWriter output = new StringWriter();
-		try (InputStream inputStream = JsonUtils
+		try (InputStream inputStream = JSONUtil
 				.openStreamForURL(new java.net.URL("https://api.github.com/repos/ansell/csvsum"
 		// "http://bie.ala.org.au/search.json?q=Banksia+occidentalis"
 		), JsonUtils.getDefaultHttpClient()); Reader input = new BufferedReader(new InputStreamReader(inputStream));) {
