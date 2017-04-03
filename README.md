@@ -154,10 +154,13 @@ Run csvmap with a sample csv file:
     <dependency>
         <groupId>com.github.ansell.csv.sum</groupId>
         <artifactId>csvsum</artifactId>
-        <version>0.4.0</version>
+        <version>0.4.1</version>
     </dependency>
 
 # Changelog
+
+## 2017-04-03
+# Release 0.4.1
 
 ## 2017-03-31
 # Add progress output for csvsum/csvmap/csvjoin
