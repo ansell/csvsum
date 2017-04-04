@@ -155,24 +155,27 @@ public class JSONUtil {
 		jw.writeObject(input);
 	}
 
-    static InputStream openStreamForURL(java.net.URL url, CloseableHttpClient httpClient) throws IOException {
+    public static InputStream openStreamForURL(java.net.URL url, CloseableHttpClient httpClient) throws IOException {
+    	return openStreamForURL(url, httpClient, ACCEPT_HEADER);
+    }
+    
+    public static InputStream openStreamForURL(java.net.URL url, CloseableHttpClient httpClient, String acceptHeader) throws IOException {
         final String protocol = url.getProtocol();
         if (!protocol.equalsIgnoreCase("http") && !protocol.equalsIgnoreCase("https")) {
             return url.openStream();
         }
         final HttpUriRequest request = new HttpGet(url.toExternalForm());
-        request.addHeader("Accept", ACCEPT_HEADER);
+        request.addHeader("Accept", acceptHeader);
     
-        try (final CloseableHttpResponse response = httpClient.execute(request);) {
-            final int status = response.getStatusLine().getStatusCode();
-            if (status != 200 && status != 203) {
-                throw new IOException("Can't retrieve " + url + ", status code: " + status);
-            }
-            return response.getEntity().getContent();
+        final CloseableHttpResponse response = httpClient.execute(request);
+        final int status = response.getStatusLine().getStatusCode();
+        if (status != 200 && status != 203) {
+            throw new IOException("Can't retrieve " + url + ", status code: " + status);
         }
+        return response.getEntity().getContent();
     }
     
-    private static CloseableHttpClient getDefaultHttpClient() {
+    public static CloseableHttpClient getDefaultHttpClient() {
         CloseableHttpClient result = DEFAULT_HTTP_CLIENT;
         if (result == null) {
             synchronized (JSONUtil.class) {
@@ -204,7 +207,8 @@ public class JSONUtil {
                 .addInterceptorFirst(new RequestAcceptEncoding())
                 .addInterceptorFirst(new ResponseContentEncoding())
                 // use system defaults for proxy etc.
-                .useSystemProperties().build();
+                .useSystemProperties()
+                .build();
     
         return result;
     }
