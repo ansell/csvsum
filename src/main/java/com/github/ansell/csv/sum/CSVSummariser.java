@@ -47,6 +47,7 @@ import java.util.stream.Stream;
 import org.apache.commons.io.output.NullWriter;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.csv.stream.CSVStreamException;
@@ -226,6 +227,42 @@ public final class CSVSummariser {
 	public static void runSummarise(final Reader input, final Writer output, final Writer mappingOutput,
 			final int maxSampleCount, final boolean showSampleCounts, final boolean debug,
 			final List<String> overrideHeaders, final int headerLineCount) throws IOException {
+		final CsvMapper inputMapper = CSVStream.defaultMapper();
+		final CsvSchema inputSchema = CSVStream.defaultSchema();
+		runSummarise(input, inputMapper, inputSchema, output, mappingOutput, maxSampleCount, showSampleCounts, debug,
+				overrideHeaders, headerLineCount);
+	}
+
+	/**
+	 * Summarise the CSV file from the input {@link Reader} and emit the summary
+	 * CSV file to the output {@link Writer}, including the given maximum number
+	 * of sample values in the summary for each field.
+	 * 
+	 * @param input
+	 *            The input CSV file, as a {@link Reader}.
+	 * @param output
+	 *            The output CSV file as a {@link Writer}.
+	 * @param mappingOutput
+	 *            The output mapping template file as a {@link Writer}.
+	 * @param maxSampleCount
+	 *            The maximum number of sample values in the summary for each
+	 *            field. Set to -1 to include all unique values for each field.
+	 * @param showSampleCounts
+	 *            Show counts next to sample values
+	 * @param debug
+	 *            Set to true to add debug statements.
+	 * @param overrideHeaders
+	 *            A set of headers to override those in the file or null to use
+	 *            the headers from the file. If this is null and headerLineCount
+	 *            is set to 0, an IllegalArgumentException ill be thrown.
+	 * @param headerLineCount
+	 *            The number of header lines to expect
+	 * @throws IOException
+	 *             If there is an error reading or writing.
+	 */
+	public static void runSummarise(final Reader input, final CsvMapper inputMapper, final CsvSchema inputSchema,
+			final Writer output, final Writer mappingOutput, final int maxSampleCount, final boolean showSampleCounts,
+			final boolean debug, final List<String> overrideHeaders, final int headerLineCount) throws IOException {
 		final JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		final JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		// Default to true, and set to false if a non-integer is detected. The
@@ -242,8 +279,8 @@ public final class CSVSummariser {
 				k -> new JDefaultDict<>(l -> new AtomicInteger()));
 		final AtomicInteger rowCount = new AtomicInteger();
 
-		final List<String> headers = parseForSummarise(input, emptyCounts, nonEmptyCounts, possibleIntegerFields,
-				possibleDoubleFields, valueCounts, rowCount, overrideHeaders, headerLineCount);
+		final List<String> headers = parseForSummarise(input, inputMapper, inputSchema, emptyCounts, nonEmptyCounts,
+				possibleIntegerFields, possibleDoubleFields, valueCounts, rowCount, overrideHeaders, headerLineCount);
 
 		writeForSummarise(maxSampleCount, emptyCounts, nonEmptyCounts, possibleIntegerFields, possibleDoubleFields,
 				valueCounts, headers, rowCount, showSampleCounts, output, mappingOutput);
@@ -404,12 +441,13 @@ public final class CSVSummariser {
 	 * @throws CSVStreamException
 	 *             If there is a problem processing the CSV content
 	 */
-	private static List<String> parseForSummarise(Reader input, final JDefaultDict<String, AtomicInteger> emptyCounts,
+	private static List<String> parseForSummarise(final Reader input, final CsvMapper inputMapper,
+			final CsvSchema inputSchema, final JDefaultDict<String, AtomicInteger> emptyCounts,
 			final JDefaultDict<String, AtomicInteger> nonEmptyCounts,
 			final JDefaultDict<String, AtomicBoolean> possibleIntegerFields,
 			final JDefaultDict<String, AtomicBoolean> possibleDoubleFields,
 			final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts, final AtomicInteger rowCount,
-			List<String> overrideHeaders, int headerLineCount) throws IOException, CSVStreamException {
+			final List<String> overrideHeaders, final int headerLineCount) throws IOException, CSVStreamException {
 		final long startTime = System.currentTimeMillis();
 		final List<String> headers = new ArrayList<>();
 		CSVStream.parse(input, h -> headers.addAll(h), (h, l) -> {
