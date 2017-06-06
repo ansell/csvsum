@@ -42,7 +42,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.output.NullWriter;
@@ -50,7 +49,7 @@ import org.apache.commons.io.output.NullWriter;
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.stream.CSVStream;
-import com.github.ansell.csv.util.CSVUtil;
+import com.github.ansell.csv.stream.CSVStreamException;
 import com.github.ansell.csv.util.ValueMapping;
 import com.github.ansell.jdefaultdict.JDefaultDict;
 
@@ -146,7 +145,7 @@ public final class CSVSummariser {
 
 		// Defaults to null, with any strings in the file overriding that
 		AtomicReference<List<String>> overrideHeadersList = new AtomicReference<>();
-		if(options.has(overrideHeadersFile)) {
+		if (options.has(overrideHeadersFile)) {
 			try (final BufferedReader newBufferedReader = Files
 					.newBufferedReader(overrideHeadersFile.value(options).toPath());) {
 				CSVStream.parse(newBufferedReader, h -> {
@@ -193,9 +192,9 @@ public final class CSVSummariser {
 	 */
 	public static void runSummarise(Reader input, Writer output, Writer mappingOutput, int maxSampleCount,
 			boolean showSampleCounts, boolean debug) throws IOException {
-				runSummarise(input, output, mappingOutput, maxSampleCount, showSampleCounts, debug, null,
-						CSVStream.DEFAULT_HEADER_COUNT);
-			}
+		runSummarise(input, output, mappingOutput, maxSampleCount, showSampleCounts, debug, null,
+				CSVStream.DEFAULT_HEADER_COUNT);
+	}
 
 	/**
 	 * Summarise the CSV file from the input {@link Reader} and emit the summary
@@ -215,73 +214,89 @@ public final class CSVSummariser {
 	 *            Show counts next to sample values
 	 * @param debug
 	 *            Set to true to add debug statements.
-	 * @param overrideHeaders A set of headers to override those in the file or null to use the headers from the file. If this is null and headerLineCount is set to 0, an IllegalArgumentException ill be thrown.
-	 * @param headerLineCount The number of header lines to expect
+	 * @param overrideHeaders
+	 *            A set of headers to override those in the file or null to use
+	 *            the headers from the file. If this is null and headerLineCount
+	 *            is set to 0, an IllegalArgumentException ill be thrown.
+	 * @param headerLineCount
+	 *            The number of header lines to expect
 	 * @throws IOException
 	 *             If there is an error reading or writing.
 	 */
-	public static void runSummarise(Reader input, Writer output, Writer mappingOutput, int maxSampleCount,
-			boolean showSampleCounts, boolean debug, List<String> overrideHeaders, int headerLineCount) throws IOException {
+	public static void runSummarise(final Reader input, final Writer output, final Writer mappingOutput,
+			final int maxSampleCount, final boolean showSampleCounts, final boolean debug,
+			final List<String> overrideHeaders, final int headerLineCount) throws IOException {
 		final JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		final JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
+		// Default to true, and set to false if a non-integer is detected. The
+		// special case of no values being found is handled in the write method
+		// and false is used
 		final JDefaultDict<String, AtomicBoolean> possibleIntegerFields = new JDefaultDict<>(
 				k -> new AtomicBoolean(true));
+		// Default to true, and set to false if a non-double is detected. The
+		// special case of no values being found is handled in the write method
+		// and false is used
 		final JDefaultDict<String, AtomicBoolean> possibleDoubleFields = new JDefaultDict<>(
 				k -> new AtomicBoolean(true));
 		final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts = new JDefaultDict<String, JDefaultDict<String, AtomicInteger>>(
 				k -> new JDefaultDict<>(l -> new AtomicInteger()));
-		final List<String> headers = new ArrayList<String>();
 		final AtomicInteger rowCount = new AtomicInteger();
-		final long startTime = System.currentTimeMillis();
 
-		CSVStream.parse(input, h -> headers.addAll(h), (h, l) -> {
-			int nextLineNumber = rowCount.incrementAndGet();
-			if(nextLineNumber % 10000 == 0) {
-				double secondsSinceStart = (System.currentTimeMillis() - startTime)/1000.0d;
-				System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n", nextLineNumber, secondsSinceStart, 
-						nextLineNumber/secondsSinceStart);
-			}
-			for (int i = 0; i < h.size(); i++) {
-				if (l.get(i).trim().isEmpty()) {
-					emptyCounts.get(h.get(i)).incrementAndGet();
-				} else {
-					nonEmptyCounts.get(h.get(i)).incrementAndGet();
-					valueCounts.get(h.get(i)).get(l.get(i)).incrementAndGet();
-					try {
-						Integer.parseInt(l.get(i));
-					} catch (NumberFormatException nfe) {
-						possibleIntegerFields.get(h.get(i)).set(false);
-					}
-					try {
-						Double.parseDouble(l.get(i));
-					} catch (NumberFormatException nfe) {
-						possibleDoubleFields.get(h.get(i)).set(false);
-					}
-				}
-			}
-			return l;
-		}, l -> {
-			// We are a streaming summariser, and do not store the raw original
-			// lines. Only unique, non-empty, values are stored in the
-			// valueCounts map for uniqueness summaries
-		}, overrideHeaders, headerLineCount);
+		final List<String> headers = parseForSummarise(input, emptyCounts, nonEmptyCounts, possibleIntegerFields,
+				possibleDoubleFields, valueCounts, rowCount, overrideHeaders, headerLineCount);
 
+		writeForSummarise(maxSampleCount, emptyCounts, nonEmptyCounts, possibleIntegerFields, possibleDoubleFields,
+				valueCounts, headers, rowCount, showSampleCounts, output, mappingOutput);
+	}
+
+	/**
+	 * Writes summary values and a stub mapping file based on the given
+	 * {@link JDefaultDict}s.
+	 * 
+	 * @param maxSampleCount
+	 *            The maximum number of samples to write out
+	 * @param emptyCounts
+	 *            A {@link JDefaultDict} containing the empty counts for each
+	 *            field
+	 * @param nonEmptyCounts
+	 *            A {@link JDefaultDict} containing the non-empty counts for
+	 *            each field
+	 * @param possibleIntegerFields
+	 *            A {@link JDefaultDict} containing true if the field is
+	 *            possibly integer and false otherwise
+	 * @param possibleDoubleFields
+	 *            A {@link JDefaultDict} containing true if the field is
+	 *            possibly double and false otherwise
+	 * @param valueCounts
+	 *            A {@link JDefaultDict} containing values for each field and
+	 *            attached counts
+	 * @param headers
+	 *            The headers that were either given or substituted
+	 * @param rowCount
+	 *            The total row count from the input file, used to determine if
+	 *            the number of unique values matches the total number of rows
+	 * @param showSampleCounts
+	 *            True to attach sample counts to the sample output, and false
+	 *            to omit it
+	 * @param output
+	 *            The {@link Writer} to contain the summarised statistics
+	 * @param mappingOutput
+	 *            The {@link Writer} to contain the stub mapping file
+	 * @throws IOException
+	 *             If there is an error writing
+	 */
+	private static void writeForSummarise(final int maxSampleCount,
+			final JDefaultDict<String, AtomicInteger> emptyCounts,
+			final JDefaultDict<String, AtomicInteger> nonEmptyCounts,
+			final JDefaultDict<String, AtomicBoolean> possibleIntegerFields,
+			final JDefaultDict<String, AtomicBoolean> possibleDoubleFields,
+			final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts, final List<String> headers,
+			final AtomicInteger rowCount, final boolean showSampleCounts, final Writer output,
+			final Writer mappingOutput) throws IOException {
 		// This schema defines the fields and order for the columns in the
 		// summary CSV file
-		final CsvSchema summarySchema = CsvSchema.builder().addColumn("fieldName")
-				.addColumn("emptyCount", CsvSchema.ColumnType.NUMBER)
-				.addColumn("nonEmptyCount", CsvSchema.ColumnType.NUMBER)
-				.addColumn("uniqueValueCount", CsvSchema.ColumnType.NUMBER)
-				.addColumn("possiblePrimaryKey", CsvSchema.ColumnType.BOOLEAN)
-				.addColumn("possiblyInteger", CsvSchema.ColumnType.BOOLEAN)
-				.addColumn("possiblyFloatingPoint", CsvSchema.ColumnType.BOOLEAN).addColumn("sampleValues")
-				.setUseHeader(true).build();
-		final CsvSchema mappingSchema = CsvSchema.builder()
-				.addColumn(ValueMapping.OLD_FIELD, CsvSchema.ColumnType.STRING)
-				.addColumn(ValueMapping.NEW_FIELD, CsvSchema.ColumnType.STRING)
-				.addColumn(ValueMapping.SHOWN, CsvSchema.ColumnType.STRING)
-				.addColumn(ValueMapping.LANGUAGE, CsvSchema.ColumnType.STRING)
-				.addColumn(ValueMapping.MAPPING, CsvSchema.ColumnType.STRING).setUseHeader(true).build();
+		final CsvSchema summarySchema = getSummaryCsvSchema();
+		final CsvSchema mappingSchema = getMappingCsvSchema();
 
 		// Shared StringBuilder across fields for efficiency
 		// After each field the StringBuilder is truncated
@@ -300,11 +315,8 @@ public final class CSVSummariser {
 				sampleValue.append("(*" + c + ")");
 			}
 		};
-		final Writer writer = output;
-		final Writer writer1 = mappingOutput;
-
-		try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(writer, summarySchema);
-				final SequenceWriter mappingWriter = CSVStream.newCSVWriter(writer1, mappingSchema);) {
+		try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(output, summarySchema);
+				final SequenceWriter mappingWriter = CSVStream.newCSVWriter(mappingOutput, mappingSchema);) {
 			// Need to do this to get the header line written out in this case
 			if (rowCount.get() == 0) {
 				csvWriter.write(Arrays.asList());
@@ -354,6 +366,113 @@ public final class CSVSummariser {
 				}
 			});
 		}
+	}
+
+	/**
+	 * Parse the given inputs to in-memory maps to allow for summarisation.
+	 * 
+	 * @param input
+	 *            The {@link Reader} containing the inputs to be summarised.
+	 * @param emptyCounts
+	 *            A {@link JDefaultDict} to be populated with empty counts for
+	 *            each field
+	 * @param nonEmptyCounts
+	 *            A {@link JDefaultDict} to be populated with non-empty counts
+	 *            for each field
+	 * @param possibleIntegerFields
+	 *            A {@link JDefaultDict} to be populated with false if a
+	 *            non-integer value is detected in a field
+	 * @param possibleDoubleFields
+	 *            A {@link JDefaultDict} to be populated with false if a
+	 *            non-double value is detected in a field
+	 * @param valueCounts
+	 *            A {@link JDefaultDict} to be populated with false if a
+	 *            non-integer value is detected in a field
+	 * @param rowCount
+	 *            An {@link AtomicInteger} used to track the total number of
+	 *            rows processed.
+	 * @param overrideHeaders
+	 *            Headers to use to override those in the file, or null to rely
+	 *            on the headers from the file
+	 * @param headerLineCount
+	 *            The number of lines in the file that must be skipped, or 0 to
+	 *            not skip any headers and instead use overrideHeaders
+	 * @return The list of headers that were either overridden or found in the
+	 *         file
+	 * @throws IOException
+	 *             If there is an error reading from the file
+	 * @throws CSVStreamException
+	 *             If there is a problem processing the CSV content
+	 */
+	private static List<String> parseForSummarise(Reader input, final JDefaultDict<String, AtomicInteger> emptyCounts,
+			final JDefaultDict<String, AtomicInteger> nonEmptyCounts,
+			final JDefaultDict<String, AtomicBoolean> possibleIntegerFields,
+			final JDefaultDict<String, AtomicBoolean> possibleDoubleFields,
+			final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts, final AtomicInteger rowCount,
+			List<String> overrideHeaders, int headerLineCount) throws IOException, CSVStreamException {
+		final long startTime = System.currentTimeMillis();
+		final List<String> headers = new ArrayList<>();
+		CSVStream.parse(input, h -> headers.addAll(h), (h, l) -> {
+			int nextLineNumber = rowCount.incrementAndGet();
+			if (nextLineNumber % 10000 == 0) {
+				double secondsSinceStart = (System.currentTimeMillis() - startTime) / 1000.0d;
+				System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n", nextLineNumber,
+						secondsSinceStart, nextLineNumber / secondsSinceStart);
+			}
+			for (int i = 0; i < h.size(); i++) {
+				if (l.get(i).trim().isEmpty()) {
+					emptyCounts.get(h.get(i)).incrementAndGet();
+				} else {
+					nonEmptyCounts.get(h.get(i)).incrementAndGet();
+					valueCounts.get(h.get(i)).get(l.get(i)).incrementAndGet();
+					try {
+						Integer.parseInt(l.get(i));
+					} catch (NumberFormatException nfe) {
+						possibleIntegerFields.get(h.get(i)).set(false);
+					}
+					try {
+						Double.parseDouble(l.get(i));
+					} catch (NumberFormatException nfe) {
+						possibleDoubleFields.get(h.get(i)).set(false);
+					}
+				}
+			}
+			return l;
+		}, l -> {
+			// We are a streaming summariser, and do not store the raw original
+			// lines. Only unique, non-empty, values are stored in the
+			// valueCounts map for uniqueness summaries
+		}, overrideHeaders, headerLineCount);
+		return headers;
+	}
+
+	/**
+	 * @return A {@link CsvSchema} representing the fields in the summary
+	 *         results file
+	 */
+	private static CsvSchema getSummaryCsvSchema() {
+		final CsvSchema summarySchema = CsvSchema.builder().addColumn("fieldName")
+				.addColumn("emptyCount", CsvSchema.ColumnType.NUMBER)
+				.addColumn("nonEmptyCount", CsvSchema.ColumnType.NUMBER)
+				.addColumn("uniqueValueCount", CsvSchema.ColumnType.NUMBER)
+				.addColumn("possiblePrimaryKey", CsvSchema.ColumnType.BOOLEAN)
+				.addColumn("possiblyInteger", CsvSchema.ColumnType.BOOLEAN)
+				.addColumn("possiblyFloatingPoint", CsvSchema.ColumnType.BOOLEAN).addColumn("sampleValues")
+				.setUseHeader(true).build();
+		return summarySchema;
+	}
+
+	/**
+	 * @return A {@link CsvSchema} representing the fields in the mapping file
+	 */
+	private static CsvSchema getMappingCsvSchema() {
+		final CsvSchema mappingSchema = CsvSchema.builder()
+				.addColumn(ValueMapping.OLD_FIELD, CsvSchema.ColumnType.STRING)
+				.addColumn(ValueMapping.NEW_FIELD, CsvSchema.ColumnType.STRING)
+				.addColumn(ValueMapping.SHOWN, CsvSchema.ColumnType.STRING)
+				.addColumn(ValueMapping.LANGUAGE, CsvSchema.ColumnType.STRING)
+				.addColumn(ValueMapping.MAPPING, CsvSchema.ColumnType.STRING).setUseHeader(true).build();
+		return mappingSchema;
 	}
 
 }
