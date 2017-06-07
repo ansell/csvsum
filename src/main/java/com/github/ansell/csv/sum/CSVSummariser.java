@@ -240,6 +240,11 @@ public final class CSVSummariser {
 	 * 
 	 * @param input
 	 *            The input CSV file, as a {@link Reader}.
+	 * @param inputMapper
+	 *            The CsvMapper to use to parse the file into memory
+	 * @param inputSchema
+	 *            The CsvSchema to use to help the mapper parse the file into
+	 *            memory
 	 * @param output
 	 *            The output CSV file as a {@link Writer}.
 	 * @param mappingOutput
@@ -410,6 +415,11 @@ public final class CSVSummariser {
 	 * 
 	 * @param input
 	 *            The {@link Reader} containing the inputs to be summarised.
+	 * @param inputMapper
+	 *            The CsvMapper to use to parse the file into memory
+	 * @param inputSchema
+	 *            The CsvSchema to use to help the mapper parse the file into
+	 *            memory
 	 * @param emptyCounts
 	 *            A {@link JDefaultDict} to be populated with empty counts for
 	 *            each field
@@ -480,7 +490,7 @@ public final class CSVSummariser {
 			// We are a streaming summariser, and do not store the raw original
 			// lines. Only unique, non-empty, values are stored in the
 			// valueCounts map for uniqueness summaries
-		}, overrideHeaders, headerLineCount);
+		}, overrideHeaders, headerLineCount, inputMapper, inputSchema);
 		return headers;
 	}
 
