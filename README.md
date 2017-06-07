@@ -159,12 +159,15 @@ Run csvmap with a sample csv file:
 
 # Changelog
 
+## 2017-06-07
+* Add support for specifying quote/line ending/field separator characters in the CSVSummariser Java API. No support yet in the CLI
+
 ## 2017-04-03
-# Release 0.4.1
+* Release 0.4.1
 
 ## 2017-03-31
-# Add progress output for csvsum/csvmap/csvjoin
-# Add JSON utility functions to allow programmatic iteration of JSON files
+* Add progress output for csvsum/csvmap/csvjoin
+* Add JSON utility functions to allow programmatic iteration of JSON files
 
 ## 2017-03-30
 * Add support for header substitution for files with no header line
