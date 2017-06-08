@@ -171,12 +171,23 @@ public final class CSVSorter {
 						new SortConfig().withMaxMemoryUsage(20 * 1000 * 1000).withTempFileProvider(
 								() -> Files.createTempFile(tempDir, "temp-intermediate-", ".csv").toFile()));) {
 			sorter.sort(tempInput, outputStream);
-		} finally {
-			FileUtils.deleteQuietly(tempDir.toFile());
 		}
 
 		// Phase 3: Parse the sorted file and emit it again using the CsvMapper
 		// and CsvSchema given
-		;
+		final CsvSchema outputSchema = new CsvSchema.Builder(schema).addColumns(inputHeaders, ColumnType.STRING)
+				.build();
+		try (final Reader finalCsvReader = Files.newBufferedReader(tempSorted);
+				final OutputStream outputStream = Files.newOutputStream(output);
+				final SequenceWriter finalCsvWriter = CSVStream.newCSVWriter(outputStream, outputSchema);) {
+			CSVStream.parse(finalCsvReader, h -> {
+				}, (h, l) -> {
+					return l;
+				}, l -> Unchecked.consumer(l1 -> {
+					finalCsvWriter.write(l1);
+				}), inputHeaders, 0, mapper, firstWriteSchema);
+		} finally {
+			FileUtils.deleteQuietly(tempDir.toFile());
+		}
 	}
 }
