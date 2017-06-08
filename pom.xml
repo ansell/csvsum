@@ -217,6 +217,11 @@
 				<artifactId>csvstream</artifactId>
 				<version>0.0.3-SNAPSHOT</version>
 			</dependency>
+			<dependency>
+				<groupId>com.fasterxml.util</groupId>
+				<artifactId>java-merge-sort</artifactId>
+				<version>1.0.1</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 
