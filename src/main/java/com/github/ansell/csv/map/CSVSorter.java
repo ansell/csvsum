@@ -49,6 +49,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.script.ScriptException;
@@ -157,8 +158,7 @@ public final class CSVSorter {
 
 			// Rewrite new lines in fields using the users choice of replacement
 			CSVStream.parse(input, h -> inputHeaders.addAll(h), (h, l) -> {
-				return l.stream().map(s -> s.replaceAll("\r\n", replacementString).replaceAll("\n", replacementString))
-						.collect(Collectors.toList());
+				return l.stream().map(s -> s.replaceAll("\\R", replacementString)).collect(Collectors.toList());
 			}, mapLineConsumer);
 		}
 
@@ -177,15 +177,20 @@ public final class CSVSorter {
 		// and CsvSchema given
 		final CsvSchema outputSchema = new CsvSchema.Builder(schema).addColumns(inputHeaders, ColumnType.STRING)
 				.build();
+		final String lineSeparatorToUse = new String(schema.getLineSeparator());
 		try (final Reader finalCsvReader = Files.newBufferedReader(tempSorted);
 				final OutputStream outputStream = Files.newOutputStream(output);
 				final SequenceWriter finalCsvWriter = CSVStream.newCSVWriter(outputStream, outputSchema);) {
 			CSVStream.parse(finalCsvReader, h -> {
-				}, (h, l) -> {
-					return l;
-				}, l -> Unchecked.consumer(l1 -> {
-					finalCsvWriter.write(l1);
-				}), inputHeaders, 0, mapper, firstWriteSchema);
+			}, (h, l) -> {
+				// Rewrite all of the replacement sequences with the line
+				// separator setup in the CsvSchema used to run this method
+				return l.stream().map(s -> {
+					return s.replace(replacementString, lineSeparatorToUse);
+				}).collect(Collectors.toList());
+			}, l -> Unchecked.consumer(l1 -> {
+				finalCsvWriter.write(l1);
+			}), inputHeaders, 0, mapper, firstWriteSchema);
 		} finally {
 			FileUtils.deleteQuietly(tempDir.toFile());
 		}
