@@ -103,6 +103,10 @@
 			<groupId>com.github.ansell.csv</groupId>
 			<artifactId>csvstream</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.util</groupId>
+			<artifactId>java-merge-sort</artifactId>
+		</dependency>
 	</dependencies>
 
 	<dependencyManagement>

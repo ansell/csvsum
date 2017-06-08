@@ -28,15 +28,20 @@ package com.github.ansell.csv.map;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -48,12 +53,16 @@ import java.util.stream.Collectors;
 
 import javax.script.ScriptException;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.jooq.lambda.Unchecked;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema.ColumnType;
+import com.fasterxml.sort.SortConfig;
+import com.fasterxml.sort.std.TextFileSorter;
 import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.csv.util.LineFilteredException;
 import com.github.ansell.csv.util.ValueMapping;
@@ -123,13 +132,13 @@ public final class CSVSorter {
 		}
 
 		try (final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
-			runRewriter(readerInput, rewrite.value(options), replacementString.value(options), outputPath,
-					CSVStream.defaultMapper(), CSVStream.defaultSchema());
+			runSorter(readerInput, rewrite.value(options), replacementString.value(options), outputPath,
+					CSVStream.defaultMapper(), CSVStream.defaultSchema(), String::compareTo);
 		}
 	}
 
-	public static void runRewriter(Reader input, boolean rewrite, String replacementString, Path output,
-			CsvMapper mapper, CsvSchema schema) throws ScriptException, IOException {
+	public static void runSorter(Reader input, boolean rewrite, String replacementString, Path output, CsvMapper mapper,
+			CsvSchema schema, Comparator<String> comparator) throws ScriptException, IOException {
 
 		// Ignore headers as they are not compatible with sort algorithms, add
 		// them back on after sorting
@@ -138,8 +147,10 @@ public final class CSVSorter {
 		List<String> inputHeaders = new ArrayList<>();
 
 		Path tempDir = Files.createTempDirectory(output.getParent(), "temp-csvsort");
-		Path tempFile = Files.createTempFile(tempDir, "temp-output", ".csv");
+		Path tempFile = Files.createTempFile(tempDir, "temp-input", ".csv");
 
+		// Phase 1: Rewrite troublesome new line characters with a replacement
+		// string
 		try (final Writer tempOutput = Files.newBufferedWriter(tempFile);
 				final SequenceWriter csvWriter = CSVStream.newCSVWriter(tempOutput, firstWriteSchema);) {
 			final Consumer<List<String>> mapLineConsumer = Unchecked.consumer(l -> csvWriter.write(l));
@@ -150,5 +161,22 @@ public final class CSVSorter {
 						.collect(Collectors.toList());
 			}, mapLineConsumer);
 		}
+
+		// Phase 2: Run the sort
+		Path tempSorted = Files.createTempFile(tempDir, "temp-sorted", ".csv");
+
+		try (final InputStream tempInput = Files.newInputStream(tempFile);
+				final OutputStream outputStream = Files.newOutputStream(tempSorted);
+				final TextFileSorter sorter = new TextFileSorter(
+						new SortConfig().withMaxMemoryUsage(20 * 1000 * 1000).withTempFileProvider(
+								() -> Files.createTempFile(tempDir, "temp-intermediate-", ".csv").toFile()));) {
+			sorter.sort(tempInput, outputStream);
+		} finally {
+			FileUtils.deleteQuietly(tempDir.toFile());
+		}
+
+		// Phase 3: Parse the sorted file and emit it again using the CsvMapper
+		// and CsvSchema given
+		;
 	}
 }
