@@ -383,7 +383,7 @@ public class ValueMappingTest {
 
 		LocalDate.parse("17/2/2016", dateFormatter);
 
-		DateTimeFormatter dateFormatter2 = DateTimeFormatter.ofPattern("d[d] MMM yyyy");
+		DateTimeFormatter dateFormatter2 = DateTimeFormatter.ofPattern("d[d] MMM yyyy").withLocale(Locale.US);
 
 		// The following never seems to work with a four digit year, with and
 		// without brackets for optionals

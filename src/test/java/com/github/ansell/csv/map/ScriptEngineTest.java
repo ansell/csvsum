@@ -30,6 +30,7 @@ import static org.junit.Assert.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
 import javax.script.Bindings;
 import javax.script.Compilable;
@@ -88,8 +89,8 @@ public class ScriptEngineTest {
 
 	@Test
 	public final void testDate() throws Exception {
-		LocalDate parseDate1 = LocalDate.parse("21-Sep-14", DateTimeFormatter.ofPattern("d-MMM-yy"));
-		LocalDate parsedDate = LocalDate.parse("2-Apr-14", DateTimeFormatter.ofPattern("d-MMM-yy"));
+		LocalDate parseDate1 = LocalDate.parse("21-Sep-14", DateTimeFormatter.ofPattern("d-MMM-yy").withLocale(Locale.US));
+		LocalDate parsedDate = LocalDate.parse("2-Apr-14", DateTimeFormatter.ofPattern("d-MMM-yy").withLocale(Locale.US));
 		System.out.println(parsedDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
 	}
 	
