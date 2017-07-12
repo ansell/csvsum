@@ -115,6 +115,25 @@ public class JSONUtilTest {
 	}
 
 	@Test
+	public final void testPrettyPrintNode() throws Exception {
+		StringReader input = new StringReader("{\"owner\": {\"avatar_url\": \"https://avatar.githubusercontent.com/\"}}");
+		StringWriter output = new StringWriter();
+		JsonNode jsonNode = JSONUtil.loadJSON(input);
+		JSONUtil.toPrettyPrint(jsonNode, output);
+
+		System.out.println(output.toString());
+
+		String avatar = JSONUtil.queryJSON(new StringReader(output.toString()), "/owner/avatar_url");
+
+		assertTrue(avatar, avatar.contains(".githubusercontent.com/"));
+		assertTrue(avatar, avatar.startsWith("https://avatar"));
+
+		// JSONUtil.queryJSON(
+		// "http://bie.ala.org.au/search.json?q=Banksia+occidentalis",
+		// "/searchResults/results/0/guid");
+	}
+
+	@Test
 	public final void testQuery() throws Exception {
 		Path testFile = tempDir.newFile().toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/ala-test.json"), testFile,

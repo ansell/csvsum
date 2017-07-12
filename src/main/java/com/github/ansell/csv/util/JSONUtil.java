@@ -94,8 +94,12 @@ public class JSONUtil {
 
 	public static JsonNode loadJSON(Path path) throws JsonProcessingException, IOException {
 		try(final Reader input = Files.newBufferedReader(path, StandardCharsets.UTF_8);) {
-			return JSON_MAPPER.readTree(input);
+			return loadJSON(input);
 		}
+	}
+	
+	public static JsonNode loadJSON(Reader input) throws JsonProcessingException, IOException {
+		return JSON_MAPPER.readTree(input);
 	}
 	
 	public static String queryJSON(Reader input, String jpath) throws JsonProcessingException, IOException {
@@ -150,6 +154,12 @@ public class JSONUtil {
 	}
 
 	public static void toPrettyPrint(Map<String, Object> input, Writer output) throws IOException {
+		final JsonGenerator jw = JSON_FACTORY.createGenerator(output);
+		jw.useDefaultPrettyPrinter();
+		jw.writeObject(input);
+	}
+
+	public static void toPrettyPrint(JsonNode input, Writer output) throws IOException {
 		final JsonGenerator jw = JSON_FACTORY.createGenerator(output);
 		jw.useDefaultPrettyPrinter();
 		jw.writeObject(input);
