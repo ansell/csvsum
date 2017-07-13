@@ -29,6 +29,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -163,6 +164,14 @@ public class JSONUtil {
 		final JsonGenerator jw = JSON_FACTORY.createGenerator(output);
 		jw.useDefaultPrettyPrinter();
 		jw.writeObject(input);
+	}
+
+	public static String toPrettyPrint(JsonNode input) throws IOException {
+		Writer output = new StringWriter();
+		final JsonGenerator jw = JSON_FACTORY.createGenerator(output );
+		jw.useDefaultPrettyPrinter();
+		jw.writeObject(input);
+		return output.toString();
 	}
 
     public static InputStream openStreamForURL(java.net.URL url, CloseableHttpClient httpClient) throws IOException {
