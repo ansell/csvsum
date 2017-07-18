@@ -88,6 +88,7 @@ public class JSONUtil {
 					throw e;
 				}
 				try {
+					System.err.println("Found exception on retry number " + (retries + 1));
 					e.printStackTrace(System.err);
 					Thread.sleep(TimeUnit.MILLISECONDS.convert(sleepTime, sleepUnit) * (retries + 1));
 				} catch (InterruptedException e1) {
