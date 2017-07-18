@@ -44,6 +44,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -135,7 +136,7 @@ public class JSONUtilTest {
 	@Test
 	public final void testHttpGetJSONWithRetry() throws Exception {
 		StringWriter output = new StringWriter();
-		JsonNode jsonNode = JSONUtil.httpGetJSON("https://api.github.com/repos/ansell/csvsum", 1);
+		JsonNode jsonNode = JSONUtil.httpGetJSON("https://api.github.com/repos/ansell/csvsum", 1, 1, TimeUnit.SECONDS);
 		JSONUtil.toPrettyPrint(jsonNode, output);
 
 		System.out.println(output.toString());

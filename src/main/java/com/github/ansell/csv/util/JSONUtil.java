@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpVersion;
 import org.apache.http.client.fluent.Request;
@@ -73,10 +74,10 @@ public class JSONUtil {
 	private static volatile CloseableHttpClient DEFAULT_HTTP_CLIENT = null;
 
 	public static JsonNode httpGetJSON(String url) throws JsonProcessingException, IOException {
-		return httpGetJSON(url, 0);
+		return httpGetJSON(url, 0, 0, TimeUnit.NANOSECONDS);
 	}
 
-	public static JsonNode httpGetJSON(String url, int maxRetries) throws JsonProcessingException, IOException {
+	public static JsonNode httpGetJSON(String url, int maxRetries, long sleepTime, TimeUnit sleepUnit) throws JsonProcessingException, IOException {
 		for (int retries = 0; retries <= maxRetries; retries++) {
 			try (final InputStream stream = openStreamForURL(new java.net.URL(url), getDefaultHttpClient());
 					final Reader input = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));) {
@@ -87,7 +88,7 @@ public class JSONUtil {
 				}
 				try {
 					e.printStackTrace(System.err);
-					Thread.sleep(10);
+					Thread.sleep(TimeUnit.MILLISECONDS.convert(sleepTime, sleepUnit));
 				} catch (InterruptedException e1) {
 					Thread.currentThread().interrupt();
 					throw new IOException("Interrupted while waiting to retry : Max retries (" + maxRetries
