@@ -29,7 +29,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
@@ -87,6 +86,7 @@ public class JSONUtil {
 					throw e;
 				}
 				try {
+					e.printStackTrace(System.err);
 					Thread.sleep(10);
 				} catch (InterruptedException e1) {
 					Thread.currentThread().interrupt();
