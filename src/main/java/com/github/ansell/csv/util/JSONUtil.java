@@ -78,19 +78,26 @@ public class JSONUtil {
 	}
 
 	public static JsonNode httpGetJSON(String url, int maxRetries) throws JsonProcessingException, IOException {
-		for(int retries = 0; retries <= maxRetries; retries++) {
+		for (int retries = 0; retries <= maxRetries; retries++) {
 			try (final InputStream stream = openStreamForURL(new java.net.URL(url), getDefaultHttpClient());
 					final Reader input = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));) {
 				return JSON_MAPPER.readTree(input);
 			} catch (IOException e) {
-				if(retries >= maxRetries) {
+				if (retries >= maxRetries) {
 					throw e;
+				}
+				try {
+					Thread.sleep(10);
+				} catch (InterruptedException e1) {
+					Thread.currentThread().interrupt();
+					throw new IOException("Interrupted while waiting to retry : Max retries (" + maxRetries
+							+ ") exceeded for : " + url);
 				}
 			}
 		}
-		throw new IOException("Max retries (" + maxRetries + ") exceeded for : " + url );
+		throw new IOException("Max retries (" + maxRetries + ") exceeded for : " + url);
 	}
-	
+
 	public static String queryJSON(String url, String jpath) throws JsonProcessingException, IOException {
 		return queryJSON(url, JsonPointer.compile(jpath));
 	}
