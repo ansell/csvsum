@@ -374,6 +374,7 @@ public class ValueMapping {
 				javascriptFunction.append("var LocalDate = Java.type('java.time.LocalDate'); \n");
 				javascriptFunction.append("var LocalDateTime = Java.type('java.time.LocalDateTime'); \n");
 				javascriptFunction.append("var LocalTime = Java.type('java.time.LocalTime'); \n");
+				javascriptFunction.append("var TimeUnit = Java.type('java.util.concurrent.TimeUnit'); \n");
 				javascriptFunction.append("var Locale = Java.type('java.util.Locale'); \n");
 				javascriptFunction.append("var Format = Java.type('java.time.format.DateTimeFormatter'); \n");
 				javascriptFunction.append(
