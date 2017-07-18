@@ -115,6 +115,42 @@ public class JSONUtilTest {
 	}
 
 	@Test
+	public final void testHttpGetJSON() throws Exception {
+		StringWriter output = new StringWriter();
+		JsonNode jsonNode = JSONUtil.httpGetJSON("https://api.github.com/repos/ansell/csvsum");
+		JSONUtil.toPrettyPrint(jsonNode, output);
+
+		System.out.println(output.toString());
+
+		String avatar = JSONUtil.queryJSON(new StringReader(output.toString()), "/owner/avatar_url");
+
+		assertTrue(avatar, avatar.contains(".githubusercontent.com/"));
+		assertTrue(avatar, avatar.startsWith("https://avatar"));
+
+		// JSONUtil.queryJSON(
+		// "http://bie.ala.org.au/search.json?q=Banksia+occidentalis",
+		// "/searchResults/results/0/guid");
+	}
+
+	@Test
+	public final void testHttpGetJSONWithRetry() throws Exception {
+		StringWriter output = new StringWriter();
+		JsonNode jsonNode = JSONUtil.httpGetJSON("https://api.github.com/repos/ansell/csvsum", 1);
+		JSONUtil.toPrettyPrint(jsonNode, output);
+
+		System.out.println(output.toString());
+
+		String avatar = JSONUtil.queryJSON(new StringReader(output.toString()), "/owner/avatar_url");
+
+		assertTrue(avatar, avatar.contains(".githubusercontent.com/"));
+		assertTrue(avatar, avatar.startsWith("https://avatar"));
+
+		// JSONUtil.queryJSON(
+		// "http://bie.ala.org.au/search.json?q=Banksia+occidentalis",
+		// "/searchResults/results/0/guid");
+	}
+
+	@Test
 	public final void testPrettyPrintNode() throws Exception {
 		StringReader input = new StringReader("{\"owner\": {\"avatar_url\": \"https://avatar.githubusercontent.com/\"}}");
 		StringWriter output = new StringWriter();
