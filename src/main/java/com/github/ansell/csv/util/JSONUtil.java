@@ -85,6 +85,8 @@ public class JSONUtil {
 				return JSON_MAPPER.readTree(input);
 			} catch (IOException e) {
 				if (retries >= maxRetries) {
+					System.err.println("Found maximum number of retries on retry number " + (retries + 1)
+							+ " maxRetries=" + maxRetries);
 					throw e;
 				}
 				try {
