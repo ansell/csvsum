@@ -77,7 +77,8 @@ public class JSONUtil {
 		return httpGetJSON(url, 0, 0, TimeUnit.NANOSECONDS);
 	}
 
-	public static JsonNode httpGetJSON(String url, int maxRetries, long sleepTime, TimeUnit sleepUnit) throws JsonProcessingException, IOException {
+	public static JsonNode httpGetJSON(String url, int maxRetries, long sleepTime, TimeUnit sleepUnit)
+			throws JsonProcessingException, IOException {
 		for (int retries = 0; retries <= maxRetries; retries++) {
 			try (final InputStream stream = openStreamForURL(new java.net.URL(url), getDefaultHttpClient());
 					final Reader input = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));) {
@@ -88,7 +89,7 @@ public class JSONUtil {
 				}
 				try {
 					e.printStackTrace(System.err);
-					Thread.sleep(TimeUnit.MILLISECONDS.convert(sleepTime, sleepUnit));
+					Thread.sleep(TimeUnit.MILLISECONDS.convert(sleepTime, sleepUnit) * (retries + 1));
 				} catch (InterruptedException e1) {
 					Thread.currentThread().interrupt();
 					throw new IOException("Interrupted while waiting to retry : Max retries (" + maxRetries
