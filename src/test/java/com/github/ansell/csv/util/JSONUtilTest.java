@@ -82,6 +82,7 @@ public class JSONUtilTest {
 		assertTrue(output.toString().contains("\"test\" : \"something\""));
 	}
 
+	@Ignore("Ignore so AEKOS API outages don't affect test results")
 	@Test
 	public final void testAEKOS() throws Exception {
 		StringWriter output = new StringWriter();
