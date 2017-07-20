@@ -408,13 +408,15 @@ public class ValueMapping {
 				javascriptFunction.append(
 						"var mapFunction = function(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer) { ");
 				javascriptFunction.append(
-						"    var primaryKeyFilter = function(nextPrimaryKey, primaryKeyField) { \n if(!primaryKeyField) { primaryKeyField = \"Primary\"; } \n return !primaryKeys.get(primaryKeyField).add(nextPrimaryKey) ? filter() : nextPrimaryKey; }; \n ");
+						"    var primaryKeyBoolean = function(nextPrimaryKey, primaryKeyField) { \n if(!primaryKeyField) { primaryKeyField = \"Primary\"; } \n return primaryKeys.get(primaryKeyField).add(nextPrimaryKey); }; \n ");
+				javascriptFunction.append(
+						"    var primaryKeyFilter = function(nextPrimaryKey, primaryKeyField) { \n if(!primaryKeyField) { primaryKeyField = \"Primary\"; } \n return primaryKeys.get(primaryKeyField).add(nextPrimaryKey) ? nextPrimaryKey : filter(); }; \n ");
 				javascriptFunction.append(
 						"    var col = function(searchHeader) { \n return columnFunction(searchHeader, inputHeaders, line); }; \n ");
 				javascriptFunction.append(
 						"    var outCol = function(searchHeader) { \n return columnFunctionMap(searchHeader, mapLine); }; \n ");
 				javascriptFunction.append(this.mapping);
-				javascriptFunction.append(" }; \n");
+				javascriptFunction.append(" \n }; \n");
 
 				scriptEngine.eval(javascriptFunction.toString());
 			} catch (ScriptException e) {
