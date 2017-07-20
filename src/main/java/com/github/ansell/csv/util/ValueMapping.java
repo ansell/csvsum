@@ -56,6 +56,11 @@ public class ValueMapping {
 
 	private static final String NO = "no";
 
+	/**
+	 * The default mapping if none is specified in the mapping file.
+	 */
+	protected static final String DEFAULT_MAPPING = "inputValue";
+
 	public enum ValueMappingLanguage {
 		DEFAULT(ValueMapping.DEFAULT_MAPPING),
 
@@ -87,11 +92,6 @@ public class ValueMapping {
 			return this.getDefaultMapping().equals(mapping);
 		}
 	}
-
-	/**
-	 * The default mapping if none is specified in the mapping file.
-	 */
-	protected static final String DEFAULT_MAPPING = "inputValue";
 
 	public static final String OLD_FIELD = "OldField";
 	public static final String NEW_FIELD = "NewField";
