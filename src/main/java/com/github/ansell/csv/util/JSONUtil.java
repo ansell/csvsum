@@ -76,7 +76,6 @@ public class JSONUtil {
 	 * Default to 120 second timeout.
 	 */
 	private static final int DEFAULT_TIMEOUT = 120 * 1000;
-	private static volatile CloseableHttpClient DEFAULT_HTTP_CLIENT = null;
 
 	public static JsonNode httpGetJSON(String url) throws JsonProcessingException, IOException {
 		return httpGetJSON(url, 0, 0, TimeUnit.NANOSECONDS);
@@ -86,16 +85,18 @@ public class JSONUtil {
 			throws JsonProcessingException, IOException {
 		return httpGetJSON(url, maxRetries, sleepTime, sleepUnit, DEFAULT_TIMEOUT);
 	}
-	
+
 	public static JsonNode httpGetJSON(String url, int maxRetries, long sleepTime, TimeUnit sleepUnit, int timeout)
 			throws JsonProcessingException, IOException {
 		for (int retries = 0; retries <= maxRetries; retries++) {
-			try (final InputStream stream = openStreamForURL(new java.net.URL(url), getDefaultHttpClient(), DEFAULT_ACCEPT_HEADER, timeout);
+			try (final CloseableHttpClient httpClient = createNewHttpClient();
+					final InputStream stream = openStreamForURL(new java.net.URL(url), httpClient,
+							DEFAULT_ACCEPT_HEADER, timeout);
 					final Reader input = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));) {
 				return JSON_MAPPER.readTree(input);
 			} catch (JsonProcessingException e) {
 				System.err.println("Found Json error for URL: " + url + " on retry number " + (retries + 1)
-							+ " maxRetries=" + maxRetries);
+						+ " maxRetries=" + maxRetries);
 				e.printStackTrace(System.err);
 				throw e;
 			} catch (IOException e) {
@@ -124,7 +125,8 @@ public class JSONUtil {
 	}
 
 	public static String queryJSON(String url, JsonPointer jpath) throws JsonProcessingException, IOException {
-		try (final InputStream stream = openStreamForURL(new java.net.URL(url), getDefaultHttpClient());
+		try (final CloseableHttpClient httpClient = createNewHttpClient();
+				final InputStream stream = openStreamForURL(new java.net.URL(url), httpClient);
 				final Reader input = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));) {
 			return queryJSON(input, jpath);
 		}
@@ -236,9 +238,9 @@ public class JSONUtil {
 			throws IOException {
 		return openStreamForURL(url, httpClient, acceptHeader, DEFAULT_TIMEOUT);
 	}
-	
-	public static InputStream openStreamForURL(java.net.URL url, CloseableHttpClient httpClient, String acceptHeader, int timeout)
-			throws IOException {
+
+	public static InputStream openStreamForURL(java.net.URL url, CloseableHttpClient httpClient, String acceptHeader,
+			int timeout) throws IOException {
 		final String protocol = url.getProtocol();
 		if (!protocol.equalsIgnoreCase("http") && !protocol.equalsIgnoreCase("https")) {
 			return url.openStream();
@@ -252,7 +254,7 @@ public class JSONUtil {
 		requestConfig.setSocketTimeout(timeout);
 
 		request.setConfig(requestConfig.build());
-		
+
 		final CloseableHttpResponse response = httpClient.execute(request);
 		final int status = response.getStatusLine().getStatusCode();
 		if (status != 200 && status != 203) {
@@ -261,30 +263,15 @@ public class JSONUtil {
 		return response.getEntity().getContent();
 	}
 
-	public static CloseableHttpClient getDefaultHttpClient() {
-		CloseableHttpClient result = DEFAULT_HTTP_CLIENT;
-		if (result == null) {
-			synchronized (JSONUtil.class) {
-				result = DEFAULT_HTTP_CLIENT;
-				if (result == null) {
-					result = DEFAULT_HTTP_CLIENT = JSONUtil.createDefaultHttpClient();
-				}
-			}
-		}
-		return result;
-	}
-
-	private static CloseableHttpClient createDefaultHttpClient() {
+	private static CloseableHttpClient createNewHttpClient() {
 		// Common CacheConfig for both the JarCacheStorage and the underlying
 		// BasicHttpCacheStorage
 		final CacheConfig cacheConfig = CacheConfig.custom().setMaxCacheEntries(1000).setMaxObjectSize(1024 * 128)
 				.build();
 
-		RequestConfig config = RequestConfig.custom()
-				  .setConnectTimeout(DEFAULT_TIMEOUT)
-				  .setConnectionRequestTimeout(DEFAULT_TIMEOUT)
-				  .setSocketTimeout(DEFAULT_TIMEOUT).build();
-		
+		RequestConfig config = RequestConfig.custom().setConnectTimeout(DEFAULT_TIMEOUT)
+				.setConnectionRequestTimeout(DEFAULT_TIMEOUT).setSocketTimeout(DEFAULT_TIMEOUT).build();
+
 		CloseableHttpClient result = CachingHttpClientBuilder.create()
 				// allow caching
 				.setCacheConfig(cacheConfig)
@@ -294,9 +281,7 @@ public class JSONUtil {
 				// http://hc.apache.org/httpcomponents-client-ga/tutorial/html/httpagent.html#d5e1238
 				.addInterceptorFirst(new RequestAcceptEncoding()).addInterceptorFirst(new ResponseContentEncoding())
 				// use system defaults for proxy etc.
-				.useSystemProperties()
-				.setDefaultRequestConfig(config)
-				.build();
+				.useSystemProperties().setDefaultRequestConfig(config).build();
 
 		return result;
 	}
