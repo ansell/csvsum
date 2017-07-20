@@ -395,6 +395,8 @@ public class ValueMapping {
 				javascriptFunction.append(
 						"var digest = function(value, algorithm, formatPattern) { if(!algorithm) { algorithm = \"SHA-256\"; } if(!formatPattern) { formatPattern = \"%064x\";} var md = MessageDigest.getInstance(algorithm); md.update(value.getBytes(\"UTF-8\")); var digestValue = md.digest(); return String.format(formatPattern, new BigInteger(1, digestValue));}; \n");
 				javascriptFunction.append(
+						"var replaceLineEndingsWith = function(value, replacement) { if(!replacement) { replacement = \"\"; } return value.replaceAll(\"\\r\\n|\\r|\\n\", replacement); }; \n");
+				javascriptFunction.append(
 						"var newDateFormat = function(formatPattern) { return new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern(formatPattern).toFormatter(Locale.US); }; \n");
 				javascriptFunction.append(
 						"var dateMatches = function(dateValue, format) { try {\n format.parse(dateValue); \n return true; \n } catch(e) { } \n return false; }; \n");

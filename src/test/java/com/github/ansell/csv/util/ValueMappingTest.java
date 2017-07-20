@@ -39,6 +39,7 @@ public class ValueMappingTest {
 	private ValueMapping testJavascriptMapping;
 	private ValueMapping testJavascriptPrimaryKeyMapping;
 	private ValueMapping testJavascriptPrimaryKeyMappingFunction;
+	private ValueMapping testJavascriptReplaceLineEndings;
 	private ValueMapping testJavascriptMapLineConsumerAndReturn;
 	private ValueMapping testJavascriptMapLineConsumerFilter;
 	private ValueMapping testPreviousMapping;
@@ -82,6 +83,8 @@ public class ValueMappingTest {
 				"aDifferentField",
 				"mapLineConsumer(line, Arrays.asList(inputValue, \"ABC-\" + inputValue)); filter(); return inputValue;",
 				"");
+		testJavascriptReplaceLineEndings = ValueMapping.newMapping("Javascript", "anInput", "aDifferentField",
+				"return replaceLineEndingsWith(inputValue, \"\");", "");
 
 		testPrimaryKeys = new JDefaultDict<>(k -> new HashSet<>());
 	}
@@ -294,6 +297,21 @@ public class ValueMappingTest {
 	}
 
 	@Test
+	public final void testReplaceLineEndings() {
+		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("anInput"),
+				Arrays.asList("This is what \ryou get \nwhen you \r\nreplace new lines\n correctly\n!"),
+				Collections.emptyList(), Collections.emptyList(),
+				Arrays.asList(testJavascriptReplaceLineEndings, testDefaultMapping), testPrimaryKeys, 123, 101,
+				UNEXPECTED_LINE_CONSUMER);
+
+		assertEquals(2, mapLine.size());
+		// Test with and without the mapping to verify it can be roundtripped
+		// with the newlines in the same result set
+		assertEquals("This is what you get when you replace new lines correctly!", mapLine.get(0));
+		assertEquals("This is what \ryou get \nwhen you \r\nreplace new lines\n correctly\n!", mapLine.get(1));
+	}
+
+	@Test
 	public final void testMapLineDateMatchInvalid() {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("dateInput"), Arrays.asList("testNotADate"),
 				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMatching), testPrimaryKeys, 1,
@@ -391,7 +409,7 @@ public class ValueMappingTest {
 		LocalDate.parse("3 Sep 2007", dateFormatter2);
 
 		DateTimeFormatter dateFormatter3 = DateTimeFormatter.ofPattern("dd-MMM-yy").withLocale(Locale.US);
-		
+
 		LocalDate.parse("07-Oct-76", dateFormatter3);
 	}
 }
