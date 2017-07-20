@@ -83,10 +83,16 @@ public class JSONUtil {
 			try (final InputStream stream = openStreamForURL(new java.net.URL(url), getDefaultHttpClient());
 					final Reader input = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));) {
 				return JSON_MAPPER.readTree(input);
+			} catch (JsonProcessingException e) {
+				System.err.println("Found Json error for URL: " + url + " on retry number " + (retries + 1)
+							+ " maxRetries=" + maxRetries);
+				e.printStackTrace(System.err);
+				throw e;
 			} catch (IOException e) {
 				if (retries >= maxRetries) {
 					System.err.println("Found maximum number of retries on retry number " + (retries + 1)
 							+ " maxRetries=" + maxRetries);
+					e.printStackTrace(System.err);
 					throw e;
 				}
 				try {

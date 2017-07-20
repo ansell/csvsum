@@ -86,7 +86,7 @@ public class JSONUtilTest {
 	@Test
 	public final void testAEKOS() throws Exception {
 		StringWriter output = new StringWriter();
-		JsonNode jsonNode = JSONUtil.httpGetJSON("https://dev.api.aekos.org.au/v1/allSpeciesData.json?start=0&rows=5", 10, 10, TimeUnit.MILLISECONDS);
+		JsonNode jsonNode = JSONUtil.httpGetJSON("https://dev.api.aekos.org.au/v2/allSpeciesData.json?start=0&rows=5", 10, 10, TimeUnit.MILLISECONDS);
 		JSONUtil.toPrettyPrint(jsonNode, output);
 		System.out.println(output.toString());
 	}
