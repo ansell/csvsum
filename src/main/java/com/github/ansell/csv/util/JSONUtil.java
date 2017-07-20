@@ -90,7 +90,7 @@ public class JSONUtil {
 	public static JsonNode httpGetJSON(String url, int maxRetries, long sleepTime, TimeUnit sleepUnit, int timeout)
 			throws JsonProcessingException, IOException {
 		for (int retries = 0; retries <= maxRetries; retries++) {
-			try (final InputStream stream = openStreamForURL(new java.net.URL(url), getDefaultHttpClient());
+			try (final InputStream stream = openStreamForURL(new java.net.URL(url), getDefaultHttpClient(), DEFAULT_ACCEPT_HEADER, timeout);
 					final Reader input = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));) {
 				return JSON_MAPPER.readTree(input);
 			} catch (JsonProcessingException e) {
