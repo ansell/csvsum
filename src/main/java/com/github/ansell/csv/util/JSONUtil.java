@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpVersion;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -68,9 +69,13 @@ import com.github.jsonldjava.utils.JarCacheStorage;
  */
 public class JSONUtil {
 
-	private static final String ACCEPT_HEADER = "application/json, application/javascript;q=0.5, text/javascript;q=0.5, text/plain;q=0.2, */*;q=0.1";
+	private static final String DEFAULT_ACCEPT_HEADER = "application/json, application/javascript;q=0.5, text/javascript;q=0.5, text/plain;q=0.2, */*;q=0.1";
 	private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 	private static final JsonFactory JSON_FACTORY = new JsonFactory(JSON_MAPPER);
+	/**
+	 * Default to 120 second timeout.
+	 */
+	private static final int DEFAULT_TIMEOUT = 120 * 1000;
 	private static volatile CloseableHttpClient DEFAULT_HTTP_CLIENT = null;
 
 	public static JsonNode httpGetJSON(String url) throws JsonProcessingException, IOException {
@@ -78,6 +83,11 @@ public class JSONUtil {
 	}
 
 	public static JsonNode httpGetJSON(String url, int maxRetries, long sleepTime, TimeUnit sleepUnit)
+			throws JsonProcessingException, IOException {
+		return httpGetJSON(url, maxRetries, sleepTime, sleepUnit, DEFAULT_TIMEOUT);
+	}
+	
+	public static JsonNode httpGetJSON(String url, int maxRetries, long sleepTime, TimeUnit sleepUnit, int timeout)
 			throws JsonProcessingException, IOException {
 		for (int retries = 0; retries <= maxRetries; retries++) {
 			try (final InputStream stream = openStreamForURL(new java.net.URL(url), getDefaultHttpClient());
@@ -219,18 +229,30 @@ public class JSONUtil {
 	}
 
 	public static InputStream openStreamForURL(java.net.URL url, CloseableHttpClient httpClient) throws IOException {
-		return openStreamForURL(url, httpClient, ACCEPT_HEADER);
+		return openStreamForURL(url, httpClient, DEFAULT_ACCEPT_HEADER);
 	}
 
 	public static InputStream openStreamForURL(java.net.URL url, CloseableHttpClient httpClient, String acceptHeader)
+			throws IOException {
+		return openStreamForURL(url, httpClient, acceptHeader, DEFAULT_TIMEOUT);
+	}
+	
+	public static InputStream openStreamForURL(java.net.URL url, CloseableHttpClient httpClient, String acceptHeader, int timeout)
 			throws IOException {
 		final String protocol = url.getProtocol();
 		if (!protocol.equalsIgnoreCase("http") && !protocol.equalsIgnoreCase("https")) {
 			return url.openStream();
 		}
-		final HttpUriRequest request = new HttpGet(url.toExternalForm());
+		final HttpGet request = new HttpGet(url.toExternalForm());
 		request.addHeader("Accept", acceptHeader);
 
+		RequestConfig.Builder requestConfig = RequestConfig.custom();
+		requestConfig.setConnectTimeout(timeout);
+		requestConfig.setConnectionRequestTimeout(timeout);
+		requestConfig.setSocketTimeout(timeout);
+
+		request.setConfig(requestConfig.build());
+		
 		final CloseableHttpResponse response = httpClient.execute(request);
 		final int status = response.getStatusLine().getStatusCode();
 		if (status != 200 && status != 203) {
@@ -258,6 +280,11 @@ public class JSONUtil {
 		final CacheConfig cacheConfig = CacheConfig.custom().setMaxCacheEntries(1000).setMaxObjectSize(1024 * 128)
 				.build();
 
+		RequestConfig config = RequestConfig.custom()
+				  .setConnectTimeout(DEFAULT_TIMEOUT)
+				  .setConnectionRequestTimeout(DEFAULT_TIMEOUT)
+				  .setSocketTimeout(DEFAULT_TIMEOUT).build();
+		
 		CloseableHttpClient result = CachingHttpClientBuilder.create()
 				// allow caching
 				.setCacheConfig(cacheConfig)
@@ -267,7 +294,9 @@ public class JSONUtil {
 				// http://hc.apache.org/httpcomponents-client-ga/tutorial/html/httpagent.html#d5e1238
 				.addInterceptorFirst(new RequestAcceptEncoding()).addInterceptorFirst(new ResponseContentEncoding())
 				// use system defaults for proxy etc.
-				.useSystemProperties().build();
+				.useSystemProperties()
+				.setDefaultRequestConfig(config)
+				.build();
 
 		return result;
 	}
