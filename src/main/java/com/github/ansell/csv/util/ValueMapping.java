@@ -391,11 +391,16 @@ public class ValueMapping {
 				javascriptFunction.append("var Paths = Java.type('java.nio.file.Paths'); \n");
 				javascriptFunction.append("var JsonPointer = Java.type('com.fasterxml.jackson.core.JsonPointer'); \n");
 				javascriptFunction.append("var Thread = Java.type('java.lang.Thread'); \n");
+				javascriptFunction.append("var System = Java.type('java.lang.System'); \n");
 				javascriptFunction.append("var sleep = function(sleepTime) { Thread.sleep(sleepTime); }; \n");
 				javascriptFunction.append(
 						"var digest = function(value, algorithm, formatPattern) { if(!algorithm) { algorithm = \"SHA-256\"; } if(!formatPattern) { formatPattern = \"%064x\";} var md = MessageDigest.getInstance(algorithm); md.update(value.getBytes(\"UTF-8\")); var digestValue = md.digest(); return String.format(formatPattern, new BigInteger(1, digestValue));}; \n");
 				javascriptFunction.append(
 						"var replaceLineEndingsWith = function(value, replacement) { if(!replacement) { replacement = \"\"; } return value.replaceAll(\"\\r\\n|\\r|\\n\", replacement); }; \n");
+				javascriptFunction.append(
+						"var printErr = function(message) { System.err.println(message); }; \n");
+				javascriptFunction.append(
+						"var printTimings = function(startTime, rowCount) { var secondsSinceStart = (System.currentTimeMillis() - startTime) / 1000.0; System.out.printf(\"%d\\tSeconds since start: %f\\tRecords per second: %f%n\", nextLineNumber, secondsSinceStart, (nextLineNumber / secondsSinceStart)); }; \n");
 				javascriptFunction.append(
 						"var newDateFormat = function(formatPattern) { return new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern(formatPattern).toFormatter(Locale.US); }; \n");
 				javascriptFunction.append(
