@@ -1,7 +1,8 @@
 language: java
-sudo: required
+dist: trusty
 jdk:
   - oraclejdk8
+  - oraclejdk9
 notifications:
   email:
     - ansell.peter@gmail.com
