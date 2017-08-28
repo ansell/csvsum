@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.github.ansell.csv.map;
+package com.github.ansell.csv.sort;
 
 import static org.junit.Assert.*;
 
@@ -15,6 +15,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
+
+import com.github.ansell.csv.sort.CSVSorter;
 
 import joptsimple.OptionException;
 
@@ -43,7 +45,7 @@ public class CSVSorterTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVSorter#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sort.CSVSorter#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainNoArgs() throws Exception {
@@ -53,7 +55,7 @@ public class CSVSorterTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVSorter#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sort.CSVSorter#main(java.lang.String[])}.
 	 */
 	@Test
 	public final void testMainHelp() throws Exception {
@@ -62,7 +64,7 @@ public class CSVSorterTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVSorter#main(java.lang.String[])}.
+	 * {@link com.github.ansell.csv.sort.CSVSorter#main(java.lang.String[])}.
 	 */
 	@Ignore("TODO: Implement me")
 	@Test
@@ -76,7 +78,7 @@ public class CSVSorterTest {
 
 	/**
 	 * Test method for
-	 * {@link com.github.ansell.csv.map.CSVSorter#runSorter(java.io.Reader, boolean, java.lang.String, java.nio.file.Path, com.fasterxml.jackson.dataformat.csv.CsvMapper, com.fasterxml.jackson.dataformat.csv.CsvSchema, java.util.Comparator)}.
+	 * {@link com.github.ansell.csv.sort.CSVSorter#runSorter(java.io.Reader, boolean, java.lang.String, java.nio.file.Path, com.fasterxml.jackson.dataformat.csv.CsvMapper, com.fasterxml.jackson.dataformat.csv.CsvSchema, java.util.Comparator)}.
 	 */
 	@Ignore("TODO: Implement me")
 	@Test

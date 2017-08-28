@@ -23,7 +23,7 @@
  * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package com.github.ansell.csv.map;
+package com.github.ansell.csv.sort;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -163,6 +163,10 @@ public final class CSVSorter {
 		}
 
 		// Phase 2: Run the sort
+		
+		
+		CSVStream.defaultMapper();
+		
 		Path tempSorted = Files.createTempFile(tempDir, "temp-sorted", ".csv");
 
 		try (final InputStream tempInput = Files.newInputStream(tempFile);
