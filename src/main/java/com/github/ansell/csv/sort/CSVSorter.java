@@ -26,36 +26,25 @@
 package com.github.ansell.csv.sort;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.script.ScriptException;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.jooq.lambda.Unchecked;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
@@ -63,11 +52,9 @@ import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema.ColumnType;
 import com.fasterxml.sort.SortConfig;
+import com.fasterxml.sort.Sorter;
 import com.fasterxml.sort.std.TextFileSorter;
 import com.github.ansell.csv.stream.CSVStream;
-import com.github.ansell.csv.util.LineFilteredException;
-import com.github.ansell.csv.util.ValueMapping;
-import com.github.ansell.jdefaultdict.JDefaultDict;
 
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
@@ -81,12 +68,12 @@ import joptsimple.OptionSpec;
  * 
  * @author Peter Ansell p_ansell@yahoo.com
  */
-public final class CSVSorter {
+public final class CSVSorter extends Sorter<List<String>> {
 
-	/**
-	 * Private constructor for static only class
-	 */
-	private CSVSorter() {
+	public CSVSorter(SortConfig config, CsvMapper mapper, CsvSchema schema,
+			Comparator<List<String>> stringListComparator) {
+		super(config, new CSVSorterReaderFactory(mapper, schema), new CSVSorterWriterFactory(mapper, schema),
+				stringListComparator);
 	}
 
 	public static void main(String... args) throws Exception {
@@ -95,13 +82,11 @@ public final class CSVSorter {
 		final OptionSpec<Void> help = parser.accepts("help").forHelp();
 		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
 				.describedAs("The input CSV file to be mapped.");
-		final OptionSpec<Boolean> rewrite = parser.accepts("rewrite").withRequiredArg().ofType(Boolean.class).required()
-				.describedAs(
-						"True to rewrite new lines to replacement characters and false to rewrite replacement characters to newlines.");
-		final OptionSpec<String> replacementString = parser.accepts("replacement").withRequiredArg()
-				.ofType(String.class).required().describedAs("The string used as a replacement for newlines.");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class).required()
 				.describedAs("The output sorted CSV file.");
+		final OptionSpec<Integer> idFieldIndex = parser.accepts("id-field-index").withRequiredArg()
+				.ofType(Integer.class).required()
+				.describedAs("The index of the column in the CSV file that is to be used for sorting");
 
 		OptionSet options = null;
 
@@ -118,6 +103,8 @@ public final class CSVSorter {
 			return;
 		}
 
+		final int idFieldIndexInteger = idFieldIndex.value(options);
+
 		final Path inputPath = input.value(options).toPath();
 		if (!Files.exists(inputPath)) {
 			throw new FileNotFoundException("Could not find input CSV file: " + inputPath.toString());
@@ -133,70 +120,30 @@ public final class CSVSorter {
 		}
 
 		try (final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
-			runSorter(readerInput, rewrite.value(options), replacementString.value(options), outputPath,
-					CSVStream.defaultMapper(), CSVStream.defaultSchema(), String::compareTo);
+			runSorter(readerInput, outputPath, CSVStream.defaultMapper(), CSVStream.defaultSchema(),
+					Comparator.comparing(list -> list.get(idFieldIndexInteger)));
 		}
 	}
 
-	public static void runSorter(Reader input, boolean rewrite, String replacementString, Path output, CsvMapper mapper,
-			CsvSchema schema, Comparator<String> comparator) throws ScriptException, IOException {
-
-		// Ignore headers as they are not compatible with sort algorithms, add
-		// them back on after sorting
-		CsvSchema firstWriteSchema = CsvSchema.builder().setUseHeader(false).build();
-
-		List<String> inputHeaders = new ArrayList<>();
+	public static void runSorter(Reader input, Path output, CsvMapper mapper, CsvSchema schema,
+			Comparator<List<String>> comparator) throws ScriptException, IOException {
 
 		Path tempDir = Files.createTempDirectory(output.getParent(), "temp-csvsort");
 		Path tempFile = Files.createTempFile(tempDir, "temp-input", ".csv");
 
-		// Phase 1: Rewrite troublesome new line characters with a replacement
-		// string
-		try (final Writer tempOutput = Files.newBufferedWriter(tempFile);
-				final SequenceWriter csvWriter = CSVStream.newCSVWriter(tempOutput, firstWriteSchema);) {
-			final Consumer<List<String>> mapLineConsumer = Unchecked.consumer(l -> csvWriter.write(l));
-
-			// Rewrite new lines in fields using the users choice of replacement
-			CSVStream.parse(input, h -> inputHeaders.addAll(h), (h, l) -> {
-				return l.stream().map(s -> s.replaceAll("\\R", replacementString)).collect(Collectors.toList());
-			}, mapLineConsumer);
-		}
-
-		// Phase 2: Run the sort
-		
-		
-		CSVStream.defaultMapper();
-		
-		Path tempSorted = Files.createTempFile(tempDir, "temp-sorted", ".csv");
+		SortConfig sortConfig = new SortConfig().withMaxMemoryUsage(20 * 1000 * 1000)
+				.withTempFileProvider(() -> Files.createTempFile(tempDir, "temp-intermediate-", ".csv").toFile());
 
 		try (final InputStream tempInput = Files.newInputStream(tempFile);
-				final OutputStream outputStream = Files.newOutputStream(tempSorted);
-				final TextFileSorter sorter = new TextFileSorter(
-						new SortConfig().withMaxMemoryUsage(20 * 1000 * 1000).withTempFileProvider(
-								() -> Files.createTempFile(tempDir, "temp-intermediate-", ".csv").toFile()));) {
-			sorter.sort(tempInput, outputStream);
-		}
-
-		// Phase 3: Parse the sorted file and emit it again using the CsvMapper
-		// and CsvSchema given
-		final CsvSchema outputSchema = new CsvSchema.Builder(schema).addColumns(inputHeaders, ColumnType.STRING)
-				.build();
-		final String lineSeparatorToUse = new String(schema.getLineSeparator());
-		try (final Reader finalCsvReader = Files.newBufferedReader(tempSorted);
 				final OutputStream outputStream = Files.newOutputStream(output);
-				final SequenceWriter finalCsvWriter = CSVStream.newCSVWriter(outputStream, outputSchema);) {
-			CSVStream.parse(finalCsvReader, h -> {
-			}, (h, l) -> {
-				// Rewrite all of the replacement sequences with the line
-				// separator setup in the CsvSchema used to run this method
-				return l.stream().map(s -> {
-					return s.replace(replacementString, lineSeparatorToUse);
-				}).collect(Collectors.toList());
-			}, l -> Unchecked.consumer(l1 -> {
-				finalCsvWriter.write(l1);
-			}), inputHeaders, 0, mapper, firstWriteSchema);
+				final CSVSorter sorter = new CSVSorter(sortConfig, mapper, schema, comparator);) {
+			sorter.sort(tempInput, outputStream);
 		} finally {
-			FileUtils.deleteQuietly(tempDir.toFile());
+			Files.walk(tempDir).sorted(Comparator.reverseOrder())
+					// .map(Path::toFile)
+					// .peek(System.out::println)
+					// .forEach(File::delete);
+					.forEach(f -> System.out.println("Would have deleted temporaryFile: " + f.toString()));
 		}
 	}
 }

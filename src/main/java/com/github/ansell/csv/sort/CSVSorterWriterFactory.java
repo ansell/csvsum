@@ -44,6 +44,11 @@ public class CSVSorterWriterFactory extends DataWriterFactory<List<String>> {
 	private CsvMapper mapper;
 	private CsvSchema schema;
 
+	public CSVSorterWriterFactory(CsvMapper mapper, CsvSchema schema) {
+		this.mapper = mapper;
+		this.schema = schema;
+	}
+
 	@Override
 	public DataWriter<List<String>> constructWriter(OutputStream out) throws IOException {
 		return new CSVSorterWriter(mapper, schema, out);

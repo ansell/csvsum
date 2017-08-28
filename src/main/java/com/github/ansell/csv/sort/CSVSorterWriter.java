@@ -29,6 +29,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
 
+import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.dataformat.csv.CsvGenerator;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.fasterxml.sort.DataWriter;
@@ -40,22 +42,22 @@ import com.fasterxml.sort.DataWriter;
  */
 public class CSVSorterWriter extends DataWriter<List<String>> {
 
-	public CSVSorterWriter(CsvMapper mapper, CsvSchema schema, OutputStream out) {
-		this.mapper = mapper;
-		this.schema = schema;
-		this.generator = mapper.getFactory().createGenerator(out);
+	private ObjectWriter mapper;
+	private CsvGenerator generator;
+
+	public CSVSorterWriter(CsvMapper mapper, CsvSchema schema, OutputStream out) throws IOException {
+		this.mapper = mapper.writerWithDefaultPrettyPrinter().with(schema).forType(List.class);
+		this.generator = mapper.getFactory().createGenerator(out);;
 	}
 
 	@Override
 	public void writeEntry(List<String> item) throws IOException {
-		// TODO Auto-generated method stub
-
+		mapper.writeValue(generator, item);
 	}
 
 	@Override
 	public void close() throws IOException {
-		// TODO Auto-generated method stub
-
+		generator.close();
 	}
 
 }
