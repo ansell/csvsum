@@ -54,7 +54,8 @@ public class CSVSorterReader extends DataReader<List<String>> {
 
 	@Override
 	public int estimateSizeInBytes(List<String> item) {
-		return item.stream().mapToInt(nextItem -> nextItem.length()).sum();
+		return 1024;
+		//return item.stream().mapToInt(nextItem -> nextItem.length()).sum();
 	}
 
 	@Override

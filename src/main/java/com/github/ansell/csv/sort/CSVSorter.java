@@ -33,6 +33,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -45,6 +46,7 @@ import java.util.stream.Collectors;
 import javax.script.ScriptException;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.jooq.lambda.Unchecked;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
@@ -72,7 +74,7 @@ public final class CSVSorter extends Sorter<List<String>> {
 
 	public CSVSorter(SortConfig config, CsvMapper mapper, CsvSchema schema,
 			Comparator<List<String>> stringListComparator) {
-		super(config, new CSVSorterReaderFactory(mapper, schema), new CSVSorterWriterFactory(mapper, schema),
+		super(config, new CSVSorterReaderFactory(mapper.copy(), schema), new CSVSorterWriterFactory(mapper.copy(), schema),
 				stringListComparator);
 	}
 
@@ -124,7 +126,7 @@ public final class CSVSorter extends Sorter<List<String>> {
 					getComparator(idFieldIndexInteger));
 		}
 	}
-	
+
 	public static Comparator<List<String>> getComparator(int idFieldIndex) {
 		return Comparator.comparing(list -> list.get(idFieldIndex));
 	}
@@ -134,6 +136,10 @@ public final class CSVSorter extends Sorter<List<String>> {
 
 		Path tempDir = Files.createTempDirectory(output.getParent(), "temp-csvsort");
 		Path tempFile = Files.createTempFile(tempDir, "temp-input", ".csv");
+
+		try (final Writer tempWriter = Files.newBufferedWriter(tempFile, StandardCharsets.UTF_8);) {
+			IOUtils.copy(input, tempWriter);
+		}
 
 		SortConfig sortConfig = new SortConfig().withMaxMemoryUsage(20 * 1000 * 1000)
 				.withTempFileProvider(() -> Files.createTempFile(tempDir, "temp-intermediate-", ".csv").toFile());

@@ -10,6 +10,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -92,11 +93,21 @@ public class CSVSorterTest {
 
 	@Test
 	public final void testRunSorter() throws Exception {
+		List<String> inputHeaders = new ArrayList<>();
+		List<List<String>> inputLines = new ArrayList<>();
+		// Verify that we can read the file ourselves
+		try (Reader inputReader = Files.newBufferedReader(testInput1, StandardCharsets.UTF_8)) {
+			CSVStream.parse(inputReader, h -> inputHeaders.addAll(h), (h, l) -> l, l -> inputLines.add(l));
+		}
+		
+		assertEquals(1, inputHeaders.size());
+		assertEquals(4, inputLines.size());
+
 		try (Reader inputReader = Files.newBufferedReader(testInput1, StandardCharsets.UTF_8)) {
 			CSVSorter.runSorter(inputReader, testOutput, CSVStream.defaultMapper(),
 					CSVStream.buildSchema(Arrays.asList("testField1")), CSVSorter.getComparator(0));
 		}
-		
+
 		List<String> resultLines = Files.readAllLines(testOutput, StandardCharsets.UTF_8);
 		assertEquals(5, resultLines.size());
 
