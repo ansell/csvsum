@@ -6,7 +6,12 @@ package com.github.ansell.csv.sort;
 import static org.junit.Assert.*;
 
 import java.io.FileNotFoundException;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -17,6 +22,7 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import com.github.ansell.csv.sort.CSVSorter;
+import com.github.ansell.csv.stream.CSVStream;
 
 import joptsimple.OptionException;
 
@@ -33,10 +39,20 @@ public class CSVSorterTest {
 	@Rule
 	public TemporaryFolder tempDir = new TemporaryFolder();
 
+	private Path testInput1;
+	private Path testInput2;
 	private Path testOutput;
+
+	private Path testDirectory;
 
 	@Before
 	public void setUp() throws Exception {
+		testDirectory = tempDir.newFolder("csvsort-test").toPath();
+		testOutput = testDirectory.resolve("testresult.csv");
+		testInput1 = testDirectory.resolve("test1.csv");
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsort/test1.csv"), testInput1);
+		testInput2 = testDirectory.resolve("test2.csv");
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsort/test2.csv"), testInput2);
 	}
 
 	@After
@@ -66,23 +82,29 @@ public class CSVSorterTest {
 	 * Test method for
 	 * {@link com.github.ansell.csv.sort.CSVSorter#main(java.lang.String[])}.
 	 */
-	@Ignore("TODO: Implement me")
 	@Test
 	public final void testMainFileDoesNotExist() throws Exception {
-		Path testDirectory = tempDir.newFolder("test-does-not-exist").toPath();
 
 		thrown.expect(FileNotFoundException.class);
 		CSVSorter.main("--input", testDirectory.resolve("test-does-not-exist.csv").toString(), "--output",
-				testOutput.toAbsolutePath().toString());
+				testOutput.toAbsolutePath().toString(), "--id-field-index", "0");
 	}
 
-	/**
-	 * Test method for
-	 * {@link com.github.ansell.csv.sort.CSVSorter#runSorter(java.io.Reader, boolean, java.lang.String, java.nio.file.Path, com.fasterxml.jackson.dataformat.csv.CsvMapper, com.fasterxml.jackson.dataformat.csv.CsvSchema, java.util.Comparator)}.
-	 */
-	@Ignore("TODO: Implement me")
 	@Test
-	public final void testRunSorter() {
+	public final void testRunSorter() throws Exception {
+		try (Reader inputReader = Files.newBufferedReader(testInput1, StandardCharsets.UTF_8)) {
+			CSVSorter.runSorter(inputReader, testOutput, CSVStream.defaultMapper(),
+					CSVStream.buildSchema(Arrays.asList("testField1")), CSVSorter.getComparator(0));
+		}
+		
+		List<String> resultLines = Files.readAllLines(testOutput, StandardCharsets.UTF_8);
+		assertEquals(5, resultLines.size());
+
+		try (Reader outputReader = Files.newBufferedReader(testOutput, StandardCharsets.UTF_8)) {
+			CSVStream.parse(outputReader, h -> {
+			}, (h, l) -> l, l -> {
+			});
+		}
 	}
 
 }

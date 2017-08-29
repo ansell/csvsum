@@ -121,8 +121,12 @@ public final class CSVSorter extends Sorter<List<String>> {
 
 		try (final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
 			runSorter(readerInput, outputPath, CSVStream.defaultMapper(), CSVStream.defaultSchema(),
-					Comparator.comparing(list -> list.get(idFieldIndexInteger)));
+					getComparator(idFieldIndexInteger));
 		}
+	}
+	
+	public static Comparator<List<String>> getComparator(int idFieldIndex) {
+		return Comparator.comparing(list -> list.get(idFieldIndex));
 	}
 
 	public static void runSorter(Reader input, Path output, CsvMapper mapper, CsvSchema schema,
