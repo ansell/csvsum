@@ -6,6 +6,7 @@ package com.github.ansell.csv.sort;
 import static org.junit.Assert.*;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -22,8 +23,16 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.dataformat.csv.CsvFactory;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
+import com.fasterxml.jackson.dataformat.csv.CsvParser;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema.ColumnType;
 import com.github.ansell.csv.sort.CSVSorter;
 import com.github.ansell.csv.stream.CSVStream;
+import com.github.ansell.csv.stream.CSVStreamException;
 
 import joptsimple.OptionException;
 
@@ -93,29 +102,36 @@ public class CSVSorterTest {
 
 	@Test
 	public final void testRunSorter() throws Exception {
+		verifyCSV(testInput1, 2, 4);
+
+        CsvFactory csvFactory = new CsvFactory();
+        csvFactory.enable(CsvParser.Feature.TRIM_SPACES);
+        csvFactory.enable(CsvParser.Feature.WRAP_AS_ARRAY);
+        csvFactory.configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true);
+        CsvMapper mapper = new CsvMapper(csvFactory);
+		mapper.enable(CsvParser.Feature.TRIM_SPACES);
+		mapper.enable(CsvParser.Feature.WRAP_AS_ARRAY);
+		mapper.configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true);
+		mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
+        CsvSchema schema = CsvSchema.builder().setUseHeader(true).build();
+		try (Reader inputReader = Files.newBufferedReader(testInput1, StandardCharsets.UTF_8)) {
+			CSVSorter.runSorter(inputReader, testOutput, mapper,
+					schema, CSVSorter.getComparator(0));
+		}
+
+		verifyCSV(testOutput, 2, 4);
+	}
+
+	private void verifyCSV(Path inputPath, int expectedHeaders, int expectedLines)
+			throws IOException, CSVStreamException {
 		List<String> inputHeaders = new ArrayList<>();
 		List<List<String>> inputLines = new ArrayList<>();
 		// Verify that we can read the file ourselves
-		try (Reader inputReader = Files.newBufferedReader(testInput1, StandardCharsets.UTF_8)) {
+		try (Reader inputReader = Files.newBufferedReader(inputPath, StandardCharsets.UTF_8)) {
 			CSVStream.parse(inputReader, h -> inputHeaders.addAll(h), (h, l) -> l, l -> inputLines.add(l));
 		}
-		
-		assertEquals(1, inputHeaders.size());
-		assertEquals(4, inputLines.size());
-
-		try (Reader inputReader = Files.newBufferedReader(testInput1, StandardCharsets.UTF_8)) {
-			CSVSorter.runSorter(inputReader, testOutput, CSVStream.defaultMapper(),
-					CSVStream.buildSchema(Arrays.asList("testField1")), CSVSorter.getComparator(0));
-		}
-
-		List<String> resultLines = Files.readAllLines(testOutput, StandardCharsets.UTF_8);
-		assertEquals(5, resultLines.size());
-
-		try (Reader outputReader = Files.newBufferedReader(testOutput, StandardCharsets.UTF_8)) {
-			CSVStream.parse(outputReader, h -> {
-			}, (h, l) -> l, l -> {
-			});
-		}
+		assertEquals(expectedHeaders, inputHeaders.size());
+		assertEquals(expectedLines, inputLines.size());
 	}
 
 }

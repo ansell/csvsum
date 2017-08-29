@@ -47,7 +47,8 @@ public class CSVSorterWriter extends DataWriter<List<String>> {
 
 	public CSVSorterWriter(CsvMapper mapper, CsvSchema schema, OutputStream out) throws IOException {
 		this.mapper = mapper.writerWithDefaultPrettyPrinter().with(schema).forType(List.class);
-		this.generator = mapper.getFactory().createGenerator(out);;
+		this.generator = mapper.getFactory().createGenerator(out);
+		this.generator.setSchema(schema);
 	}
 
 	@Override

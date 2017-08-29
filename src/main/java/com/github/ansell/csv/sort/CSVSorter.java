@@ -74,7 +74,7 @@ public final class CSVSorter extends Sorter<List<String>> {
 
 	public CSVSorter(SortConfig config, CsvMapper mapper, CsvSchema schema,
 			Comparator<List<String>> stringListComparator) {
-		super(config, new CSVSorterReaderFactory(mapper.copy(), schema), new CSVSorterWriterFactory(mapper.copy(), schema),
+		super(config, new CSVSorterReaderFactory(mapper, schema), new CSVSorterWriterFactory(mapper, schema),
 				stringListComparator);
 	}
 
