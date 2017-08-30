@@ -39,8 +39,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.SequenceWriter;
+import com.fasterxml.jackson.dataformat.csv.CsvFactory;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
+import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.csv.util.CSVUtil;
@@ -332,5 +335,24 @@ public class CSVUtilTest {
 
 		assertTrue("Headers were not recognised", headersGood.get());
 		assertTrue("Line was not recognised", lineGood.get());
+	}
+	
+	@Test
+	public final void testParseInts() throws Exception
+	{
+        final String input =
+        		"x,y\n"
+        		+"1,1\n"
+        		+"2,8\n"
+        		+"3,2\n"
+        		+"4,4\n"
+        		+"5,5\n"
+        		+"6,0\n"
+        		+"7,10\n"
+        		+"8,-4\n"
+                ;
+        
+        
+        CSVStream.parse(new StringReader(input), h -> {}, (h, l) -> l, l -> {});
 	}
 }

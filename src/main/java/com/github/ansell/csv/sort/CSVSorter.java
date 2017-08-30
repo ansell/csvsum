@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -49,8 +50,12 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.jooq.lambda.Unchecked;
 
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.SequenceWriter;
+import com.fasterxml.jackson.dataformat.csv.CsvFactory;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
+import com.fasterxml.jackson.dataformat.csv.CsvParser;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema.ColumnType;
 import com.fasterxml.sort.SortConfig;
@@ -70,13 +75,7 @@ import joptsimple.OptionSpec;
  * 
  * @author Peter Ansell p_ansell@yahoo.com
  */
-public final class CSVSorter extends Sorter<List<String>> {
-
-	public CSVSorter(SortConfig config, CsvMapper mapper, CsvSchema schema,
-			Comparator<List<String>> stringListComparator) {
-		super(config, new CSVSorterReaderFactory(mapper, schema), new CSVSorterWriterFactory(mapper, schema),
-				stringListComparator);
-	}
+public final class CSVSorter {
 
 	public static void main(String... args) throws Exception {
 		final OptionParser parser = new OptionParser();
@@ -121,18 +120,29 @@ public final class CSVSorter extends Sorter<List<String>> {
 			throw new FileNotFoundException("Could not find directory for output file: " + outputPath.getParent());
 		}
 
+		CsvFactory csvFactory = new CsvFactory();
+		csvFactory.enable(CsvParser.Feature.TRIM_SPACES);
+		csvFactory.enable(CsvParser.Feature.WRAP_AS_ARRAY);
+		csvFactory.configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true);
+		CsvMapper mapper = new CsvMapper(csvFactory);
+		mapper.enable(CsvParser.Feature.TRIM_SPACES);
+		mapper.enable(CsvParser.Feature.WRAP_AS_ARRAY);
+		mapper.configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true);
+		mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
+		// CsvSchema schema = CsvSchema.builder().setUseHeader(true).build();
+		CsvSchema schema = CsvSchema.emptySchema();
 		try (final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
-			runSorter(readerInput, outputPath, CSVStream.defaultMapper(), CSVStream.defaultSchema(),
-					getComparator(idFieldIndexInteger));
+			runSorter(readerInput, outputPath, mapper, schema, getComparator(idFieldIndexInteger));
 		}
 	}
 
-	public static Comparator<List<String>> getComparator(int idFieldIndex) {
-		return Comparator.comparing(list -> list.get(idFieldIndex));
+	public static Comparator<StringList> getComparator(int idFieldIndex) {
+		Comparator<StringList> result = Comparator.comparing(list -> list.get(idFieldIndex));
+		return result;
 	}
 
 	public static void runSorter(Reader input, Path output, CsvMapper mapper, CsvSchema schema,
-			Comparator<List<String>> comparator) throws ScriptException, IOException {
+			Comparator<StringList> comparator) throws ScriptException, IOException {
 
 		Path tempDir = Files.createTempDirectory(output.getParent(), "temp-csvsort");
 		Path tempFile = Files.createTempFile(tempDir, "temp-input", ".csv");
@@ -141,12 +151,45 @@ public final class CSVSorter extends Sorter<List<String>> {
 			IOUtils.copy(input, tempWriter);
 		}
 
+		Path headerlessTempFile = tempFile;
+		ArrayList<String> headers = new ArrayList<>();
+		// We must strip the header out before parsing, as it causes issues deep
+		// inside of Jackson otherwise
+		if (schema.usesHeader()) {
+			headerlessTempFile = Files.createTempFile(tempDir, "temp-headerless-input", ".csv");
+			try (final Writer tempHeaderlessWriter = Files.newBufferedWriter(headerlessTempFile,
+					StandardCharsets.UTF_8);
+					final SequenceWriter csvWriter = CSVStream.newCSVWriter(tempHeaderlessWriter,
+							CSVStream.defaultSchema());
+					final Reader inputReader = Files.newBufferedReader(tempFile, StandardCharsets.UTF_8);) {
+				CSVStream.parse(inputReader, h -> headers.addAll(h), (h, l) -> l,
+						Unchecked.consumer(l -> csvWriter.write(l)));
+
+			}
+		}
+
 		SortConfig sortConfig = new SortConfig().withMaxMemoryUsage(20 * 1000 * 1000)
 				.withTempFileProvider(() -> Files.createTempFile(tempDir, "temp-intermediate-", ".csv").toFile());
 
-		try (final InputStream tempInput = Files.newInputStream(tempFile);
-				final OutputStream outputStream = Files.newOutputStream(output);
-				final CSVSorter sorter = new CSVSorter(sortConfig, mapper, schema, comparator);) {
+		// Rewrite the header line to the output
+		try (final Writer headerOutputWriter = Files.newBufferedWriter(output, StandardCharsets.UTF_8,
+				StandardOpenOption.CREATE_NEW);
+				final SequenceWriter csvHeaderOutputWriter = CSVStream.newCSVWriter(headerOutputWriter,
+						CSVStream.defaultSchema());) {
+			if (schema.usesHeader()) {
+				csvHeaderOutputWriter.write(headers);
+			}
+		}
+
+		System.out.println("Headers (if any) written to sorted output first:");
+		Files.readAllLines(output, StandardCharsets.UTF_8).stream().forEachOrdered(System.out::println);
+		System.out.println("End of headers");
+
+		try (final InputStream tempInput = Files.newInputStream(headerlessTempFile);
+				final OutputStream outputStream = Files.newOutputStream(output, StandardOpenOption.APPEND,
+						StandardOpenOption.WRITE);
+				final CsvFileSorter<StringList> sorter = new CsvFileSorter<>(StringList.class, sortConfig,
+						CSVStream.defaultMapper(), CSVStream.defaultSchema(), comparator);) {
 			sorter.sort(tempInput, outputStream);
 		} finally {
 			Files.walk(tempDir).sorted(Comparator.reverseOrder())
@@ -155,5 +198,10 @@ public final class CSVSorter extends Sorter<List<String>> {
 					// .forEach(File::delete);
 					.forEach(f -> System.out.println("Would have deleted temporaryFile: " + f.toString()));
 		}
+
+		System.out.println("Sorted output (if any):");
+		Files.readAllLines(output, StandardCharsets.UTF_8).stream().forEachOrdered(System.out::println);
+		System.out.println("End of sorted output");
+
 	}
 }
