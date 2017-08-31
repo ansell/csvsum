@@ -14,7 +14,7 @@ import com.fasterxml.sort.DataWriterFactory;
 import com.fasterxml.sort.SortConfig;
 import com.fasterxml.sort.Sorter;
 
-public class CsvFileSorter<T> extends Sorter<T>
+class CsvFileSorter<T> extends Sorter<T>
 {
      public CsvFileSorter(Class<T> entryType, SortConfig config, CsvMapper mapper, CsvSchema schema, Comparator<T> comparator)
         throws IOException

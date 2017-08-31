@@ -85,6 +85,7 @@ public final class CSVSorter {
 				.describedAs("The input CSV file to be mapped.");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class).required()
 				.describedAs("The output sorted CSV file.");
+		// TODO: Change this to a delimited string to allow ordered multiple indexes
 		final OptionSpec<Integer> idFieldIndex = parser.accepts("id-field-index").withRequiredArg()
 				.ofType(Integer.class).required()
 				.describedAs("The index of the column in the CSV file that is to be used for sorting");
