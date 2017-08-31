@@ -148,7 +148,7 @@ public final class CSVSorter {
 	}
 
 	public static void runSorter(Reader input, Path output, CsvMapper mapper, CsvSchema schema,
-			Comparator<StringList> comparator) throws ScriptException, IOException {
+			Comparator<StringList> comparator) throws IOException {
 
 		Path tempDir = Files.createTempDirectory(output.getParent(), "temp-csvsort");
 		Path tempFile = Files.createTempFile(tempDir, "temp-input", ".csv");
