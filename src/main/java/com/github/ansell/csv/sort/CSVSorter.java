@@ -136,8 +136,13 @@ public final class CSVSorter {
 		}
 	}
 
-	public static Comparator<StringList> getComparator(int idFieldIndex) {
+	public static Comparator<StringList> getComparator(int idFieldIndex, int... otherFieldIndexes) {
 		Comparator<StringList> result = Comparator.comparing(list -> list.get(idFieldIndex));
+		if(otherFieldIndexes != null) {
+			for(int nextOtherFieldIndex : otherFieldIndexes) {
+				result = result.thenComparing(list -> list.get(nextOtherFieldIndex));
+			}
+		}
 		return result;
 	}
 
