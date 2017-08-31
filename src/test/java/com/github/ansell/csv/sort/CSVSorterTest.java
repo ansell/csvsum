@@ -51,6 +51,7 @@ public class CSVSorterTest {
 
 	private Path testInput1;
 	private Path testInput2;
+	private Path testInput3;
 	private Path testOutput;
 
 	private Path testDirectory;
@@ -63,6 +64,8 @@ public class CSVSorterTest {
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsort/test1.csv"), testInput1);
 		testInput2 = testDirectory.resolve("test2.csv");
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsort/test2.csv"), testInput2);
+		testInput3 = testDirectory.resolve("test3.csv");
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsort/test3.csv"), testInput3);
 	}
 
 	@After
@@ -144,6 +147,28 @@ public class CSVSorterTest {
 		verifyCSV(testOutput, 2, 4);
 	}
 
+	@Test
+	public final void testRunSorterSecondColumnThenFirst() throws Exception {
+		verifyCSV(testInput1, 2, 4);
+
+        CsvFactory csvFactory = new CsvFactory();
+        csvFactory.enable(CsvParser.Feature.TRIM_SPACES);
+        //csvFactory.enable(CsvParser.Feature.WRAP_AS_ARRAY);
+        csvFactory.configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true);
+        CsvMapper mapper = new CsvMapper(csvFactory);
+		mapper.enable(CsvParser.Feature.TRIM_SPACES);
+		//mapper.enable(CsvParser.Feature.WRAP_AS_ARRAY);
+		mapper.configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true);
+		//mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
+        CsvSchema schema = CsvSchema.builder().setUseHeader(true).build();
+		try (Reader inputReader = Files.newBufferedReader(testInput1, StandardCharsets.UTF_8)) {
+			CSVSorter.runSorter(inputReader, testOutput, mapper,
+					schema, CSVSorter.getComparator(1, 0));
+		}
+
+		verifyCSV(testOutput, 2, 4);
+	}
+
 	private void verifyCSV(Path inputPath, int expectedHeaders, int expectedLines)
 			throws IOException, CSVStreamException {
 		List<String> inputHeaders = new ArrayList<>();
@@ -152,6 +177,7 @@ public class CSVSorterTest {
 		try (Reader inputReader = Files.newBufferedReader(inputPath, StandardCharsets.UTF_8)) {
 			CSVStream.parse(inputReader, h -> inputHeaders.addAll(h), (h, l) -> l, l -> inputLines.add(l));
 		}
+		Files.readAllLines(inputPath, StandardCharsets.UTF_8).stream().forEach(System.out::println);
 		assertEquals(expectedHeaders, inputHeaders.size());
 		assertEquals(expectedLines, inputLines.size());
 	}
