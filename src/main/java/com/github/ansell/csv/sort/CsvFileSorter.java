@@ -61,8 +61,8 @@ public class CsvFileSorter<T> extends Sorter<T>
 
         @Override
         public int estimateSizeInBytes(E item) {
-            // 2 int fields, object, rough approximation
-            return 24;
+        	// Not empirically determined, just a guess
+            return 150;
         }
 
         @Override
