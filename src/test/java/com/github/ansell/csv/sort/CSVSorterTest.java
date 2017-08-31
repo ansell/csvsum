@@ -149,7 +149,7 @@ public class CSVSorterTest {
 
 	@Test
 	public final void testRunSorterSecondColumnThenFirst() throws Exception {
-		verifyCSV(testInput1, 2, 4);
+		verifyCSV(testInput3, 2, 5);
 
         CsvFactory csvFactory = new CsvFactory();
         csvFactory.enable(CsvParser.Feature.TRIM_SPACES);
@@ -161,12 +161,34 @@ public class CSVSorterTest {
 		mapper.configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true);
 		//mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
         CsvSchema schema = CsvSchema.builder().setUseHeader(true).build();
-		try (Reader inputReader = Files.newBufferedReader(testInput1, StandardCharsets.UTF_8)) {
+		try (Reader inputReader = Files.newBufferedReader(testInput3, StandardCharsets.UTF_8)) {
 			CSVSorter.runSorter(inputReader, testOutput, mapper,
 					schema, CSVSorter.getComparator(1, 0));
 		}
 
-		verifyCSV(testOutput, 2, 4);
+		verifyCSV(testOutput, 2, 5);
+	}
+
+	@Test
+	public final void testRunSorterFirstColumnThenSecond() throws Exception {
+		verifyCSV(testInput3, 2, 5);
+
+        CsvFactory csvFactory = new CsvFactory();
+        csvFactory.enable(CsvParser.Feature.TRIM_SPACES);
+        //csvFactory.enable(CsvParser.Feature.WRAP_AS_ARRAY);
+        csvFactory.configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true);
+        CsvMapper mapper = new CsvMapper(csvFactory);
+		mapper.enable(CsvParser.Feature.TRIM_SPACES);
+		//mapper.enable(CsvParser.Feature.WRAP_AS_ARRAY);
+		mapper.configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true);
+		//mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
+        CsvSchema schema = CsvSchema.builder().setUseHeader(true).build();
+		try (Reader inputReader = Files.newBufferedReader(testInput3, StandardCharsets.UTF_8)) {
+			CSVSorter.runSorter(inputReader, testOutput, mapper,
+					schema, CSVSorter.getComparator(0, 1));
+		}
+
+		verifyCSV(testOutput, 2, 5);
 	}
 
 	private void verifyCSV(Path inputPath, int expectedHeaders, int expectedLines)
