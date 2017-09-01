@@ -151,6 +151,16 @@ public final class CSVSorter {
 		return result;
 	}
 
+	public static Comparator<StringList> getIntegerComparator(int idFieldIndex, int... otherFieldIndexes) {
+		Comparator<StringList> result = Comparator.comparing(list -> Integer.parseInt(list.get(idFieldIndex)));
+		if (otherFieldIndexes != null) {
+			for (int nextOtherFieldIndex : otherFieldIndexes) {
+				result = result.thenComparing(list -> Integer.parseInt(list.get(nextOtherFieldIndex)));
+			}
+		}
+		return result;
+	}
+
 	public static CsvMapper getSafeSortingMapper() {
 		CsvFactory csvFactory = new CsvFactory();
 		csvFactory.enable(CsvParser.Feature.TRIM_SPACES);
