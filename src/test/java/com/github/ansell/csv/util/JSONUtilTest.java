@@ -100,6 +100,7 @@ public class JSONUtilTest {
 		}
 	}
 
+	@Ignore("Github is frequently unavailable from TravisCI")
 	@Test
 	public final void testPrettyPrintURL() throws Exception {
 		StringWriter output = new StringWriter();
@@ -122,6 +123,7 @@ public class JSONUtilTest {
 		// "/searchResults/results/0/guid");
 	}
 
+	@Ignore("Github is frequently unavailable from TravisCI")
 	@Test
 	public final void testHttpGetJSON() throws Exception {
 		StringWriter output = new StringWriter();
@@ -140,6 +142,7 @@ public class JSONUtilTest {
 		// "/searchResults/results/0/guid");
 	}
 
+	@Ignore("Github is frequently unavailable from TravisCI")
 	@Test
 	public final void testHttpGetJSONWithRetry() throws Exception {
 		StringWriter output = new StringWriter();
