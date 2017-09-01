@@ -246,6 +246,16 @@
 	<build>
 		<plugins>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<runOrder>random</runOrder>
+					<trimStackTrace>false</trimStackTrace>
+					<!-- Travis build workaround, see https://github.com/travis-ci/travis-ci/issues/3396 -->
+					<argLine>${argLine} -Xms1024m -Xmx1024m</argLine>
+				</configuration>
+			</plugin>
+			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>appassembler-maven-plugin</artifactId>
 				<executions>
