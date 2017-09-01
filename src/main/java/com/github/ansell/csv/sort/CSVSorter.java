@@ -41,6 +41,7 @@ import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -85,10 +86,14 @@ public final class CSVSorter {
 				.describedAs("The input CSV file to be mapped.");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class).required()
 				.describedAs("The output sorted CSV file.");
-		// TODO: Change this to a delimited string to allow ordered multiple indexes
+		// TODO: Change this to a delimited string to allow ordered multiple
+		// indexes
 		final OptionSpec<Integer> idFieldIndex = parser.accepts("id-field-index").withRequiredArg()
 				.ofType(Integer.class).required()
 				.describedAs("The index of the column in the CSV file that is to be used for sorting");
+		final OptionSpec<Integer> ignoreHeaderLines = parser.accepts("ignore-header-line-count").withRequiredArg()
+				.ofType(Integer.class).defaultsTo(1).describedAs(
+						"The number of header lines to ignore, with the first representing the actual headers to use");
 
 		OptionSet options = null;
 
@@ -121,6 +126,32 @@ public final class CSVSorter {
 			throw new FileNotFoundException("Could not find directory for output file: " + outputPath.getParent());
 		}
 
+		try (final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
+			runSorter(readerInput, outputPath, getSafeSortingMapper(), ignoreHeaderLines.value(options),
+					getCsvSchema(CSVStream.defaultSchema(), ignoreHeaderLines.value(options)),
+					getComparator(idFieldIndexInteger));
+		}
+	}
+
+	private static CsvSchema getCsvSchema(CsvSchema baseSchema, int ignoreHeaderLines) {
+		if (ignoreHeaderLines > 0) {
+			return new CsvSchema.Builder(baseSchema).setUseHeader(true).build();
+		} else {
+			return new CsvSchema.Builder(baseSchema).setUseHeader(false).build();
+		}
+	}
+
+	public static Comparator<StringList> getComparator(int idFieldIndex, int... otherFieldIndexes) {
+		Comparator<StringList> result = Comparator.comparing(list -> list.get(idFieldIndex));
+		if (otherFieldIndexes != null) {
+			for (int nextOtherFieldIndex : otherFieldIndexes) {
+				result = result.thenComparing(list -> list.get(nextOtherFieldIndex));
+			}
+		}
+		return result;
+	}
+
+	public static CsvMapper getSafeSortingMapper() {
 		CsvFactory csvFactory = new CsvFactory();
 		csvFactory.enable(CsvParser.Feature.TRIM_SPACES);
 		csvFactory.enable(CsvParser.Feature.WRAP_AS_ARRAY);
@@ -129,25 +160,12 @@ public final class CSVSorter {
 		mapper.enable(CsvParser.Feature.TRIM_SPACES);
 		mapper.enable(CsvParser.Feature.WRAP_AS_ARRAY);
 		mapper.configure(JsonParser.Feature.ALLOW_YAML_COMMENTS, true);
-		mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
-		// CsvSchema schema = CsvSchema.builder().setUseHeader(true).build();
-		CsvSchema schema = CsvSchema.emptySchema();
-		try (final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
-			runSorter(readerInput, outputPath, mapper, schema, getComparator(idFieldIndexInteger));
-		}
+		// mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY,
+		// true);
+		return mapper;
 	}
 
-	public static Comparator<StringList> getComparator(int idFieldIndex, int... otherFieldIndexes) {
-		Comparator<StringList> result = Comparator.comparing(list -> list.get(idFieldIndex));
-		if(otherFieldIndexes != null) {
-			for(int nextOtherFieldIndex : otherFieldIndexes) {
-				result = result.thenComparing(list -> list.get(nextOtherFieldIndex));
-			}
-		}
-		return result;
-	}
-
-	public static void runSorter(Reader input, Path output, CsvMapper mapper, CsvSchema schema,
+	public static void runSorter(Reader input, Path output, CsvMapper mapper, int ignoreHeaderLines, CsvSchema schema,
 			Comparator<StringList> comparator) throws IOException {
 
 		Path tempDir = Files.createTempDirectory(output.getParent(), "temp-csvsort");
@@ -157,19 +175,32 @@ public final class CSVSorter {
 			IOUtils.copy(input, tempWriter);
 		}
 
+		// The sorter cannot handle headers if we are using List as the output,
+		// so always set it to false for the version that CSVStream is receiving
+		CsvSchema cleanSchema = new CsvSchema.Builder(schema).setUseHeader(false).build();
+
 		Path headerlessTempFile = tempFile;
 		ArrayList<String> headers = new ArrayList<>();
 		// We must strip the header out before parsing, as it causes issues deep
 		// inside of Jackson otherwise
-		if (schema.usesHeader()) {
+		if (ignoreHeaderLines > 0) {
 			headerlessTempFile = Files.createTempFile(tempDir, "temp-headerless-input", ".csv");
+			AtomicInteger lineCount = new AtomicInteger(0);
 			try (final Writer tempHeaderlessWriter = Files.newBufferedWriter(headerlessTempFile,
 					StandardCharsets.UTF_8);
-					final SequenceWriter csvWriter = CSVStream.newCSVWriter(tempHeaderlessWriter,
-							CSVStream.defaultSchema());
+					final SequenceWriter csvWriter = CSVStream.newCSVWriter(tempHeaderlessWriter, cleanSchema);
 					final Reader inputReader = Files.newBufferedReader(tempFile, StandardCharsets.UTF_8);) {
-				CSVStream.parse(inputReader, h -> headers.addAll(h), (h, l) -> l,
-						Unchecked.consumer(l -> csvWriter.write(l)));
+
+				CSVStream.parse(inputReader, h -> headers.addAll(h), (h, l) -> {
+					// First line is always consumed by the header consumer, so
+					// we start off here already having one header line ignored
+					if (lineCount.incrementAndGet() < ignoreHeaderLines) {
+						// Silently drop lines in excess
+						return null;
+					} else {
+						return l;
+					}
+				}, Unchecked.consumer(l -> csvWriter.write(l)));
 
 			}
 		}
@@ -179,11 +210,15 @@ public final class CSVSorter {
 
 		// Rewrite the header line to the output
 		try (final Writer headerOutputWriter = Files.newBufferedWriter(output, StandardCharsets.UTF_8,
-				StandardOpenOption.CREATE_NEW);
-				final SequenceWriter csvHeaderOutputWriter = CSVStream.newCSVWriter(headerOutputWriter,
-						CSVStream.defaultSchema());) {
+				StandardOpenOption.CREATE_NEW);) {
 			if (schema.usesHeader()) {
-				csvHeaderOutputWriter.write(headers);
+				System.out.println("Writing headers to output file: " + headers);
+				try (final SequenceWriter csvHeaderOutputWriter = CSVStream.newCSVWriter(headerOutputWriter,
+						cleanSchema);) {
+					csvHeaderOutputWriter.write(headers);
+				}
+			} else {
+				System.out.println("Not writing headers to output file: " + headers);
 			}
 		}
 
@@ -195,7 +230,7 @@ public final class CSVSorter {
 				final OutputStream outputStream = Files.newOutputStream(output, StandardOpenOption.APPEND,
 						StandardOpenOption.WRITE);
 				final CsvFileSorter<StringList> sorter = new CsvFileSorter<>(StringList.class, sortConfig,
-						CSVStream.defaultMapper(), CSVStream.defaultSchema(), comparator);) {
+						getSafeSortingMapper(), cleanSchema, comparator);) {
 			sorter.sort(tempInput, outputStream);
 		} finally {
 			Files.walk(tempDir).sorted(Comparator.reverseOrder())
