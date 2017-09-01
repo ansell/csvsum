@@ -211,7 +211,7 @@ public final class CSVSorter {
 		// Rewrite the header line to the output
 		try (final Writer headerOutputWriter = Files.newBufferedWriter(output, StandardCharsets.UTF_8,
 				StandardOpenOption.CREATE_NEW);) {
-			if (schema.usesHeader()) {
+			if (ignoreHeaderLines > 0) {
 				System.out.println("Writing headers to output file: " + headers);
 				try (final SequenceWriter csvHeaderOutputWriter = CSVStream.newCSVWriter(headerOutputWriter,
 						cleanSchema);) {
