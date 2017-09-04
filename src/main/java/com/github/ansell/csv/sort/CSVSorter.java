@@ -94,6 +94,8 @@ public final class CSVSorter {
 		final OptionSpec<Integer> ignoreHeaderLines = parser.accepts("ignore-header-line-count").withRequiredArg()
 				.ofType(Integer.class).defaultsTo(1).describedAs(
 						"The number of header lines to ignore, with the first representing the actual headers to use");
+		final OptionSpec<Boolean> debugOption = parser.accepts("debug").withRequiredArg().ofType(Boolean.class)
+				.defaultsTo(Boolean.FALSE).describedAs("Set to true to debug.");
 
 		OptionSet options = null;
 
@@ -109,6 +111,8 @@ public final class CSVSorter {
 			parser.printHelpOn(System.out);
 			return;
 		}
+
+		final boolean debug = debugOption.value(options);
 
 		final int idFieldIndexInteger = idFieldIndex.value(options);
 
@@ -129,7 +133,7 @@ public final class CSVSorter {
 		try (final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
 			runSorter(readerInput, outputPath, getSafeSortingMapper(), ignoreHeaderLines.value(options),
 					getCsvSchema(CSVStream.defaultSchema(), ignoreHeaderLines.value(options)),
-					getComparator(idFieldIndexInteger));
+					getComparator(idFieldIndexInteger), debug);
 		}
 	}
 
@@ -176,7 +180,7 @@ public final class CSVSorter {
 	}
 
 	public static void runSorter(Reader input, Path output, CsvMapper mapper, int ignoreHeaderLines, CsvSchema schema,
-			Comparator<StringList> comparator) throws IOException {
+			Comparator<StringList> comparator, boolean debug) throws IOException {
 
 		Path tempDir = Files.createTempDirectory(output.getParent(), "temp-csvsort");
 		Path tempFile = Files.createTempFile(tempDir, "temp-input", ".csv");
@@ -222,20 +226,23 @@ public final class CSVSorter {
 		try (final Writer headerOutputWriter = Files.newBufferedWriter(output, StandardCharsets.UTF_8,
 				StandardOpenOption.CREATE_NEW);) {
 			if (ignoreHeaderLines > 0) {
-				System.out.println("Writing headers to output file: " + headers);
+				if (debug) {
+					System.out.println("Writing headers to output file: " + headers);
+				}
 				try (final SequenceWriter csvHeaderOutputWriter = CSVStream.newCSVWriter(headerOutputWriter,
 						cleanSchema);) {
 					csvHeaderOutputWriter.write(headers);
 				}
-			} else {
+			} else if (debug) {
 				System.out.println("Not writing headers to output file: " + headers);
 			}
 		}
 
-		System.out.println("Headers (if any) written to sorted output first:");
-		Files.readAllLines(output, StandardCharsets.UTF_8).stream().forEachOrdered(System.out::println);
-		System.out.println("End of headers");
-
+		if (debug) {
+			System.out.println("Headers (if any) written to sorted output first:");
+			Files.readAllLines(output, StandardCharsets.UTF_8).stream().forEachOrdered(System.out::println);
+			System.out.println("End of headers");
+		}
 		try (final InputStream tempInput = Files.newInputStream(headerlessTempFile);
 				final OutputStream outputStream = Files.newOutputStream(output, StandardOpenOption.APPEND,
 						StandardOpenOption.WRITE);
@@ -243,16 +250,13 @@ public final class CSVSorter {
 						getSafeSortingMapper(), cleanSchema, comparator);) {
 			sorter.sort(tempInput, outputStream);
 		} finally {
-			Files.walk(tempDir).sorted(Comparator.reverseOrder())
-					// .map(Path::toFile)
-					// .peek(System.out::println)
-					// .forEach(File::delete);
-					.forEach(f -> System.out.println("Would have deleted temporaryFile: " + f.toString()));
+			FileUtils.deleteQuietly(tempDir.toFile());
 		}
 
-		System.out.println("Sorted output (if any):");
-		Files.readAllLines(output, StandardCharsets.UTF_8).stream().forEachOrdered(System.out::println);
-		System.out.println("End of sorted output");
-
+		if (debug) {
+			System.out.println("Sorted output (if any):");
+			Files.readAllLines(output, StandardCharsets.UTF_8).stream().forEachOrdered(System.out::println);
+			System.out.println("End of sorted output");
+		}
 	}
 }
