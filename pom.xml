@@ -285,6 +285,10 @@
 							<id>csvmerge</id>
 						</program>
 						<program>
+							<mainClass>com.github.ansell.csv.sort.CSVSorter</mainClass>
+							<id>csvsort</id>
+						</program>
+						<program>
 							<mainClass>com.github.ansell.csv.access.AccessMapper</mainClass>
 							<id>accessmap</id>
 						</program>
