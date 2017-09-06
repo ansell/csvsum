@@ -30,7 +30,7 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * A wrapper around ArrayList<String> to reduce issues with generics and type erasure.
+ * A wrapper around ArrayList&lt;String&gt; to reduce issues with generics and type erasure.
  * 
  * @author Peter Ansell p_ansell@yahoo.com
  */
