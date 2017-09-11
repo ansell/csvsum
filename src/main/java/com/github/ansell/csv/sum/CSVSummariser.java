@@ -37,6 +37,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -268,6 +269,51 @@ public final class CSVSummariser {
 	public static void runSummarise(final Reader input, final CsvMapper inputMapper, final CsvSchema inputSchema,
 			final Writer output, final Writer mappingOutput, final int maxSampleCount, final boolean showSampleCounts,
 			final boolean debug, final List<String> overrideHeaders, final int headerLineCount) throws IOException {
+		runSummarise(input, inputMapper, inputSchema, output, mappingOutput, maxSampleCount, showSampleCounts, debug,
+				overrideHeaders, Collections.emptyList(), headerLineCount);
+	}
+
+	/**
+	 * Summarise the CSV file from the input {@link Reader} and emit the summary
+	 * CSV file to the output {@link Writer}, including the given maximum number
+	 * of sample values in the summary for each field.
+	 * 
+	 * @param input
+	 *            The input CSV file, as a {@link Reader}.
+	 * @param inputMapper
+	 *            The CsvMapper to use to parse the file into memory
+	 * @param inputSchema
+	 *            The CsvSchema to use to help the mapper parse the file into
+	 *            memory
+	 * @param output
+	 *            The output CSV file as a {@link Writer}.
+	 * @param mappingOutput
+	 *            The output mapping template file as a {@link Writer}.
+	 * @param maxSampleCount
+	 *            The maximum number of sample values in the summary for each
+	 *            field. Set to -1 to include all unique values for each field.
+	 * @param showSampleCounts
+	 *            Show counts next to sample values
+	 * @param debug
+	 *            Set to true to add debug statements.
+	 * @param overrideHeaders
+	 *            A list of headers to override those in the file or null to use
+	 *            the headers from the file. If this is null and headerLineCount
+	 *            is set to 0, an IllegalArgumentException ill be thrown.
+	 * @param defaultValues
+	 *            A list of default values to substitute during the summarise
+	 *            process if there is no value given for the matching field in
+	 *            the CSV file. The length of this list must either be 0 or the
+	 *            same as the number of fields.
+	 * @param headerLineCount
+	 *            The number of header lines to expect
+	 * @throws IOException
+	 *             If there is an error reading or writing.
+	 */
+	public static void runSummarise(final Reader input, final CsvMapper inputMapper, final CsvSchema inputSchema,
+			final Writer output, final Writer mappingOutput, final int maxSampleCount, final boolean showSampleCounts,
+			final boolean debug, final List<String> overrideHeaders, final List<String> defaultValues,
+			final int headerLineCount) throws IOException {
 		final JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		final JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		// Default to true, and set to false if a non-integer is detected. The
