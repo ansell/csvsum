@@ -249,6 +249,43 @@ public class JSONUtilTest {
 	}
 
 	/**
+	 * Test method for
+	 * {@link JSONUtil#queryJSONPost(String, java.util.Map, String)}.
+	 */
+	@Ignore
+	@Test
+	public final void testQueryJSONPostByDataResourceUID() throws Exception {
+		Map<String, Object> postVariables = new LinkedHashMap<>();
+		postVariables.put("key", "dataResourceUid");
+		postVariables.put("values", Arrays.asList("dr341"));
+
+		String completeResult = JSONUtil.queryJSONPost("http://images.ala.org.au/ws/findImagesByMetadata",
+				postVariables, "/");
+
+		System.out.println("Result was" + completeResult);
+
+		//String result = JSONUtil.queryJSONPost("" + "" + "" + "", postVariables, "/images/X01860.mp3/0/imageUrl");
+
+		//assertEquals("http://images.ala.org.au/store/5/c/9/4/be55c430-29c4-4991-a160-0bbb4bdc49c5/original", result);
+	}
+
+	/**
+	 * Test method for
+	 * {@link JSONUtil#queryJSONPost(String, java.util.Map, String)}.
+	 */
+	@Ignore("TODO: Determine which webservice to use to replicate the advanced search functionality that is HTML only")
+	@Test
+	public final void testHttpGetJsonCriteria() throws Exception {
+		JsonNode completeResult = JSONUtil.httpGetJSON("http://images.ala.org.au/ws/search/index.json?searchCriteriaDefinitionId=85278494&fieldValue=dr341");
+
+		System.out.println("Result was" + JSONUtil.toPrettyPrint(completeResult));
+
+		//String result = JSONUtil.queryJSONPost("" + "" + "" + "", postVariables, "/images/X01860.mp3/0/imageUrl");
+
+		//assertEquals("http://images.ala.org.au/store/5/c/9/4/be55c430-29c4-4991-a160-0bbb4bdc49c5/original", result);
+	}
+
+	/**
 	 * Test method for {@link JSONUtil#queryJSON(String, String)}.
 	 */
 	@Ignore
