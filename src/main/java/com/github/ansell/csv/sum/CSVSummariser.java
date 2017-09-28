@@ -331,7 +331,8 @@ public final class CSVSummariser {
 		final AtomicInteger rowCount = new AtomicInteger();
 
 		final List<String> headers = parseForSummarise(input, inputMapper, inputSchema, emptyCounts, nonEmptyCounts,
-				possibleIntegerFields, possibleDoubleFields, valueCounts, rowCount, overrideHeaders, headerLineCount);
+				possibleIntegerFields, possibleDoubleFields, valueCounts, rowCount, overrideHeaders, headerLineCount,
+				defaultValues);
 
 		writeForSummarise(maxSampleCount, emptyCounts, nonEmptyCounts, possibleIntegerFields, possibleDoubleFields,
 				valueCounts, headers, rowCount, showSampleCounts, output, mappingOutput);
@@ -490,6 +491,13 @@ public final class CSVSummariser {
 	 * @param headerLineCount
 	 *            The number of lines in the file that must be skipped, or 0 to
 	 *            not skip any headers and instead use overrideHeaders
+	 * @param defaultValues
+	 *            A list that is either empty, signifying there are no default
+	 *            values known, or exactly the same length as each row in the
+	 *            CSV file being parsed. If the values for a field are
+	 *            empty/missing, and a non-null, non-empty value appears in this
+	 *            list, it will be substituted in when calculating the
+	 *            statistics.
 	 * @return The list of headers that were either overridden or found in the
 	 *         file
 	 * @throws IOException
@@ -503,7 +511,8 @@ public final class CSVSummariser {
 			final JDefaultDict<String, AtomicBoolean> possibleIntegerFields,
 			final JDefaultDict<String, AtomicBoolean> possibleDoubleFields,
 			final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts, final AtomicInteger rowCount,
-			final List<String> overrideHeaders, final int headerLineCount) throws IOException, CSVStreamException {
+			final List<String> overrideHeaders, final int headerLineCount, List<String> defaultValues)
+			throws IOException, CSVStreamException {
 		final long startTime = System.currentTimeMillis();
 		final List<String> headers = new ArrayList<>();
 		CSVStream.parse(input, h -> headers.addAll(h), (h, l) -> {
@@ -536,7 +545,7 @@ public final class CSVSummariser {
 			// We are a streaming summariser, and do not store the raw original
 			// lines. Only unique, non-empty, values are stored in the
 			// valueCounts map for uniqueness summaries
-		}, overrideHeaders, headerLineCount, inputMapper, inputSchema);
+		}, overrideHeaders, defaultValues, headerLineCount, inputMapper, inputSchema);
 		return headers;
 	}
 
