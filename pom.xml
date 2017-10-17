@@ -147,7 +147,7 @@
 			<dependency>
 				<groupId>net.sf.jopt-simple</groupId>
 				<artifactId>jopt-simple</artifactId>
-				<version>5.0.3</version>
+				<version>5.0.4</version>
 			</dependency>
 			<dependency>
 				<groupId>com.healthmarketscience.jackcess</groupId>
@@ -227,7 +227,7 @@
 			<dependency>
 				<groupId>com.github.ansell.csv</groupId>
 				<artifactId>csvstream</artifactId>
-				<version>0.0.4-SNAPSHOT</version>
+				<version>0.0.4</version>
 			</dependency>
 			<dependency>
 				<groupId>com.fasterxml.util</groupId>
