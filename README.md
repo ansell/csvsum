@@ -154,10 +154,14 @@ Run csvmap with a sample csv file:
     <dependency>
         <groupId>com.github.ansell.csv.sum</groupId>
         <artifactId>csvsum</artifactId>
-        <version>0.4.1</version>
+        <version>0.5.1</version>
     </dependency>
 
 # Changelog
+
+## 2017-10-17
+* Release 0.5.1
+* Add support for default value interpolation to replace missing values (Used by dwca-utils which has native support for meta.xml)
 
 ## 2017-06-07
 * Add support for specifying quote/line ending/field separator characters in the CSVSummariser Java API. No support yet in the CLI
