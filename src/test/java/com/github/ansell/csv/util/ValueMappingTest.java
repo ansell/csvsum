@@ -4,8 +4,11 @@ import static org.junit.Assert.*;
 
 import java.io.StringReader;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.Month;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -411,5 +414,15 @@ public class ValueMappingTest {
 		DateTimeFormatter dateFormatter3 = DateTimeFormatter.ofPattern("dd-MMM-yy").withLocale(Locale.US);
 
 		LocalDate.parse("07-Oct-76", dateFormatter3);
+
+		DateTimeFormatter dateFormatter4 = new DateTimeFormatterBuilder().parseCaseInsensitive()
+				.appendPattern("d/M/yy K'.'mma").toFormatter(Locale.US);
+		LocalDateTime parsedDate4 = LocalDateTime.parse("28/5/17 1.10pm", dateFormatter4);
+
+		assertEquals(28, parsedDate4.getDayOfMonth());
+		assertEquals(Month.MAY, parsedDate4.getMonth());
+		assertEquals(2017, parsedDate4.getYear());
+		assertEquals(13, parsedDate4.getHour());
+		assertEquals(10, parsedDate4.getMinute());
 	}
 }
