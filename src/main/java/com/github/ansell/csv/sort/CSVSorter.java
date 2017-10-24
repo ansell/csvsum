@@ -194,7 +194,8 @@ public final class CSVSorter {
 		CsvSchema cleanSchema = new CsvSchema.Builder(schema).setUseHeader(false).build();
 
 		Path headerlessTempFile = tempFile;
-		ArrayList<String> headers = new ArrayList<>();
+		List<String> headers = new ArrayList<>();
+		List<List<String>> excessHeaders = new ArrayList<>();
 		// We must strip the header out before parsing, as it causes issues deep
 		// inside of Jackson otherwise
 		if (ignoreHeaderLines > 0) {
@@ -210,11 +211,19 @@ public final class CSVSorter {
 					// we start off here already having one header line ignored
 					if (lineCount.incrementAndGet() < ignoreHeaderLines) {
 						// Silently drop lines in excess
+						// return null;
+						excessHeaders.add(l);
 						return null;
 					} else {
 						return l;
 					}
-				}, Unchecked.consumer(l -> csvWriter.write(l)));
+				}, Unchecked.consumer(l -> csvWriter.write(l)), null,
+						// Hardcode the header lines to 1 so they are not
+						// disappeared
+						1,
+						// Need to use the default mapper to avoid issues with
+						// the
+						CSVStream.defaultMapper(), cleanSchema);
 
 			}
 		}
@@ -232,6 +241,10 @@ public final class CSVSorter {
 				try (final SequenceWriter csvHeaderOutputWriter = CSVStream.newCSVWriter(headerOutputWriter,
 						cleanSchema);) {
 					csvHeaderOutputWriter.write(headers);
+					// Persist the excess headers through to the sorted output
+					for (List<String> excessHeader : excessHeaders) {
+						csvHeaderOutputWriter.write(excessHeader);
+					}
 				}
 			} else if (debug) {
 				System.out.println("Not writing headers to output file: " + headers);
@@ -243,6 +256,8 @@ public final class CSVSorter {
 			Files.readAllLines(output, StandardCharsets.UTF_8).stream().forEachOrdered(System.out::println);
 			System.out.println("End of headers");
 		}
+
+		// Then use the sorter to write the rest of the file
 		try (final InputStream tempInput = Files.newInputStream(headerlessTempFile);
 				final OutputStream outputStream = Files.newOutputStream(output, StandardOpenOption.APPEND,
 						StandardOpenOption.WRITE);
