@@ -131,7 +131,7 @@ public final class CSVSorter {
 		}
 
 		try (final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
-			runSorter(readerInput, outputPath, getSafeSortingMapper(), ignoreHeaderLines.value(options),
+			runSorter(readerInput, outputPath, ignoreHeaderLines.value(options),
 					getCsvSchema(CSVStream.defaultSchema(), ignoreHeaderLines.value(options)),
 					getComparator(idFieldIndexInteger), debug);
 		}
@@ -179,7 +179,7 @@ public final class CSVSorter {
 		return mapper;
 	}
 
-	public static void runSorter(Reader input, Path output, CsvMapper mapper, int ignoreHeaderLines, CsvSchema schema,
+	public static void runSorter(Reader input, Path output, int ignoreHeaderLines, CsvSchema schema,
 			Comparator<StringList> comparator, boolean debug) throws IOException {
 
 		Path tempDir = Files.createTempDirectory(output.getParent(), "temp-csvsort");
@@ -219,11 +219,14 @@ public final class CSVSorter {
 					}
 				}, Unchecked.consumer(l -> csvWriter.write(l)), null,
 						// Hardcode the header lines to 1 so they are not
-						// disappeared
+						// silently disappeared by CSVStream
 						1,
 						// Need to use the default mapper to avoid issues with
 						// the
-						CSVStream.defaultMapper(), cleanSchema);
+						getSafeSortingMapper(),
+						// Using the clean schema, as Jackson behaves very
+						// differently if it thinks there is a header line
+						cleanSchema);
 
 			}
 		}

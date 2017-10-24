@@ -126,7 +126,7 @@ public class CSVSorterTest {
 		verifyCSV(testInput1, 1, 2, 4, mapper, schema);
 
 		try (Reader inputReader = Files.newBufferedReader(testInput1, StandardCharsets.UTF_8)) {
-			CSVSorter.runSorter(inputReader, testOutput, mapper, 1, schema, CSVSorter.getComparator(0), true);
+			CSVSorter.runSorter(inputReader, testOutput, 1, schema, CSVSorter.getComparator(0), true);
 		}
 
 		verifyCSV(testOutput, 1, 2, 4, mapper, schema);
@@ -148,7 +148,7 @@ public class CSVSorterTest {
 		CsvSchema schema = CsvSchema.builder().setUseHeader(false).build();
 		verifyCSV(testInput1, 1, 2, 4, mapper, schema);
 		try (Reader inputReader = Files.newBufferedReader(testInput1, StandardCharsets.UTF_8)) {
-			CSVSorter.runSorter(inputReader, testOutput, mapper, 1, schema, CSVSorter.getComparator(1), true);
+			CSVSorter.runSorter(inputReader, testOutput, 1, schema, CSVSorter.getComparator(1), true);
 		}
 
 		verifyCSV(testOutput, 1, 2, 4, mapper, schema);
@@ -171,7 +171,7 @@ public class CSVSorterTest {
 		verifyCSV(testInput3, 1, 2, 5, mapper, schema);
 
 		try (Reader inputReader = Files.newBufferedReader(testInput3, StandardCharsets.UTF_8)) {
-			CSVSorter.runSorter(inputReader, testOutput, mapper, 1, schema, CSVSorter.getComparator(1, 0), true);
+			CSVSorter.runSorter(inputReader, testOutput, 1, schema, CSVSorter.getComparator(1, 0), true);
 		}
 
 		verifyCSV(testOutput, 1, 2, 5, mapper, schema);
@@ -194,7 +194,7 @@ public class CSVSorterTest {
 		verifyCSV(testInput3, 1, 2, 5, mapper, schema);
 
 		try (Reader inputReader = Files.newBufferedReader(testInput3, StandardCharsets.UTF_8)) {
-			CSVSorter.runSorter(inputReader, testOutput, mapper, 1, schema, CSVSorter.getComparator(0, 1), true);
+			CSVSorter.runSorter(inputReader, testOutput, 1, schema, CSVSorter.getComparator(0, 1), true);
 		}
 
 		verifyCSV(testOutput, 1, 2, 5, mapper, schema);
@@ -216,7 +216,7 @@ public class CSVSorterTest {
 		verifyCSV(testInput4, 1, 2, 5, mapper, schema);
 
 		try (Reader inputReader = Files.newBufferedReader(testInput4, StandardCharsets.UTF_8)) {
-			CSVSorter.runSorter(inputReader, testOutput, mapper, 1, schema, CSVSorter.getComparator(0, 1), true);
+			CSVSorter.runSorter(inputReader, testOutput, 1, schema, CSVSorter.getComparator(0, 1), true);
 		}
 
 		verifyCSV(testOutput, 1, 2, 5, mapper, schema);
@@ -238,7 +238,7 @@ public class CSVSorterTest {
 		verifyCSV(testInput5, 10, 2, 5, mapper, schema);
 
 		try (Reader inputReader = Files.newBufferedReader(testInput5, StandardCharsets.UTF_8)) {
-			CSVSorter.runSorter(inputReader, testOutput, mapper, 10, schema, CSVSorter.getComparator(0, 1), true);
+			CSVSorter.runSorter(inputReader, testOutput, 10, schema, CSVSorter.getComparator(0, 1), true);
 		}
 
 		verifyCSV(testOutput, 10, 2, 5, mapper, schema);
