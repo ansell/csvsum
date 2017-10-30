@@ -50,7 +50,6 @@ import org.jooq.lambda.Unchecked;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.github.ansell.csv.stream.CSVStream;
-import com.github.ansell.csv.util.CSVUtil;
 import com.github.ansell.csv.util.ValueMapping;
 
 import joptsimple.OptionException;

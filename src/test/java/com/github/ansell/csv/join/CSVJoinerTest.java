@@ -45,8 +45,6 @@ import org.junit.rules.TemporaryFolder;
 
 import com.github.ansell.csv.join.CSVJoiner;
 import com.github.ansell.csv.stream.CSVStream;
-import com.github.ansell.csv.util.CSVUtil;
-
 import joptsimple.OptionException;
 
 /**

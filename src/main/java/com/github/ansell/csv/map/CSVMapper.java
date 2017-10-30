@@ -51,7 +51,6 @@ import org.jooq.lambda.Unchecked;
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.stream.CSVStream;
-import com.github.ansell.csv.util.CSVUtil;
 import com.github.ansell.csv.util.LineFilteredException;
 import com.github.ansell.csv.util.ValueMapping;
 import com.github.ansell.jdefaultdict.JDefaultDict;

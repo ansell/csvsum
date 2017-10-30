@@ -17,8 +17,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
