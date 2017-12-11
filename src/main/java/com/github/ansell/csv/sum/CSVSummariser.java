@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
 import org.apache.commons.io.output.NullWriter;
@@ -514,34 +515,96 @@ public final class CSVSummariser {
 			final List<String> overrideHeaders, final int headerLineCount, List<String> defaultValues)
 			throws IOException, CSVStreamException {
 		final long startTime = System.currentTimeMillis();
+				return parseForSummarise(input, inputMapper, inputSchema, emptyCounts, nonEmptyCounts,
+						possibleIntegerFields, possibleDoubleFields, valueCounts, rowCount, overrideHeaders,
+						headerLineCount, defaultValues, (h, l) -> {
+									int nextLineNumber = rowCount.incrementAndGet();
+									if (nextLineNumber % 10000 == 0) {
+										double secondsSinceStart = (System.currentTimeMillis() - startTime) / 1000.0d;
+										System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n", nextLineNumber,
+												secondsSinceStart, nextLineNumber / secondsSinceStart);
+									}
+									for (int i = 0; i < h.size(); i++) {
+										if (l.get(i).trim().isEmpty()) {
+											emptyCounts.get(h.get(i)).incrementAndGet();
+										} else {
+											nonEmptyCounts.get(h.get(i)).incrementAndGet();
+											valueCounts.get(h.get(i)).get(l.get(i)).incrementAndGet();
+											try {
+												Integer.parseInt(l.get(i));
+											} catch (NumberFormatException nfe) {
+												possibleIntegerFields.get(h.get(i)).set(false);
+											}
+											try {
+												Double.parseDouble(l.get(i));
+											} catch (NumberFormatException nfe) {
+												possibleDoubleFields.get(h.get(i)).set(false);
+											}
+										}
+									}
+									return l;
+								});
+			}
+
+	/**
+	 * Parse the given inputs to in-memory maps to allow for summarisation.
+	 * 
+	 * @param input
+	 *            The {@link Reader} containing the inputs to be summarised.
+	 * @param inputMapper
+	 *            The CsvMapper to use to parse the file into memory
+	 * @param inputSchema
+	 *            The CsvSchema to use to help the mapper parse the file into
+	 *            memory
+	 * @param emptyCounts
+	 *            A {@link JDefaultDict} to be populated with empty counts for
+	 *            each field
+	 * @param nonEmptyCounts
+	 *            A {@link JDefaultDict} to be populated with non-empty counts
+	 *            for each field
+	 * @param possibleIntegerFields
+	 *            A {@link JDefaultDict} to be populated with false if a
+	 *            non-integer value is detected in a field
+	 * @param possibleDoubleFields
+	 *            A {@link JDefaultDict} to be populated with false if a
+	 *            non-double value is detected in a field
+	 * @param valueCounts
+	 *            A {@link JDefaultDict} to be populated with false if a
+	 *            non-integer value is detected in a field
+	 * @param rowCount
+	 *            An {@link AtomicInteger} used to track the total number of
+	 *            rows processed.
+	 * @param overrideHeaders
+	 *            Headers to use to override those in the file, or null to rely
+	 *            on the headers from the file
+	 * @param headerLineCount
+	 *            The number of lines in the file that must be skipped, or 0 to
+	 *            not skip any headers and instead use overrideHeaders
+	 * @param defaultValues
+	 *            A list that is either empty, signifying there are no default
+	 *            values known, or exactly the same length as each row in the
+	 *            CSV file being parsed. If the values for a field are
+	 *            empty/missing, and a non-null, non-empty value appears in this
+	 *            list, it will be substituted in when calculating the
+	 *            statistics.
+	 * @param summariseFunction The function which will perform the summarisation
+	 * @return The list of headers that were either overridden or found in the
+	 *         file
+	 * @throws IOException
+	 *             If there is an error reading from the file
+	 * @throws CSVStreamException
+	 *             If there is a problem processing the CSV content
+	 */
+	private static List<String> parseForSummarise(final Reader input, final CsvMapper inputMapper,
+			final CsvSchema inputSchema, final JDefaultDict<String, AtomicInteger> emptyCounts,
+			final JDefaultDict<String, AtomicInteger> nonEmptyCounts,
+			final JDefaultDict<String, AtomicBoolean> possibleIntegerFields,
+			final JDefaultDict<String, AtomicBoolean> possibleDoubleFields,
+			final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts, final AtomicInteger rowCount,
+			final List<String> overrideHeaders, final int headerLineCount, List<String> defaultValues, BiFunction<List<String>, List<String>, List<String>> summariseFunction)
+			throws IOException, CSVStreamException {
 		final List<String> headers = new ArrayList<>();
-		CSVStream.parse(input, h -> headers.addAll(h), (h, l) -> {
-			int nextLineNumber = rowCount.incrementAndGet();
-			if (nextLineNumber % 10000 == 0) {
-				double secondsSinceStart = (System.currentTimeMillis() - startTime) / 1000.0d;
-				System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n", nextLineNumber,
-						secondsSinceStart, nextLineNumber / secondsSinceStart);
-			}
-			for (int i = 0; i < h.size(); i++) {
-				if (l.get(i).trim().isEmpty()) {
-					emptyCounts.get(h.get(i)).incrementAndGet();
-				} else {
-					nonEmptyCounts.get(h.get(i)).incrementAndGet();
-					valueCounts.get(h.get(i)).get(l.get(i)).incrementAndGet();
-					try {
-						Integer.parseInt(l.get(i));
-					} catch (NumberFormatException nfe) {
-						possibleIntegerFields.get(h.get(i)).set(false);
-					}
-					try {
-						Double.parseDouble(l.get(i));
-					} catch (NumberFormatException nfe) {
-						possibleDoubleFields.get(h.get(i)).set(false);
-					}
-				}
-			}
-			return l;
-		}, l -> {
+		CSVStream.parse(input, h -> headers.addAll(h), summariseFunction, l -> {
 			// We are a streaming summariser, and do not store the raw original
 			// lines. Only unique, non-empty, values are stored in the
 			// valueCounts map for uniqueness summaries
