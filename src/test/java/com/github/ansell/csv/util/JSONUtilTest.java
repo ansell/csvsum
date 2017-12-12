@@ -51,8 +51,8 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
-import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.github.ansell.csv.stream.util.JSONStreamUtil;
 import com.github.jsonldjava.utils.JsonUtils;
 
 /**
@@ -67,26 +67,12 @@ public class JSONUtilTest {
 	@Rule
 	public TemporaryFolder tempDir = new TemporaryFolder();
 
-	/**
-	 * Test method for
-	 * {@link com.github.ansell.csv.util.JSONUtil#toPrettyPrint(java.io.Reader, java.io.Writer)}
-	 * .
-	 */
-	@Test
-	public final void testToPrettyPrint() throws Exception {
-		StringWriter output = new StringWriter();
-		StringReader input = new StringReader("{\"test\":\"something\"}");
-		JSONUtil.toPrettyPrint(input, output);
-		System.out.println(output.toString());
-		assertTrue(output.toString().contains("\"test\" : \"something\""));
-	}
-
 	@Ignore("Ignore so AEKOS API outages don't affect test results")
 	@Test
 	public final void testAEKOS() throws Exception {
 		StringWriter output = new StringWriter();
 		JsonNode jsonNode = JSONUtil.httpGetJSON("https://dev.api.aekos.org.au/v2/allSpeciesData.json?start=0&rows=5", 10, 10, TimeUnit.MILLISECONDS);
-		JSONUtil.toPrettyPrint(jsonNode, output);
+		JSONStreamUtil.toPrettyPrint(jsonNode, output);
 		System.out.println(output.toString());
 	}
 	
@@ -95,7 +81,7 @@ public class JSONUtilTest {
 	public final void testToPrettyPrintLarge() throws Exception {
 		try (Writer output = Files.newBufferedWriter(Paths.get("/tmp/test-pretty.json"), StandardCharsets.UTF_8);
 				Reader input = Files.newBufferedReader(Paths.get("/tmp/test.json"), StandardCharsets.UTF_8);) {
-			JSONUtil.toPrettyPrint(input, output);
+			JSONStreamUtil.toPrettyPrint(input, output);
 		}
 	}
 
@@ -107,12 +93,12 @@ public class JSONUtilTest {
 				.openStreamForURL(new java.net.URL("https://api.github.com/repos/ansell/csvsum"
 		// "http://bie.ala.org.au/search.json?q=Banksia+occidentalis"
 		), JsonUtils.getDefaultHttpClient()); Reader input = new BufferedReader(new InputStreamReader(inputStream));) {
-			JSONUtil.toPrettyPrint(input, output);
+			JSONStreamUtil.toPrettyPrint(input, output);
 		}
 
 		System.out.println(output.toString());
 
-		String avatar = JSONUtil.queryJSON(new StringReader(output.toString()), "/owner/avatar_url");
+		String avatar = JSONStreamUtil.queryJSON(new StringReader(output.toString()), "/owner/avatar_url");
 
 		assertTrue(avatar, avatar.contains(".githubusercontent.com/"));
 		assertTrue(avatar, avatar.startsWith("https://avatar"));
@@ -127,11 +113,11 @@ public class JSONUtilTest {
 	public final void testHttpGetJSON() throws Exception {
 		StringWriter output = new StringWriter();
 		JsonNode jsonNode = JSONUtil.httpGetJSON("https://api.github.com/repos/ansell/csvsum");
-		JSONUtil.toPrettyPrint(jsonNode, output);
+		JSONStreamUtil.toPrettyPrint(jsonNode, output);
 
 		System.out.println(output.toString());
 
-		String avatar = JSONUtil.queryJSON(new StringReader(output.toString()), "/owner/avatar_url");
+		String avatar = JSONStreamUtil.queryJSON(new StringReader(output.toString()), "/owner/avatar_url");
 
 		assertTrue(avatar, avatar.contains(".githubusercontent.com/"));
 		assertTrue(avatar, avatar.startsWith("https://avatar"));
@@ -146,11 +132,11 @@ public class JSONUtilTest {
 	public final void testHttpGetJSONWithRetry() throws Exception {
 		StringWriter output = new StringWriter();
 		JsonNode jsonNode = JSONUtil.httpGetJSON("https://api.github.com/repos/ansell/csvsum", 1, 1, TimeUnit.SECONDS);
-		JSONUtil.toPrettyPrint(jsonNode, output);
+		JSONStreamUtil.toPrettyPrint(jsonNode, output);
 
 		System.out.println(output.toString());
 
-		String avatar = JSONUtil.queryJSON(new StringReader(output.toString()), "/owner/avatar_url");
+		String avatar = JSONStreamUtil.queryJSON(new StringReader(output.toString()), "/owner/avatar_url");
 
 		assertTrue(avatar, avatar.contains(".githubusercontent.com/"));
 		assertTrue(avatar, avatar.startsWith("https://avatar"));
@@ -158,58 +144,6 @@ public class JSONUtilTest {
 		// JSONUtil.queryJSON(
 		// "http://bie.ala.org.au/search.json?q=Banksia+occidentalis",
 		// "/searchResults/results/0/guid");
-	}
-
-	@Test
-	public final void testPrettyPrintNode() throws Exception {
-		StringReader input = new StringReader("{\"owner\": {\"avatar_url\": \"https://avatar.githubusercontent.com/\"}}");
-		StringWriter output = new StringWriter();
-		JsonNode jsonNode = JSONUtil.loadJSON(input);
-		JSONUtil.toPrettyPrint(jsonNode, output);
-
-		System.out.println(output.toString());
-
-		String avatar = JSONUtil.queryJSON(new StringReader(output.toString()), "/owner/avatar_url");
-
-		assertTrue(avatar, avatar.contains(".githubusercontent.com/"));
-		assertTrue(avatar, avatar.startsWith("https://avatar"));
-
-		// JSONUtil.queryJSON(
-		// "http://bie.ala.org.au/search.json?q=Banksia+occidentalis",
-		// "/searchResults/results/0/guid");
-	}
-
-	@Test
-	public final void testQuery() throws Exception {
-		Path testFile = tempDir.newFile().toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/ala-test.json"), testFile,
-				StandardCopyOption.REPLACE_EXISTING);
-		try (Reader reader = Files.newBufferedReader(testFile);) {
-			JSONUtil.toPrettyPrint(reader, new OutputStreamWriter(System.out));
-		}
-		System.out.println("");
-		try (Reader reader = Files.newBufferedReader(testFile);) {
-			System.out.println(JSONUtil.queryJSON(reader, JsonPointer.compile("/searchResults/results/0/guid")));
-		}
-	}
-
-	/**
-	 * Test method for
-	 * {@link com.github.ansell.csv.util.JSONUtil#queryJSON(java.io.Reader, JsonPointer)}
-	 * .
-	 */
-	@Test
-	public final void testQueryJSON() throws Exception {
-		StringReader input = new StringReader("{ \"test\": \"something\"}");
-		JsonPointer jpath = JsonPointer.compile("/test");
-		String result = JSONUtil.queryJSON(input, jpath);
-		System.out.println(result);
-		assertEquals("something", result);
-
-		StringReader input2 = new StringReader("{ \"test\": \"something\"}");
-		String result2 = JSONUtil.queryJSON(input2, "/test");
-		System.out.println(result2);
-		assertEquals("something", result2);
 	}
 
 	/**
@@ -277,7 +211,7 @@ public class JSONUtilTest {
 	public final void testHttpGetJsonCriteria() throws Exception {
 		JsonNode completeResult = JSONUtil.httpGetJSON("http://images.ala.org.au/ws/search/index.json?searchCriteriaDefinitionId=85278494&fieldValue=dr341");
 
-		System.out.println("Result was" + JSONUtil.toPrettyPrint(completeResult));
+		System.out.println("Result was" + JSONStreamUtil.toPrettyPrint(completeResult));
 
 		//String result = JSONUtil.queryJSONPost("" + "" + "" + "", postVariables, "/images/X01860.mp3/0/imageUrl");
 
@@ -300,19 +234,4 @@ public class JSONUtilTest {
 		System.out.println(result);
 	}
 
-	@Test
-	public final void testLoadJSONNullProperty() throws Exception {
-		Path testNullFile = tempDir.newFolder("jsonutiltest").toPath().resolve("test-null.json");
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-null.json"), testNullFile);
-		JsonNode rootNode = JSONUtil.loadJSON(testNullFile);
-
-		JsonNode searchResultsNode = rootNode.get("searchResults");
-
-		JsonNode pageSizeNode = searchResultsNode.get("pageSize");
-
-		JsonNode startIndexNode = searchResultsNode.get("startIndex");
-
-		System.out.println("pageSize=" + pageSizeNode.toString());
-		System.out.println("startIndex=" + startIndexNode.toString());
-	}
 }

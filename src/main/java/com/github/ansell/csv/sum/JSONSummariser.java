@@ -63,12 +63,12 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
 /**
- * Summarises CSV files to easily debug and identify likely parse issues before
+ * Summarises JSON files to easily debug and identify likely parse issues before
  * pushing them through a more heavy tool or process.
  * 
  * @author Peter Ansell p_ansell@yahoo.com
  */
-public final class CSVSummariser {
+public final class JSONSummariser {
 
 	/**
 	 * The default number of samples to include for each field in the summarised
@@ -87,7 +87,7 @@ public final class CSVSummariser {
 	/**
 	 * Private constructor for static only class
 	 */
-	private CSVSummariser() {
+	private JSONSummariser() {
 	}
 
 	public static void main(String... args) throws Exception {
@@ -95,7 +95,7 @@ public final class CSVSummariser {
 
 		final OptionSpec<Void> help = parser.accepts("help").forHelp();
 		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
-				.describedAs("The input CSV file to be summarised.");
+				.describedAs("The input JSON file to be summarised.");
 		final OptionSpec<File> overrideHeadersFile = parser.accepts("override-headers-file").withRequiredArg()
 				.ofType(File.class).describedAs(
 						"A file whose first line contains the headers to use, to override those found in the file.");
