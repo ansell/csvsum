@@ -100,4 +100,21 @@ public class JSONSummariserTest {
 				testFile.toAbsolutePath().toString());
 	}
 
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.JSONSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainArraySingleEntry() throws Exception {
+		Path testFile = tempDir.newFile("test-array-single-entry.json").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-array-single-entry.json"),
+				testFile, StandardCopyOption.REPLACE_EXISTING);
+		Path testFields = tempDir.newFile("test-array-single-entry.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-array-single-entry.csv"),
+				testFields, StandardCopyOption.REPLACE_EXISTING);
+
+		JSONSummariser.main("--input", testFile.toAbsolutePath().toString(), "--fields",
+				testFields.toAbsolutePath().toString(), "--base-path", "/base");
+	}
+
 }

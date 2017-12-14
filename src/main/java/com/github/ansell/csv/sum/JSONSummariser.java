@@ -119,8 +119,8 @@ public final class JSONSummariser {
 		final OptionSpec<Void> help = parser.accepts("help").forHelp();
 		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
 				.describedAs("The input JSON file to be summarised.");
-		final OptionSpec<File> defaultAndRelativePathsFile = parser.accepts("defaults-and-paths").withRequiredArg()
-				.ofType(File.class).describedAs(
+		final OptionSpec<File> fieldsFile = parser.accepts("fields").withRequiredArg()
+				.ofType(File.class).required().describedAs(
 						"A file which contains a row for each field to be found, including a compulsory path and any optional default value for the field.");
 		final OptionSpec<String> basePathOption = parser.accepts("base-path").withRequiredArg().ofType(String.class)
 				.describedAs("The base path in the JSON document to locate the array of objects to be summarised")
@@ -179,9 +179,10 @@ public final class JSONSummariser {
 		// Defaults to null, with any strings in the file overriding that
 		Map<String, String> defaultsMap = new LinkedHashMap<>();
 		Map<String, JsonPointer> pathsMap = new LinkedHashMap<>();
-		if (options.has(defaultAndRelativePathsFile)) {
+		if (options.has(fieldsFile)) {
+			//Files.copy(fieldsFile.value(options).toPath(), System.out);
 			try (final BufferedReader newBufferedReader = Files
-					.newBufferedReader(defaultAndRelativePathsFile.value(options).toPath());) {
+					.newBufferedReader(fieldsFile.value(options).toPath());) {
 				CSVStream.parse(newBufferedReader, h -> {
 					// TODO: Validate the headers as expected
 				}, (h, l) -> {
