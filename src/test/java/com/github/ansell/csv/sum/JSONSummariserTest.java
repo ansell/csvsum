@@ -80,9 +80,13 @@ public class JSONSummariserTest {
 	@Test
 	public final void testMainFileDoesNotExist() throws Exception {
 		Path testDirectory = tempDir.newFolder("test-does-not-exist").toPath();
+		Path testFields = tempDir.newFile("test-array-single-entry.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-array-single-entry.csv"),
+				testFields, StandardCopyOption.REPLACE_EXISTING);
 
 		thrown.expect(FileNotFoundException.class);
-		JSONSummariser.main("--input", testDirectory.resolve("test-does-not-exist.csv").toString());
+		JSONSummariser.main("--input", testDirectory.resolve("test-does-not-exist.csv").toString(), "--fields",
+				testFields.toAbsolutePath().toString());
 	}
 
 	/**
@@ -94,10 +98,13 @@ public class JSONSummariserTest {
 		Path testFile = tempDir.newFile("test-single-header.csv").toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header.csv"), testFile,
 				StandardCopyOption.REPLACE_EXISTING);
+		Path testFields = tempDir.newFile("test-array-single-entry.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-array-single-entry.csv"),
+				testFields, StandardCopyOption.REPLACE_EXISTING);
 
 		thrown.expect(FileNotFoundException.class);
 		JSONSummariser.main("--input", testFile.toAbsolutePath().toString(), "--output-mapping",
-				testFile.toAbsolutePath().toString());
+				testFile.toAbsolutePath().toString(), "--fields", testFields.toAbsolutePath().toString());
 	}
 
 	/**
