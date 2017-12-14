@@ -89,10 +89,22 @@ public final class JSONSummariser {
 	private static final Consumer<List<String>> NULL_CONSUMER = l -> {
 	};
 
+	/**
+	 * Header used in the defaults-and-paths file to denote the field name in the
+	 * output to use for the values discovered by the matching relativePath.
+	 */
 	private static final String FIELD = "field";
 
+	/**
+	 * Header used in the defaults-and-paths file to denote a default value to use
+	 * for a field if there is none found in the discovered objects.
+	 */
 	private static final String DEFAULT = "default";
 
+	/**
+	 * Header used in the defaults-and-paths file to denote the {@link JsonPointer}
+	 * to use to find the field inside of each discovered object.
+	 */
 	private static final String RELATIVE_PATH = "relativePath";
 
 	/**
@@ -107,13 +119,11 @@ public final class JSONSummariser {
 		final OptionSpec<Void> help = parser.accepts("help").forHelp();
 		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
 				.describedAs("The input JSON file to be summarised.");
-		final OptionSpec<File> defaultAndRelativePathsFile = parser.accepts("override-headers-file").withRequiredArg()
+		final OptionSpec<File> defaultAndRelativePathsFile = parser.accepts("defaults-and-paths").withRequiredArg()
 				.ofType(File.class).describedAs(
-						"A file whose first line contains the headers to use, to override those found in the file.");
-		final OptionSpec<String> basePathOption = parser.accepts("base-path").withRequiredArg()
-				.ofType(String.class)
-				.describedAs(
-						"The base path in the JSON document to locate the array of objects to be summarised")
+						"A file which contains a row for each field to be found, including a compulsory path and any optional default value for the field.");
+		final OptionSpec<String> basePathOption = parser.accepts("base-path").withRequiredArg().ofType(String.class)
+				.describedAs("The base path in the JSON document to locate the array of objects to be summarised")
 				.defaultsTo("/");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
 				.describedAs("The output file, or the console if not specified.");
@@ -183,10 +193,10 @@ public final class JSONSummariser {
 			}
 		}
 
-		if(pathsMap.isEmpty()) {
+		if (pathsMap.isEmpty()) {
 			throw new RuntimeException("No fields were found");
 		}
-		
+
 		JsonPointer basePath = JsonPointer.compile(basePathOption.value(options));
 
 		if (debugBoolean) {
