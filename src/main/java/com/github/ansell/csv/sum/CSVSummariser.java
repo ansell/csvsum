@@ -383,8 +383,7 @@ public final class CSVSummariser {
 	 * @throws IOException
 	 *             If there is an error writing
 	 */
-	private static void writeForSummarise(final int maxSampleCount,
-			final JDefaultDict<String, AtomicInteger> emptyCounts,
+	static void writeForSummarise(final int maxSampleCount, final JDefaultDict<String, AtomicInteger> emptyCounts,
 			final JDefaultDict<String, AtomicInteger> nonEmptyCounts,
 			final JDefaultDict<String, AtomicBoolean> possibleIntegerFields,
 			final JDefaultDict<String, AtomicBoolean> possibleDoubleFields,
@@ -512,8 +511,8 @@ public final class CSVSummariser {
 	 * @throws CSVStreamException
 	 *             If there is a problem processing the CSV content
 	 */
-	private static List<String> parseForSummarise(final Reader input, final CsvMapper inputMapper,
-			final CsvSchema inputSchema, final JDefaultDict<String, AtomicInteger> emptyCounts,
+	static List<String> parseForSummarise(final Reader input, final CsvMapper inputMapper, final CsvSchema inputSchema,
+			final JDefaultDict<String, AtomicInteger> emptyCounts,
 			final JDefaultDict<String, AtomicInteger> nonEmptyCounts,
 			final JDefaultDict<String, AtomicBoolean> possibleIntegerFields,
 			final JDefaultDict<String, AtomicBoolean> possibleDoubleFields,
@@ -633,7 +632,7 @@ public final class CSVSummariser {
 	 * @return A {@link CsvSchema} representing the fields in the summary results
 	 *         file
 	 */
-	private static CsvSchema getSummaryCsvSchema() {
+	public static CsvSchema getSummaryCsvSchema() {
 		final CsvSchema summarySchema = CsvSchema.builder().addColumn("fieldName")
 				.addColumn("emptyCount", CsvSchema.ColumnType.NUMBER)
 				.addColumn("nonEmptyCount", CsvSchema.ColumnType.NUMBER)
@@ -648,7 +647,7 @@ public final class CSVSummariser {
 	/**
 	 * @return A {@link CsvSchema} representing the fields in the mapping file
 	 */
-	private static CsvSchema getMappingCsvSchema() {
+	public static CsvSchema getMappingCsvSchema() {
 		final CsvSchema mappingSchema = CsvSchema.builder()
 				.addColumn(ValueMapping.OLD_FIELD, CsvSchema.ColumnType.STRING)
 				.addColumn(ValueMapping.NEW_FIELD, CsvSchema.ColumnType.STRING)

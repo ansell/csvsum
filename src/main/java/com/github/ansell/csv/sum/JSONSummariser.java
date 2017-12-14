@@ -38,7 +38,9 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -49,11 +51,14 @@ import java.util.stream.Stream;
 
 import org.apache.commons.io.output.NullWriter;
 
+import com.fasterxml.jackson.core.JsonPointer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.csv.stream.CSVStreamException;
+import com.github.ansell.csv.stream.JSONStream;
 import com.github.ansell.csv.util.ValueMapping;
 import com.github.ansell.jdefaultdict.JDefaultDict;
 
@@ -84,6 +89,12 @@ public final class JSONSummariser {
 	private static final Consumer<List<String>> NULL_CONSUMER = l -> {
 	};
 
+	private static final String FIELD = "field";
+
+	private static final String DEFAULT = "default";
+
+	private static final String RELATIVE_PATH = "relativePath";
+
 	/**
 	 * Private constructor for static only class
 	 */
@@ -96,14 +107,14 @@ public final class JSONSummariser {
 		final OptionSpec<Void> help = parser.accepts("help").forHelp();
 		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
 				.describedAs("The input JSON file to be summarised.");
-		final OptionSpec<File> overrideHeadersFile = parser.accepts("override-headers-file").withRequiredArg()
+		final OptionSpec<File> defaultAndRelativePathsFile = parser.accepts("override-headers-file").withRequiredArg()
 				.ofType(File.class).describedAs(
 						"A file whose first line contains the headers to use, to override those found in the file.");
-		final OptionSpec<Integer> headerLineCount = parser.accepts("header-line-count").withRequiredArg()
-				.ofType(Integer.class)
+		final OptionSpec<String> basePathOption = parser.accepts("base-path").withRequiredArg()
+				.ofType(String.class)
 				.describedAs(
-						"The number of header lines present in the file. Can be used in conjunction with override-headers-file to substitute a different set of headers")
-				.defaultsTo(1);
+						"The base path in the JSON document to locate the array of objects to be summarised")
+				.defaultsTo("/");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
 				.describedAs("The output file, or the console if not specified.");
 		final OptionSpec<File> outputMappingTemplate = parser.accepts("output-mapping").withRequiredArg()
@@ -153,110 +164,55 @@ public final class JSONSummariser {
 		}
 
 		int samplesToShowInt = samplesToShow.value(options);
-		int headerLineCountInt = headerLineCount.value(options);
 		boolean debugBoolean = debug.value(options);
 
 		// Defaults to null, with any strings in the file overriding that
-		AtomicReference<List<String>> overrideHeadersList = new AtomicReference<>();
-		if (options.has(overrideHeadersFile)) {
+		Map<String, String> defaultsMap = new LinkedHashMap<>();
+		Map<String, JsonPointer> pathsMap = new LinkedHashMap<>();
+		if (options.has(defaultAndRelativePathsFile)) {
 			try (final BufferedReader newBufferedReader = Files
-					.newBufferedReader(overrideHeadersFile.value(options).toPath());) {
+					.newBufferedReader(defaultAndRelativePathsFile.value(options).toPath());) {
 				CSVStream.parse(newBufferedReader, h -> {
-					overrideHeadersList.set(h);
+					// TODO: Validate the headers as expected
 				}, (h, l) -> {
+					defaultsMap.put(l.get(h.indexOf(FIELD)), l.get(h.indexOf(DEFAULT)));
+					pathsMap.put(l.get(h.indexOf(FIELD)), JsonPointer.compile(l.get(h.indexOf(RELATIVE_PATH))));
 					return l;
 				}, l -> {
 				}, null, CSVStream.DEFAULT_HEADER_COUNT);
 			}
 		}
 
+		if(pathsMap.isEmpty()) {
+			throw new RuntimeException("No fields were found");
+		}
+		
+		JsonPointer basePath = JsonPointer.compile(basePathOption.value(options));
+
 		if (debugBoolean) {
 			System.out.println("Running summarise on: " + inputPath + " samples=" + samplesToShowInt);
 		}
+
+		ObjectMapper inputMapper = new ObjectMapper();
 
 		try (final BufferedReader newBufferedReader = Files.newBufferedReader(inputPath);
 				final Writer mappingWriter = options.has(outputMappingTemplate)
 						? Files.newBufferedWriter(outputMappingPath)
 						: NullWriter.NULL_WRITER) {
-			runSummarise(newBufferedReader, writer, mappingWriter, samplesToShowInt, showSampleCounts.value(options),
-					debugBoolean, overrideHeadersList.get(), headerLineCountInt);
+			runSummarise(newBufferedReader, inputMapper, writer, mappingWriter, samplesToShowInt,
+					showSampleCounts.value(options), debugBoolean, defaultsMap, basePath, pathsMap);
 		}
 	}
 
 	/**
-	 * Summarise the CSV file from the input {@link Reader} and emit the summary CSV
-	 * file to the output {@link Writer}, including the given maximum number of
+	 * Summarise the JSON file from the input {@link Reader} and emit the summary
+	 * CSV file to the output {@link Writer}, including the given maximum number of
 	 * sample values in the summary for each field.
 	 * 
 	 * @param input
-	 *            The input CSV file, as a {@link Reader}.
-	 * @param output
-	 *            The output CSV file as a {@link Writer}.
-	 * @param mappingOutput
-	 *            The output mapping template file as a {@link Writer}.
-	 * @param maxSampleCount
-	 *            The maximum number of sample values in the summary for each field.
-	 *            Set to -1 to include all unique values for each field.
-	 * @param showSampleCounts
-	 *            Show counts next to sample values
-	 * @param debug
-	 *            Set to true to add debug statements.
-	 * @throws IOException
-	 *             If there is an error reading or writing.
-	 */
-	public static void runSummarise(Reader input, Writer output, Writer mappingOutput, int maxSampleCount,
-			boolean showSampleCounts, boolean debug) throws IOException {
-		runSummarise(input, output, mappingOutput, maxSampleCount, showSampleCounts, debug, null,
-				CSVStream.DEFAULT_HEADER_COUNT);
-	}
-
-	/**
-	 * Summarise the CSV file from the input {@link Reader} and emit the summary CSV
-	 * file to the output {@link Writer}, including the given maximum number of
-	 * sample values in the summary for each field.
-	 * 
-	 * @param input
-	 *            The input CSV file, as a {@link Reader}.
-	 * @param output
-	 *            The output CSV file as a {@link Writer}.
-	 * @param mappingOutput
-	 *            The output mapping template file as a {@link Writer}.
-	 * @param maxSampleCount
-	 *            The maximum number of sample values in the summary for each field.
-	 *            Set to -1 to include all unique values for each field.
-	 * @param showSampleCounts
-	 *            Show counts next to sample values
-	 * @param debug
-	 *            Set to true to add debug statements.
-	 * @param overrideHeaders
-	 *            A set of headers to override those in the file or null to use the
-	 *            headers from the file. If this is null and headerLineCount is set
-	 *            to 0, an IllegalArgumentException ill be thrown.
-	 * @param headerLineCount
-	 *            The number of header lines to expect
-	 * @throws IOException
-	 *             If there is an error reading or writing.
-	 */
-	public static void runSummarise(final Reader input, final Writer output, final Writer mappingOutput,
-			final int maxSampleCount, final boolean showSampleCounts, final boolean debug,
-			final List<String> overrideHeaders, final int headerLineCount) throws IOException {
-		final CsvMapper inputMapper = CSVStream.defaultMapper();
-		final CsvSchema inputSchema = CSVStream.defaultSchema();
-		runSummarise(input, inputMapper, inputSchema, output, mappingOutput, maxSampleCount, showSampleCounts, debug,
-				overrideHeaders, headerLineCount);
-	}
-
-	/**
-	 * Summarise the CSV file from the input {@link Reader} and emit the summary CSV
-	 * file to the output {@link Writer}, including the given maximum number of
-	 * sample values in the summary for each field.
-	 * 
-	 * @param input
-	 *            The input CSV file, as a {@link Reader}.
+	 *            The input JSON file, as a {@link Reader}.
 	 * @param inputMapper
-	 *            The CsvMapper to use to parse the file into memory
-	 * @param inputSchema
-	 *            The CsvSchema to use to help the mapper parse the file into memory
+	 *            The ObjectMapper to use to parse the file into memory
 	 * @param output
 	 *            The output CSV file as a {@link Writer}.
 	 * @param mappingOutput
@@ -268,62 +224,29 @@ public final class JSONSummariser {
 	 *            Show counts next to sample values
 	 * @param debug
 	 *            Set to true to add debug statements.
-	 * @param overrideHeaders
-	 *            A set of headers to override those in the file or null to use the
-	 *            headers from the file. If this is null and headerLineCount is set
-	 *            to 0, an IllegalArgumentException ill be thrown.
-	 * @param headerLineCount
-	 *            The number of header lines to expect
-	 * @throws IOException
-	 *             If there is an error reading or writing.
-	 */
-	public static void runSummarise(final Reader input, final CsvMapper inputMapper, final CsvSchema inputSchema,
-			final Writer output, final Writer mappingOutput, final int maxSampleCount, final boolean showSampleCounts,
-			final boolean debug, final List<String> overrideHeaders, final int headerLineCount) throws IOException {
-		runSummarise(input, inputMapper, inputSchema, output, mappingOutput, maxSampleCount, showSampleCounts, debug,
-				overrideHeaders, Collections.emptyList(), headerLineCount);
-	}
-
-	/**
-	 * Summarise the CSV file from the input {@link Reader} and emit the summary CSV
-	 * file to the output {@link Writer}, including the given maximum number of
-	 * sample values in the summary for each field.
-	 * 
-	 * @param input
-	 *            The input CSV file, as a {@link Reader}.
-	 * @param inputMapper
-	 *            The CsvMapper to use to parse the file into memory
-	 * @param inputSchema
-	 *            The CsvSchema to use to help the mapper parse the file into memory
-	 * @param output
-	 *            The output CSV file as a {@link Writer}.
-	 * @param mappingOutput
-	 *            The output mapping template file as a {@link Writer}.
-	 * @param maxSampleCount
-	 *            The maximum number of sample values in the summary for each field.
-	 *            Set to -1 to include all unique values for each field.
-	 * @param showSampleCounts
-	 *            Show counts next to sample values
-	 * @param debug
-	 *            Set to true to add debug statements.
-	 * @param overrideHeaders
-	 *            A list of headers to override those in the file or null to use the
-	 *            headers from the file. If this is null and headerLineCount is set
-	 *            to 0, an IllegalArgumentException ill be thrown.
 	 * @param defaultValues
-	 *            A list of default values to substitute during the summarise
-	 *            process if there is no value given for the matching field in the
-	 *            CSV file. The length of this list must either be 0 or the same as
-	 *            the number of fields.
-	 * @param headerLineCount
-	 *            The number of header lines to expect
+	 *            A Map of default values to substitute during the summarise process
+	 *            if there is no value given for the matching field in the CSV file.
+	 *            The length of this list must either be 0 or the same as the number
+	 *            of fields.
+	 * @param basePath
+	 *            The path to go to before checking the field paths (only supports a
+	 *            single point of entry at this point in time). Set to "/" to start
+	 *            at the top of the document. If the basePath points to an array,
+	 *            each of the array elements are matched separately with the
+	 *            fieldRelativePaths. If it points to an object, the object is
+	 *            directly matched to obtain a single result row. Otherwise an
+	 *            exception is thrown.
+	 * @param fieldRelativePaths
+	 *            The relative paths underneath the basePath to select field values
+	 *            from.
 	 * @throws IOException
 	 *             If there is an error reading or writing.
 	 */
-	public static void runSummarise(final Reader input, final CsvMapper inputMapper, final CsvSchema inputSchema,
-			final Writer output, final Writer mappingOutput, final int maxSampleCount, final boolean showSampleCounts,
-			final boolean debug, final List<String> overrideHeaders, final List<String> defaultValues,
-			final int headerLineCount) throws IOException {
+	public static void runSummarise(final Reader input, final ObjectMapper inputMapper, final Writer output,
+			final Writer mappingOutput, final int maxSampleCount, final boolean showSampleCounts, final boolean debug,
+			final Map<String, String> defaultValues, JsonPointer basePath, Map<String, JsonPointer> fieldRelativePaths)
+			throws IOException {
 		final JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		final JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		// Default to true, and set to false if a non-integer is detected. The
@@ -340,131 +263,12 @@ public final class JSONSummariser {
 				k -> new JDefaultDict<>(l -> new AtomicInteger()));
 		final AtomicInteger rowCount = new AtomicInteger();
 
-		final List<String> headers = parseForSummarise(input, inputMapper, inputSchema, emptyCounts, nonEmptyCounts,
-				possibleIntegerFields, possibleDoubleFields, valueCounts, rowCount, overrideHeaders, headerLineCount,
-				defaultValues);
+		final List<String> headers = parseForSummarise(input, inputMapper, emptyCounts, nonEmptyCounts,
+				possibleIntegerFields, possibleDoubleFields, valueCounts, rowCount, defaultValues, basePath,
+				fieldRelativePaths);
 
-		writeForSummarise(maxSampleCount, emptyCounts, nonEmptyCounts, possibleIntegerFields, possibleDoubleFields,
-				valueCounts, headers, rowCount, showSampleCounts, output, mappingOutput);
-	}
-
-	/**
-	 * Writes summary values and a stub mapping file based on the given
-	 * {@link JDefaultDict}s.
-	 * 
-	 * @param maxSampleCount
-	 *            The maximum number of samples to write out
-	 * @param emptyCounts
-	 *            A {@link JDefaultDict} containing the empty counts for each field
-	 * @param nonEmptyCounts
-	 *            A {@link JDefaultDict} containing the non-empty counts for each
-	 *            field
-	 * @param possibleIntegerFields
-	 *            A {@link JDefaultDict} containing true if the field is possibly
-	 *            integer and false otherwise
-	 * @param possibleDoubleFields
-	 *            A {@link JDefaultDict} containing true if the field is possibly
-	 *            double and false otherwise
-	 * @param valueCounts
-	 *            A {@link JDefaultDict} containing values for each field and
-	 *            attached counts
-	 * @param headers
-	 *            The headers that were either given or substituted
-	 * @param rowCount
-	 *            The total row count from the input file, used to determine if the
-	 *            number of unique values matches the total number of rows
-	 * @param showSampleCounts
-	 *            True to attach sample counts to the sample output, and false to
-	 *            omit it
-	 * @param output
-	 *            The {@link Writer} to contain the summarised statistics
-	 * @param mappingOutput
-	 *            The {@link Writer} to contain the stub mapping file
-	 * @throws IOException
-	 *             If there is an error writing
-	 */
-	private static void writeForSummarise(final int maxSampleCount,
-			final JDefaultDict<String, AtomicInteger> emptyCounts,
-			final JDefaultDict<String, AtomicInteger> nonEmptyCounts,
-			final JDefaultDict<String, AtomicBoolean> possibleIntegerFields,
-			final JDefaultDict<String, AtomicBoolean> possibleDoubleFields,
-			final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts, final List<String> headers,
-			final AtomicInteger rowCount, final boolean showSampleCounts, final Writer output,
-			final Writer mappingOutput) throws IOException {
-		// This schema defines the fields and order for the columns in the
-		// summary CSV file
-		final CsvSchema summarySchema = getSummaryCsvSchema();
-		final CsvSchema mappingSchema = getMappingCsvSchema();
-
-		// Shared StringBuilder across fields for efficiency
-		// After each field the StringBuilder is truncated
-		final StringBuilder sharedSampleValueBuilder = new StringBuilder();
-		final BiConsumer<? super String, ? super String> sampleHandler = (s, c) -> {
-			if (sharedSampleValueBuilder.length() > 0) {
-				sharedSampleValueBuilder.append(", ");
-			}
-			if (s.length() > 200) {
-				sharedSampleValueBuilder.append(s.substring(0, 200));
-				sharedSampleValueBuilder.append("...");
-			} else {
-				sharedSampleValueBuilder.append(s);
-			}
-			if (showSampleCounts) {
-				sharedSampleValueBuilder.append("(*" + c + ")");
-			}
-		};
-		try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(output, summarySchema);
-				final SequenceWriter mappingWriter = CSVStream.newCSVWriter(mappingOutput, mappingSchema);) {
-			// Need to do this to get the header line written out in this case
-			if (rowCount.get() == 0) {
-				csvWriter.write(Arrays.asList());
-				mappingWriter.write(Arrays.asList());
-			}
-			headers.forEach(h -> {
-				try {
-					final int emptyCount = emptyCounts.get(h).get();
-					final int nonEmptyCount = nonEmptyCounts.get(h).get();
-					JDefaultDict<String, AtomicInteger> nextValueCount = valueCounts.get(h);
-					final int valueCount = nextValueCount.keySet().size();
-					final boolean possiblePrimaryKey = valueCount == nonEmptyCount && valueCount == rowCount.get();
-
-					boolean possiblyInteger = false;
-					boolean possiblyDouble = false;
-					// Only expose our numeric type guess if non-empty values
-					// found
-					// This is important, as it should default to true unless
-					// evidence to the contrary is found, with the total number of observations,
-					// when equal to 0, being used to identify the false positive cases
-					if (nonEmptyCount > 0) {
-						possiblyInteger = possibleIntegerFields.get(h).get();
-						possiblyDouble = possibleDoubleFields.get(h).get();
-					}
-
-					final Stream<String> stream = nextValueCount.keySet().stream();
-					if (maxSampleCount > 0) {
-						stream.limit(maxSampleCount).sorted()
-								.forEach(s -> sampleHandler.accept(s, nextValueCount.get(s).toString()));
-						if (valueCount > maxSampleCount) {
-							sharedSampleValueBuilder.append(", ...");
-						}
-					} else if (maxSampleCount < 0) {
-						stream.sorted().forEach(s -> sampleHandler.accept(s, nextValueCount.get(s).toString()));
-					}
-
-					csvWriter.write(Arrays.asList(h, emptyCount, nonEmptyCount, valueCount, possiblePrimaryKey,
-							possiblyInteger, possiblyDouble, sharedSampleValueBuilder));
-					final String mappingFieldType = possiblyInteger ? "INTEGER" : possiblyDouble ? "DECIMAL" : "TEXT";
-					mappingWriter.write(Arrays.asList(h, h, "", ValueMapping.ValueMappingLanguage.DBSCHEMA.name(),
-							mappingFieldType));
-				} catch (Exception e) {
-					throw new RuntimeException(e);
-				} finally {
-					// Very important to reset this shared StringBuilder after
-					// each row is written
-					sharedSampleValueBuilder.setLength(0);
-				}
-			});
-		}
+		CSVSummariser.writeForSummarise(maxSampleCount, emptyCounts, nonEmptyCounts, possibleIntegerFields,
+				possibleDoubleFields, valueCounts, headers, rowCount, showSampleCounts, output, mappingOutput);
 	}
 
 	/**
@@ -473,9 +277,7 @@ public final class JSONSummariser {
 	 * @param input
 	 *            The {@link Reader} containing the inputs to be summarised.
 	 * @param inputMapper
-	 *            The CsvMapper to use to parse the file into memory
-	 * @param inputSchema
-	 *            The CsvSchema to use to help the mapper parse the file into memory
+	 *            The {@link ObjectMapper} to use to parse the file into memory
 	 * @param emptyCounts
 	 *            A {@link JDefaultDict} to be populated with empty counts for each
 	 *            field
@@ -494,98 +296,42 @@ public final class JSONSummariser {
 	 * @param rowCount
 	 *            An {@link AtomicInteger} used to track the total number of rows
 	 *            processed.
-	 * @param overrideHeaders
-	 *            Headers to use to override those in the file, or null to rely on
-	 *            the headers from the file
-	 * @param headerLineCount
-	 *            The number of lines in the file that must be skipped, or 0 to not
-	 *            skip any headers and instead use overrideHeaders
 	 * @param defaultValues
-	 *            A list that is either empty, signifying there are no default
-	 *            values known, or exactly the same length as each row in the CSV
-	 *            file being parsed. If the values for a field are empty/missing,
-	 *            and a non-null, non-empty value appears in this list, it will be
+	 *            A Map that is either empty, signifying there are no default values
+	 *            known, or exactly the same length as each row in the CSV file
+	 *            being parsed. If the values for a field are empty/missing, and a
+	 *            non-null, non-empty value appears in this list, it will be
 	 *            substituted in when calculating the statistics.
+	 * @param basePath
+	 *            The path to go to before checking the field paths (only supports a
+	 *            single point of entry at this point in time). Set to "/" to start
+	 *            at the top of the document. If the basePath points to an array,
+	 *            each of the array elements are matched separately with the
+	 *            fieldRelativePaths. If it points to an object, the object is
+	 *            directly matched to obtain a single result row. Otherwise an
+	 *            exception is thrown.
+	 * @param fieldRelativePaths
+	 *            The relative paths underneath the basePath to select field values
+	 *            from.
 	 * @return The list of headers that were either overridden or found in the file
 	 * @throws IOException
 	 *             If there is an error reading from the file
 	 * @throws CSVStreamException
-	 *             If there is a problem processing the CSV content
+	 *             If there is a problem processing the JSON content
 	 */
-	private static List<String> parseForSummarise(final Reader input, final CsvMapper inputMapper,
-			final CsvSchema inputSchema, final JDefaultDict<String, AtomicInteger> emptyCounts,
-			final JDefaultDict<String, AtomicInteger> nonEmptyCounts,
-			final JDefaultDict<String, AtomicBoolean> possibleIntegerFields,
-			final JDefaultDict<String, AtomicBoolean> possibleDoubleFields,
-			final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts, final AtomicInteger rowCount,
-			final List<String> overrideHeaders, final int headerLineCount, List<String> defaultValues)
-			throws IOException, CSVStreamException {
-		final long startTime = System.currentTimeMillis();
-		final BiFunction<List<String>, List<String>, List<String>> summariseFunction = getSummaryFunctionWithStartTime(
-				emptyCounts, nonEmptyCounts, possibleIntegerFields, possibleDoubleFields, valueCounts, rowCount,
-				startTime);
-		return parseForSummarise(input, inputMapper, inputSchema, overrideHeaders, headerLineCount, defaultValues,
-				summariseFunction);
-	}
-
-	/**
-	 * Returns a function that can be used as a summary function, using the given
-	 * start time for timing analysis.
-	 * 
-	 * @param emptyCounts
-	 *            A {@link JDefaultDict} used to store counts of non-empty fields,
-	 *            based on {@link String#trim()} and {@link String#isEmpty()}.
-	 * @param nonEmptyCounts
-	 *            A {@link JDefaultDict} used to store counts of non-empty fields,
-	 *            based on {@link String#trim()} and {@link String#isEmpty()}.
-	 * @param possibleIntegerFields
-	 *            A {@link JDefaultDict} used to store possible integer fields
-	 * @param possibleDoubleFields
-	 *            A {@link JDefaultDict} used to store possible double fields
-	 * @param valueCounts
-	 *            A {@link JDefaultDict} used to store value counts
-	 * @param rowCount
-	 *            The row count variable
-	 * @param startTime
-	 *            The start time reference, obtained using
-	 *            {@link System#currentTimeMillis()}, for the timing analysis.
-	 * @return A function which can be passed to
-	 *         {@link #parseForSummarise(Reader, CsvMapper, CsvSchema, List, int, List, BiFunction)}
-	 */
-	public static BiFunction<List<String>, List<String>, List<String>> getSummaryFunctionWithStartTime(
+	private static List<String> parseForSummarise(final Reader input, final ObjectMapper inputMapper,
 			final JDefaultDict<String, AtomicInteger> emptyCounts,
 			final JDefaultDict<String, AtomicInteger> nonEmptyCounts,
 			final JDefaultDict<String, AtomicBoolean> possibleIntegerFields,
 			final JDefaultDict<String, AtomicBoolean> possibleDoubleFields,
 			final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts, final AtomicInteger rowCount,
-			final long startTime) {
-		return (h, l) -> {
-			int nextLineNumber = rowCount.incrementAndGet();
-			if (nextLineNumber % 10000 == 0) {
-				double secondsSinceStart = (System.currentTimeMillis() - startTime) / 1000.0d;
-				System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n", nextLineNumber,
-						secondsSinceStart, nextLineNumber / secondsSinceStart);
-			}
-			for (int i = 0; i < h.size(); i++) {
-				if (l.get(i).trim().isEmpty()) {
-					emptyCounts.get(h.get(i)).incrementAndGet();
-				} else {
-					nonEmptyCounts.get(h.get(i)).incrementAndGet();
-					valueCounts.get(h.get(i)).get(l.get(i)).incrementAndGet();
-					try {
-						Integer.parseInt(l.get(i));
-					} catch (NumberFormatException nfe) {
-						possibleIntegerFields.get(h.get(i)).set(false);
-					}
-					try {
-						Double.parseDouble(l.get(i));
-					} catch (NumberFormatException nfe) {
-						possibleDoubleFields.get(h.get(i)).set(false);
-					}
-				}
-			}
-			return l;
-		};
+			Map<String, String> defaultValues, JsonPointer basePath, Map<String, JsonPointer> fieldRelativePaths)
+			throws IOException, CSVStreamException {
+		final long startTime = System.currentTimeMillis();
+		final BiFunction<List<String>, List<String>, List<String>> summariseFunction = CSVSummariser
+				.getSummaryFunctionWithStartTime(emptyCounts, nonEmptyCounts, possibleIntegerFields,
+						possibleDoubleFields, valueCounts, rowCount, startTime);
+		return parseForSummarise(input, inputMapper, defaultValues, summariseFunction, basePath, fieldRelativePaths);
 	}
 
 	/**
@@ -595,14 +341,6 @@ public final class JSONSummariser {
 	 *            The {@link Reader} containing the inputs to be summarised.
 	 * @param inputMapper
 	 *            The CsvMapper to use to parse the file into memory
-	 * @param inputSchema
-	 *            The CsvSchema to use to help the mapper parse the file into memory
-	 * @param overrideHeaders
-	 *            Headers to use to override those in the file, or null to rely on
-	 *            the headers from the file
-	 * @param headerLineCount
-	 *            The number of lines in the file that must be skipped, or 0 to not
-	 *            skip any headers and instead use overrideHeaders
 	 * @param defaultValues
 	 *            A list that is either empty, signifying there are no default
 	 *            values known, or exactly the same length as each row in the CSV
@@ -611,51 +349,32 @@ public final class JSONSummariser {
 	 *            substituted in when calculating the statistics.
 	 * @param summariseFunction
 	 *            The function which will perform the summarisation
+	 * @param basePath
+	 *            The path to go to before checking the field paths (only supports a
+	 *            single point of entry at this point in time). Set to "/" to start
+	 *            at the top of the document. If the basePath points to an array,
+	 *            each of the array elements are matched separately with the
+	 *            fieldRelativePaths. If it points to an object, the object is
+	 *            directly matched to obtain a single result row. Otherwise an
+	 *            exception is thrown.
+	 * @param fieldRelativePaths
+	 *            The relative paths underneath the basePath to select field values
+	 *            from.
 	 * @return The list of headers that were either overridden or found in the file
 	 * @throws IOException
 	 *             If there is an error reading from the file
 	 * @throws CSVStreamException
 	 *             If there is a problem processing the CSV content
 	 */
-	private static List<String> parseForSummarise(final Reader input, final CsvMapper inputMapper,
-			final CsvSchema inputSchema, final List<String> overrideHeaders, final int headerLineCount,
-			List<String> defaultValues, BiFunction<List<String>, List<String>, List<String>> summariseFunction)
-			throws IOException, CSVStreamException {
+	private static List<String> parseForSummarise(final Reader input, final ObjectMapper inputMapper,
+			Map<String, String> defaultValues, BiFunction<List<String>, List<String>, List<String>> summariseFunction,
+			JsonPointer basePath, Map<String, JsonPointer> fieldRelativePaths) throws IOException, CSVStreamException {
 		// This will be populated with whatever is recognised as the headers when the
 		// input is parsed, so we can return it from this function
 		final List<String> headers = new ArrayList<>();
-		CSVStream.parse(input, h -> headers.addAll(h), summariseFunction, NULL_CONSUMER, overrideHeaders, defaultValues,
-				headerLineCount, inputMapper, inputSchema);
+		JSONStream.parse(input, h -> headers.addAll(h), summariseFunction, NULL_CONSUMER, basePath, fieldRelativePaths,
+				defaultValues, inputMapper);
 		return headers;
-	}
-
-	/**
-	 * @return A {@link CsvSchema} representing the fields in the summary results
-	 *         file
-	 */
-	private static CsvSchema getSummaryCsvSchema() {
-		final CsvSchema summarySchema = CsvSchema.builder().addColumn("fieldName")
-				.addColumn("emptyCount", CsvSchema.ColumnType.NUMBER)
-				.addColumn("nonEmptyCount", CsvSchema.ColumnType.NUMBER)
-				.addColumn("uniqueValueCount", CsvSchema.ColumnType.NUMBER)
-				.addColumn("possiblePrimaryKey", CsvSchema.ColumnType.BOOLEAN)
-				.addColumn("possiblyInteger", CsvSchema.ColumnType.BOOLEAN)
-				.addColumn("possiblyFloatingPoint", CsvSchema.ColumnType.BOOLEAN).addColumn("sampleValues")
-				.setUseHeader(true).build();
-		return summarySchema;
-	}
-
-	/**
-	 * @return A {@link CsvSchema} representing the fields in the mapping file
-	 */
-	private static CsvSchema getMappingCsvSchema() {
-		final CsvSchema mappingSchema = CsvSchema.builder()
-				.addColumn(ValueMapping.OLD_FIELD, CsvSchema.ColumnType.STRING)
-				.addColumn(ValueMapping.NEW_FIELD, CsvSchema.ColumnType.STRING)
-				.addColumn(ValueMapping.SHOWN, CsvSchema.ColumnType.STRING)
-				.addColumn(ValueMapping.LANGUAGE, CsvSchema.ColumnType.STRING)
-				.addColumn(ValueMapping.MAPPING, CsvSchema.ColumnType.STRING).setUseHeader(true).build();
-		return mappingSchema;
 	}
 
 }
