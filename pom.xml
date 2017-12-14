@@ -280,6 +280,10 @@
 							<id>csvsum</id>
 						</program>
 						<program>
+							<mainClass>com.github.ansell.csv.sum.JSONSummariser</mainClass>
+							<id>jsonsum</id>
+						</program>
+						<program>
 							<mainClass>com.github.ansell.csv.db.CSVUpload</mainClass>
 							<id>csvupload</id>
 						</program>
