@@ -129,8 +129,11 @@ public final class CSVMapper {
 			throws ScriptException, IOException {
 
 		final Function<ValueMapping, String> outputFields = e -> e.getOutputField();
+		final Function<ValueMapping, String> defaultValueMapping = e -> e.getDefaultValue();
 
 		final List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(outputFields)
+				.collect(Collectors.toList());
+		final List<String> defaultValues = map.stream().filter(k -> k.getShown()).map(defaultValueMapping)
 				.collect(Collectors.toList());
 		final CsvSchema schema = CSVStream.buildSchema(outputHeaders);
 		final Writer writer = output;

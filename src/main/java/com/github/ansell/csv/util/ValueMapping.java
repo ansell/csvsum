@@ -28,6 +28,8 @@ package com.github.ansell.csv.util;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -96,6 +98,7 @@ public class ValueMapping {
 	public static final String OLD_FIELD = "OldField";
 	public static final String NEW_FIELD = "NewField";
 	public static final String SHOWN = "Shown";
+	public static final String DEFAULT = "Default";
 	public static final String LANGUAGE = "Language";
 	public static final String MAPPING = "Mapping";
 	private static final ScriptEngineManager SCRIPT_MANAGER = new ScriptEngineManager();
@@ -114,11 +117,16 @@ public class ValueMapping {
 
 		CSVStream.parse(input, h -> {
 		}, (h, l) -> {
+			// The default field is optional to allow for backwards compatibility
+			String nextDefault = "";
+			if(h.indexOf(DEFAULT) >= 0) {
+				nextDefault = l.get(h.indexOf(DEFAULT));
+			}
 			return newMapping(l.get(h.indexOf(LANGUAGE)), l.get(h.indexOf(OLD_FIELD)), l.get(h.indexOf(NEW_FIELD)),
-					l.get(h.indexOf(MAPPING)), l.get(h.indexOf(SHOWN)));
+					l.get(h.indexOf(MAPPING)), l.get(h.indexOf(SHOWN)), nextDefault);
 		}, l -> result.add(l));
 
-		return result;
+		return Collections.unmodifiableList(result);
 	}
 
 	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,
@@ -126,10 +134,21 @@ public class ValueMapping {
 			int lineNumber, int filteredLineNumber, BiConsumer<List<String>, List<String>> mapLineConsumer)
 			throws LineFilteredException {
 
-		HashMap<String, String> outputValues = new HashMap<>(map.size(), 0.75f);
-
 		List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(k -> k.getOutputField())
 				.collect(Collectors.toList());
+		Map<String, String> defaultValues = map.stream().filter(k -> k.getShown())
+				.collect(Collectors.toMap(ValueMapping::getOutputField, ValueMapping::getDefaultValue));
+		
+		return mapLine(inputHeaders, line, previousLine, previousMappedLine, map, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer, outputHeaders, defaultValues);
+	}
+	
+	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,
+			List<String> previousMappedLine, List<ValueMapping> map, JDefaultDict<String, Set<String>> primaryKeys,
+			int lineNumber, int filteredLineNumber, BiConsumer<List<String>, List<String>> mapLineConsumer, List<String> outputHeaders, Map<String, String> defaultValues)
+			throws LineFilteredException {
+
+		HashMap<String, String> outputValues = new HashMap<>(map.size(), 0.75f);
+
 		map.forEach(nextMapping -> {
 			String mappedValue = nextMapping.apply(inputHeaders, line, previousLine, previousMappedLine, outputHeaders,
 					outputValues, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer);
@@ -137,7 +156,7 @@ public class ValueMapping {
 		});
 
 		List<String> result = new ArrayList<>(outputHeaders.size());
-		outputHeaders.forEach(nextOutput -> result.add(outputValues.getOrDefault(nextOutput, "")));
+		outputHeaders.forEach(nextOutput -> result.add(outputValues.getOrDefault(nextOutput, defaultValues.getOrDefault(nextOutput, ""))));
 
 		outputValues.clear();
 
@@ -145,10 +164,16 @@ public class ValueMapping {
 	}
 
 	public static final ValueMapping newMapping(String language, String input, String output, String mapping,
-			String shownString) {
+			String shownString, String nextDefault) {
 		if (output == null || output.isEmpty()) {
 			throw new IllegalArgumentException("Output field must not be empty");
 		}
+		
+		// Ignore null values for default and replace with empty string
+		if (nextDefault == null) {
+			nextDefault = "";
+		}
+		
 		ValueMappingLanguage nextLanguage;
 		try {
 			nextLanguage = ValueMappingLanguage.valueOf(language.toUpperCase());
@@ -167,7 +192,7 @@ public class ValueMapping {
 
 		boolean shown = !NO.equalsIgnoreCase(shownString);
 
-		ValueMapping result = new ValueMapping(nextLanguage, input, output, nextMapping, shown);
+		ValueMapping result = new ValueMapping(nextLanguage, input, output, nextMapping, shown, nextDefault);
 
 		result.init();
 
@@ -184,6 +209,8 @@ public class ValueMapping {
 
 	private final boolean shown;
 
+	private final String theDefault;
+
 	private final String[] destFields;
 	private final String[] sourceFields;
 
@@ -194,12 +221,13 @@ public class ValueMapping {
 	 * All creation of ValueMapping objects must be done through the
 	 * {@link #newMapping(String, String, String, String)} method.
 	 */
-	private ValueMapping(ValueMappingLanguage language, String input, String output, String mapping, boolean shown) {
+	private ValueMapping(ValueMappingLanguage language, String input, String output, String mapping, boolean shown, String nextDefault) {
 		this.language = language;
 		this.input = input.intern();
 		this.output = output.intern();
 		this.mapping = mapping.intern();
 		this.shown = shown;
+		this.theDefault = nextDefault;
 		this.destFields = CSVUtil.COMMA_PATTERN.split(this.mapping);
 		this.sourceFields = CSVUtil.COMMA_PATTERN.split(this.input);
 	}
@@ -234,7 +262,7 @@ public class ValueMapping {
 					return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", inputHeaders,
 							this.getInputField(), nextInputValue, outputHeaders, this.getOutputField(), line,
 							mappedLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber,
-							mapLineConsumer);
+							mapLineConsumer, theDefault);
 				} else if (compiledScript != null) {
 					Bindings bindings = scriptEngine.createBindings();
 					// inputHeaders, inputField, inputValue, outputField, line
@@ -251,6 +279,7 @@ public class ValueMapping {
 					bindings.put("lineNumber", lineNumber);
 					bindings.put("filteredLineNumber", filteredLineNumber);
 					bindings.put("mapLineConsumer", mapLineConsumer);
+					bindings.put("defaultValue", theDefault);
 					return (String) compiledScript.eval(bindings);
 				} else {
 					throw new UnsupportedOperationException(
@@ -279,48 +308,6 @@ public class ValueMapping {
 		}
 	}
 
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (!(obj instanceof ValueMapping)) {
-			return false;
-		}
-		ValueMapping other = (ValueMapping) obj;
-		if (input == null) {
-			if (other.input != null) {
-				return false;
-			}
-		} else if (!input.equals(other.input)) {
-			return false;
-		}
-		if (language != other.language) {
-			return false;
-		}
-		if (mapping == null) {
-			if (other.mapping != null) {
-				return false;
-			}
-		} else if (!mapping.equals(other.mapping)) {
-			return false;
-		}
-		if (output == null) {
-			if (other.output != null) {
-				return false;
-			}
-		} else if (!output.equals(other.output)) {
-			return false;
-		}
-		if (shown != other.shown) {
-			return false;
-		}
-		return true;
-	}
-
 	public String getInputField() {
 		return this.input;
 	}
@@ -341,16 +328,8 @@ public class ValueMapping {
 		return this.shown;
 	}
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((input == null) ? 0 : input.hashCode());
-		result = prime * result + ((language == null) ? 0 : language.hashCode());
-		result = prime * result + ((mapping == null) ? 0 : mapping.hashCode());
-		result = prime * result + ((output == null) ? 0 : output.hashCode());
-		result = prime * result + (shown ? 1231 : 1237);
-		return result;
+	public String getDefaultValue() {
+		return this.theDefault;
 	}
 
 	private void init() {
@@ -413,7 +392,7 @@ public class ValueMapping {
 				javascriptFunction.append(
 						"var columnFunctionMap = function(searchHeader, mapLine) { return mapLine.get(searchHeader); };\n");
 				javascriptFunction.append(
-						"var mapFunction = function(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer) { ");
+						"var mapFunction = function(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer, defaultValue) { ");
 				javascriptFunction.append(
 						"    var primaryKeyBoolean = function(nextPrimaryKey, primaryKeyField) { \n if(!primaryKeyField) { primaryKeyField = \"Primary\"; } \n return primaryKeys.get(primaryKeyField).add(nextPrimaryKey); }; \n ");
 				javascriptFunction.append(
@@ -434,7 +413,7 @@ public class ValueMapping {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("groovy");
 
 				scriptEngine
-						.eval("def mapFunction(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer) {  "
+						.eval("def mapFunction(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer, defaultValue) {  "
 								+ this.mapping + " }");
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
@@ -462,6 +441,82 @@ public class ValueMapping {
 	public String toString() {
 		return "ValueMapping [language=" + language + ", input=" + input + ", output=" + output + ", mapping=" + mapping
 				+ ", shown=" + shown + "]";
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + Arrays.hashCode(destFields);
+		result = prime * result + ((input == null) ? 0 : input.hashCode());
+		result = prime * result + ((language == null) ? 0 : language.hashCode());
+		result = prime * result + ((mapping == null) ? 0 : mapping.hashCode());
+		result = prime * result + ((output == null) ? 0 : output.hashCode());
+		result = prime * result + (shown ? 1231 : 1237);
+		result = prime * result + Arrays.hashCode(sourceFields);
+		result = prime * result + ((theDefault == null) ? 0 : theDefault.hashCode());
+		return result;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (!(obj instanceof ValueMapping)) {
+			return false;
+		}
+		ValueMapping other = (ValueMapping) obj;
+		if (!Arrays.equals(destFields, other.destFields)) {
+			return false;
+		}
+		if (input == null) {
+			if (other.input != null) {
+				return false;
+			}
+		} else if (!input.equals(other.input)) {
+			return false;
+		}
+		if (language != other.language) {
+			return false;
+		}
+		if (mapping == null) {
+			if (other.mapping != null) {
+				return false;
+			}
+		} else if (!mapping.equals(other.mapping)) {
+			return false;
+		}
+		if (output == null) {
+			if (other.output != null) {
+				return false;
+			}
+		} else if (!output.equals(other.output)) {
+			return false;
+		}
+		if (shown != other.shown) {
+			return false;
+		}
+		if (!Arrays.equals(sourceFields, other.sourceFields)) {
+			return false;
+		}
+		if (theDefault == null) {
+			if (other.theDefault != null) {
+				return false;
+			}
+		} else if (!theDefault.equals(other.theDefault)) {
+			return false;
+		}
+		return true;
 	}
 
 	public String[] getDestFields() {

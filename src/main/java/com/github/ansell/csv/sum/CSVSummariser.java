@@ -398,18 +398,19 @@ public final class CSVSummariser {
 		// Shared StringBuilder across fields for efficiency
 		// After each field the StringBuilder is truncated
 		final StringBuilder sharedSampleValueBuilder = new StringBuilder();
-		final BiConsumer<? super String, ? super String> sampleHandler = (s, c) -> {
+		final BiConsumer<? super String, ? super String> sampleHandler = (nextSample, 
+				nextCount) -> {
 			if (sharedSampleValueBuilder.length() > 0) {
 				sharedSampleValueBuilder.append(", ");
 			}
-			if (s.length() > 200) {
-				sharedSampleValueBuilder.append(s.substring(0, 200));
+			if (nextSample.length() > 200) {
+				sharedSampleValueBuilder.append(nextSample.substring(0, 200));
 				sharedSampleValueBuilder.append("...");
 			} else {
-				sharedSampleValueBuilder.append(s);
+				sharedSampleValueBuilder.append(nextSample);
 			}
 			if (showSampleCounts) {
-				sharedSampleValueBuilder.append("(*" + c + ")");
+				sharedSampleValueBuilder.append("(*" + nextCount + ")");
 			}
 		};
 		try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(output, summarySchema);
@@ -419,11 +420,11 @@ public final class CSVSummariser {
 				csvWriter.write(Arrays.asList());
 				mappingWriter.write(Arrays.asList());
 			}
-			headers.forEach(h -> {
+			headers.forEach(nextHeader -> {
 				try {
-					final int emptyCount = emptyCounts.get(h).get();
-					final int nonEmptyCount = nonEmptyCounts.get(h).get();
-					JDefaultDict<String, AtomicInteger> nextValueCount = valueCounts.get(h);
+					final int emptyCount = emptyCounts.get(nextHeader).get();
+					final int nonEmptyCount = nonEmptyCounts.get(nextHeader).get();
+					JDefaultDict<String, AtomicInteger> nextValueCount = valueCounts.get(nextHeader);
 					final int valueCount = nextValueCount.keySet().size();
 					final boolean possiblePrimaryKey = valueCount == nonEmptyCount && valueCount == rowCount.get();
 
@@ -435,8 +436,8 @@ public final class CSVSummariser {
 					// evidence to the contrary is found, with the total number of observations,
 					// when equal to 0, being used to identify the false positive cases
 					if (nonEmptyCount > 0) {
-						possiblyInteger = possibleIntegerFields.get(h).get();
-						possiblyDouble = possibleDoubleFields.get(h).get();
+						possiblyInteger = possibleIntegerFields.get(nextHeader).get();
+						possiblyDouble = possibleDoubleFields.get(nextHeader).get();
 					}
 
 					final Stream<String> stream = nextValueCount.keySet().stream();
@@ -450,10 +451,10 @@ public final class CSVSummariser {
 						stream.sorted().forEach(s -> sampleHandler.accept(s, nextValueCount.get(s).toString()));
 					}
 
-					csvWriter.write(Arrays.asList(h, emptyCount, nonEmptyCount, valueCount, possiblePrimaryKey,
+					csvWriter.write(Arrays.asList(nextHeader, emptyCount, nonEmptyCount, valueCount, possiblePrimaryKey,
 							possiblyInteger, possiblyDouble, sharedSampleValueBuilder));
 					final String mappingFieldType = possiblyInteger ? "INTEGER" : possiblyDouble ? "DECIMAL" : "TEXT";
-					mappingWriter.write(Arrays.asList(h, h, "", ValueMapping.ValueMappingLanguage.DBSCHEMA.name(),
+					mappingWriter.write(Arrays.asList(nextHeader, nextHeader, "", ValueMapping.ValueMappingLanguage.DBSCHEMA.name(),
 							mappingFieldType));
 				} catch (Exception e) {
 					throw new RuntimeException(e);
@@ -652,6 +653,7 @@ public final class CSVSummariser {
 				.addColumn(ValueMapping.OLD_FIELD, CsvSchema.ColumnType.STRING)
 				.addColumn(ValueMapping.NEW_FIELD, CsvSchema.ColumnType.STRING)
 				.addColumn(ValueMapping.SHOWN, CsvSchema.ColumnType.STRING)
+				.addColumn(ValueMapping.DEFAULT, CsvSchema.ColumnType.STRING)
 				.addColumn(ValueMapping.LANGUAGE, CsvSchema.ColumnType.STRING)
 				.addColumn(ValueMapping.MAPPING, CsvSchema.ColumnType.STRING).setUseHeader(true).build();
 		return mappingSchema;
