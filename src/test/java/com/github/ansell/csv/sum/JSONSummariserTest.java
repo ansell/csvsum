@@ -81,7 +81,7 @@ public class JSONSummariserTest {
 	public final void testMainFileDoesNotExist() throws Exception {
 		Path testDirectory = tempDir.newFolder("test-does-not-exist").toPath();
 		Path testFields = tempDir.newFile("test-array-single-entry.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-array-single-entry.csv"),
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-array-json.csv"),
 				testFields, StandardCopyOption.REPLACE_EXISTING);
 
 		thrown.expect(FileNotFoundException.class);
@@ -99,7 +99,7 @@ public class JSONSummariserTest {
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header.csv"), testFile,
 				StandardCopyOption.REPLACE_EXISTING);
 		Path testFields = tempDir.newFile("test-array-single-entry.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-array-single-entry.csv"),
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-array-json.csv"),
 				testFields, StandardCopyOption.REPLACE_EXISTING);
 
 		thrown.expect(FileNotFoundException.class);
