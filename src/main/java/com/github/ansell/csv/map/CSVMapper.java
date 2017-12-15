@@ -38,6 +38,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -128,13 +129,8 @@ public final class CSVMapper {
 	private static void runMapper(Reader input, List<ValueMapping> map, Writer output)
 			throws ScriptException, IOException {
 
-		final Function<ValueMapping, String> outputFields = e -> e.getOutputField();
-		final Function<ValueMapping, String> defaultValueMapping = e -> e.getDefaultValue();
-
-		final List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(outputFields)
-				.collect(Collectors.toList());
-		final List<String> defaultValues = map.stream().filter(k -> k.getShown()).map(defaultValueMapping)
-				.collect(Collectors.toList());
+		final List<String> outputHeaders = ValueMapping.getOutputFieldsFromList(map);
+		final Map<String, String> defaultValues = ValueMapping.getDefaultValuesFromList(map);
 		final CsvSchema schema = CSVStream.buildSchema(outputHeaders);
 		final Writer writer = output;
 
@@ -163,7 +159,7 @@ public final class CSVMapper {
 				final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
 					List<String> mapLine = ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map,
-							primaryKeys, nextLineNumber, nextFilteredLineNumber, mapLineConsumer);
+							primaryKeys, nextLineNumber, nextFilteredLineNumber, mapLineConsumer, outputHeaders, defaultValues);
 					mapLineConsumer.accept(l, mapLine);
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
