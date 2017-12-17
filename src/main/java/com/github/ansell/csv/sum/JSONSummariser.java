@@ -119,8 +119,8 @@ public final class JSONSummariser {
 		final OptionSpec<Void> help = parser.accepts("help").forHelp();
 		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
 				.describedAs("The input JSON file to be summarised.");
-		final OptionSpec<File> fieldsFile = parser.accepts("fields").withRequiredArg()
-				.ofType(File.class).required().describedAs(
+		final OptionSpec<File> fieldsFile = parser.accepts("fields").withRequiredArg().ofType(File.class).required()
+				.describedAs(
 						"A file which contains a row for each field to be found, including a compulsory path and any optional default value for the field.");
 		final OptionSpec<String> basePathOption = parser.accepts("base-path").withRequiredArg().ofType(String.class)
 				.describedAs("The base path in the JSON document to locate the array of objects to be summarised")
@@ -180,17 +180,10 @@ public final class JSONSummariser {
 		Map<String, String> defaultsMap = new LinkedHashMap<>();
 		Map<String, JsonPointer> pathsMap = new LinkedHashMap<>();
 		if (options.has(fieldsFile)) {
-			//Files.copy(fieldsFile.value(options).toPath(), System.out);
+			// Files.copy(fieldsFile.value(options).toPath(), System.out);
 			try (final BufferedReader newBufferedReader = Files
 					.newBufferedReader(fieldsFile.value(options).toPath());) {
-				CSVStream.parse(newBufferedReader, h -> {
-					// TODO: Validate the headers as expected
-				}, (h, l) -> {
-					defaultsMap.put(l.get(h.indexOf(FIELD)), l.get(h.indexOf(DEFAULT)));
-					pathsMap.put(l.get(h.indexOf(FIELD)), JsonPointer.compile(l.get(h.indexOf(RELATIVE_PATH))));
-					return l;
-				}, l -> {
-				}, null, CSVStream.DEFAULT_HEADER_COUNT);
+				parseFieldsMap(newBufferedReader, defaultsMap, pathsMap);
 			}
 		}
 
@@ -213,6 +206,35 @@ public final class JSONSummariser {
 			runSummarise(newBufferedReader, inputMapper, writer, mappingWriter, samplesToShowInt,
 					showSampleCounts.value(options), debugBoolean, defaultsMap, basePath, pathsMap);
 		}
+	}
+
+	/**
+	 * Parse field definitions from the input reader into the defaults map and the
+	 * paths map.
+	 * 
+	 * @param inputReader
+	 *            The {@link Reader} containing the CSV file with the field
+	 *            definitions.
+	 * @param defaultsMap
+	 *            The {@link Map} to store the defaults into, keyed by field name.
+	 * @param pathsMap
+	 *            The {@link Map} to store the relative {@link JsonPointer} paths
+	 *            into, keyed by the field name.
+	 * @throws IOException
+	 *             If there is an issue accessing the resource.
+	 * @throws CSVStreamException
+	 *             If there is an issue with the CSV syntax.
+	 */
+	public static void parseFieldsMap(final Reader inputReader, final Map<String, String> defaultsMap,
+			final Map<String, JsonPointer> pathsMap) throws IOException, CSVStreamException {
+		CSVStream.parse(inputReader, h -> {
+			// TODO: Validate the headers as expected
+		}, (h, l) -> {
+			defaultsMap.put(l.get(h.indexOf(FIELD)), l.get(h.indexOf(DEFAULT)));
+			pathsMap.put(l.get(h.indexOf(FIELD)), JsonPointer.compile(l.get(h.indexOf(RELATIVE_PATH))));
+			return l;
+		}, l -> {
+		}, null, CSVStream.DEFAULT_HEADER_COUNT);
 	}
 
 	/**
