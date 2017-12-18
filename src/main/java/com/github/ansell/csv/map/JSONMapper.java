@@ -39,8 +39,8 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,9 +53,12 @@ import javax.script.ScriptException;
 
 import org.jooq.lambda.Unchecked;
 
+import com.fasterxml.jackson.core.JsonPointer;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.stream.CSVStream;
+import com.github.ansell.csv.stream.JSONStream;
 import com.github.ansell.csv.util.LineFilteredException;
 import com.github.ansell.csv.util.ValueMapping;
 import com.github.ansell.jdefaultdict.JDefaultDict;
@@ -66,16 +69,17 @@ import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 
 /**
- * Maps from one CSV file to another based on the supplied mapping definitions.
+ * Maps from a JSON file to a CSV file based on the supplied mapping
+ * definitions.
  * 
  * @author Peter Ansell p_ansell@yahoo.com
  */
-public final class CSVMapper {
+public final class JSONMapper {
 
 	/**
 	 * Private constructor for static only class
 	 */
-	private CSVMapper() {
+	private JSONMapper() {
 	}
 
 	public static void main(String... args) throws Exception {
@@ -83,11 +87,14 @@ public final class CSVMapper {
 
 		final OptionSpec<Void> help = parser.accepts("help").forHelp();
 		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
-				.describedAs("The input CSV file to be mapped.");
+				.describedAs("The input JSON file to be mapped.");
 		final OptionSpec<File> mapping = parser.accepts("mapping").withRequiredArg().ofType(File.class).required()
 				.describedAs("The mapping file.");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
 				.describedAs("The mapped CSV file, or the console if not specified.");
+		final OptionSpec<String> basePathOption = parser.accepts("base-path").withRequiredArg().ofType(String.class)
+				.required()
+				.describedAs("The base path in the JSON document to locate the array of objects to be summarised");
 		final OptionSpec<Boolean> appendToExistingOption = parser.accepts("append-to-existing").withRequiredArg()
 				.ofType(Boolean.class).describedAs("Append to an existing file").defaultsTo(false);
 
@@ -108,13 +115,17 @@ public final class CSVMapper {
 
 		final Path inputPath = input.value(options).toPath();
 		if (!Files.exists(inputPath)) {
-			throw new FileNotFoundException("Could not find input CSV file: " + inputPath.toString());
+			throw new FileNotFoundException("Could not find input JSON file: " + inputPath.toString());
 		}
 
 		final Path mappingPath = mapping.value(options).toPath();
 		if (!Files.exists(mappingPath)) {
 			throw new FileNotFoundException("Could not find mapping CSV file: " + mappingPath.toString());
 		}
+
+		JsonPointer basePath = JsonPointer.compile(basePathOption.value(options));
+
+		ObjectMapper jsonMapper = new ObjectMapper();
 
 		// Double up for now on the append option, as we always want to write headers,
 		// except when we are appending to an existing file, in which case we check that
@@ -145,7 +156,6 @@ public final class CSVMapper {
 									}
 								}, (h, l) -> l, l -> {
 								});
-
 					}
 
 					writer = Files.newBufferedWriter(output.value(options).toPath(), StandardCharsets.UTF_8,
@@ -154,7 +164,7 @@ public final class CSVMapper {
 					writer = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
 				}
 
-				runMapper(readerInput, map, writer, writeHeaders, outputHeaders);
+				runMapper(readerInput, map, writer, basePath, jsonMapper, writeHeaders);
 			} finally {
 				if (writer != null) {
 					writer.close();
@@ -163,15 +173,18 @@ public final class CSVMapper {
 		}
 	}
 
-	private static void runMapper(Reader input, List<ValueMapping> map, Writer output, boolean writeHeaders,
-			List<String> outputHeaders) throws ScriptException, IOException {
+	private static void runMapper(Reader input, List<ValueMapping> map, Writer output, JsonPointer basePath,
+			ObjectMapper jsonMapper, boolean writeHeaders) throws ScriptException, IOException {
 
+		final List<String> inputHeaders = ValueMapping.getInputFieldsFromList(map);
+		final List<String> outputHeaders = ValueMapping.getOutputFieldsFromList(map);
 		final Map<String, String> defaultValues = ValueMapping.getDefaultValuesFromList(map);
+		final Map<String, JsonPointer> fieldRelativePaths = map.stream().collect(Collectors
+				.toMap(ValueMapping::getOutputField, nextMapping -> JsonPointer.compile(nextMapping.getInputField())));
 		final CsvSchema schema = CSVStream.buildSchema(outputHeaders, writeHeaders);
 		final Writer writer = output;
 
 		try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(writer, schema);) {
-			final List<String> inputHeaders = new ArrayList<>();
 			final List<String> previousLine = new ArrayList<>();
 			final List<String> previousMappedLine = new ArrayList<>();
 			final JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
@@ -185,7 +198,7 @@ public final class CSVMapper {
 				previousMappedLine.addAll(m);
 				csvWriter.write(m);
 			});
-			CSVStream.parse(input, h -> inputHeaders.addAll(h), (h, l) -> {
+			JSONStream.parse(input, h -> inputHeaders.addAll(h), (h, l) -> {
 				final int nextLineNumber = lineNumber.incrementAndGet();
 				if (nextLineNumber % 1000 == 0) {
 					double secondsSinceStart = (System.currentTimeMillis() - startTime) / 1000.0d;
@@ -211,7 +224,7 @@ public final class CSVMapper {
 				}
 				return null;
 			}, l -> {
-			});
+			}, basePath, fieldRelativePaths, defaultValues, jsonMapper);
 		}
 	}
 

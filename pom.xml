@@ -280,12 +280,20 @@
 							<id>csvsum</id>
 						</program>
 						<program>
+							<mainClass>com.github.ansell.csv.sum.JSONSummariser</mainClass>
+							<id>jsonsum</id>
+						</program>
+						<program>
 							<mainClass>com.github.ansell.csv.db.CSVUpload</mainClass>
 							<id>csvupload</id>
 						</program>
 						<program>
 							<mainClass>com.github.ansell.csv.map.CSVMapper</mainClass>
 							<id>csvmap</id>
+						</program>
+						<program>
+							<mainClass>com.github.ansell.csv.map.JSONMapper</mainClass>
+							<id>jsonmap</id>
 						</program>
 						<program>
 							<mainClass>com.github.ansell.csv.join.CSVJoiner</mainClass>

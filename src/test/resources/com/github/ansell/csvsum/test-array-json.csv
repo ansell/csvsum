@@ -1,0 +1,4 @@
+field,relativePath,default
+name,/name,
+homePhone,/phone/0/home,
+mobilePhone,/phone/0/mobile,

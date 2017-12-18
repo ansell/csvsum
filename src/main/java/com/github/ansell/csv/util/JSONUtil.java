@@ -59,10 +59,11 @@ import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.ansell.csv.stream.util.JSONStreamUtil;
 import com.github.jsonldjava.utils.JarCacheStorage;
 
 /**
- * JSON utilities used by CSV processors.
+ * JSON utilities used by CSV and JSON processors.
  * 
  * @author Peter Ansell p_ansell@yahoo.com
  */
@@ -127,45 +128,8 @@ public class JSONUtil {
 		try (final CloseableHttpClient httpClient = createNewHttpClient();
 				final InputStream stream = openStreamForURL(new java.net.URL(url), httpClient);
 				final Reader input = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8));) {
-			return queryJSON(input, jpath);
+			return JSONStreamUtil.queryJSON(input, jpath);
 		}
-	}
-
-	public static JsonNode loadJSON(Path path) throws JsonProcessingException, IOException {
-		try (final Reader input = Files.newBufferedReader(path, StandardCharsets.UTF_8);) {
-			return loadJSON(input);
-		}
-	}
-
-	public static JsonNode loadJSON(Reader input) throws JsonProcessingException, IOException {
-		return JSON_MAPPER.readTree(input);
-	}
-
-	public static String queryJSON(Reader input, String jpath) throws JsonProcessingException, IOException {
-		return queryJSON(input, JsonPointer.compile(jpath));
-	}
-
-	public static String queryJSON(Reader input, JsonPointer jpath) throws JsonProcessingException, IOException {
-		JsonNode root = JSON_MAPPER.readTree(input);
-		return queryJSONNode(root, jpath).asText();
-	}
-
-	public static JsonNode queryJSONNode(JsonNode input, String jpath) throws JsonProcessingException, IOException {
-		return queryJSONNode(input, JsonPointer.compile(jpath));
-	}
-
-	public static JsonNode queryJSONNode(JsonNode input, JsonPointer jpath)
-			throws JsonProcessingException, IOException {
-		return input.at(jpath);
-	}
-
-	public static String queryJSONNodeAsText(JsonNode input, String jpath) throws JsonProcessingException, IOException {
-		return queryJSONNodeAsText(input, JsonPointer.compile(jpath));
-	}
-
-	public static String queryJSONNodeAsText(JsonNode input, JsonPointer jpath)
-			throws JsonProcessingException, IOException {
-		return queryJSONNode(input, jpath).asText();
 	}
 
 	public static String queryJSONPost(String url, Map<String, Object> postVariables, String jpath)
@@ -173,7 +137,7 @@ public class JSONUtil {
 
 		StringWriter serialisedVariables = new StringWriter();
 
-		toPrettyPrint(postVariables, serialisedVariables);
+		JSONStreamUtil.toPrettyPrint(postVariables, serialisedVariables);
 
 		String postVariableString = serialisedVariables.toString();
 
@@ -181,7 +145,7 @@ public class JSONUtil {
 				.bodyString(postVariableString, ContentType.DEFAULT_TEXT).execute().returnContent()
 				.asString(StandardCharsets.UTF_8);
 
-		String result2 = queryJSON(new StringReader(result), jpath);
+		String result2 = JSONStreamUtil.queryJSON(new StringReader(result), jpath);
 
 		return result2;
 	}
@@ -191,7 +155,7 @@ public class JSONUtil {
 
 		StringWriter serialisedVariables = new StringWriter();
 
-		toPrettyPrint(postVariables, serialisedVariables);
+		JSONStreamUtil.toPrettyPrint(postVariables, serialisedVariables);
 
 		String postVariableString = serialisedVariables.toString();
 
@@ -201,34 +165,7 @@ public class JSONUtil {
 			return JSON_MAPPER.readTree(inputReader);
 		}
 	}
-
-	public static void toPrettyPrint(Reader input, Writer output) throws IOException {
-		final JsonGenerator jw = JSON_FACTORY.createGenerator(output);
-		jw.useDefaultPrettyPrinter();
-		JsonParser parser = JSON_FACTORY.createParser(input);
-		jw.writeObject(parser.readValueAsTree());
-	}
-
-	public static void toPrettyPrint(Map<String, Object> input, Writer output) throws IOException {
-		final JsonGenerator jw = JSON_FACTORY.createGenerator(output);
-		jw.useDefaultPrettyPrinter();
-		jw.writeObject(input);
-	}
-
-	public static void toPrettyPrint(JsonNode input, Writer output) throws IOException {
-		final JsonGenerator jw = JSON_FACTORY.createGenerator(output);
-		jw.useDefaultPrettyPrinter();
-		jw.writeObject(input);
-	}
-
-	public static String toPrettyPrint(JsonNode input) throws IOException {
-		Writer output = new StringWriter();
-		final JsonGenerator jw = JSON_FACTORY.createGenerator(output);
-		jw.useDefaultPrettyPrinter();
-		jw.writeObject(input);
-		return output.toString();
-	}
-
+	
 	public static InputStream openStreamForURL(java.net.URL url, CloseableHttpClient httpClient) throws IOException {
 		return openStreamForURL(url, httpClient, DEFAULT_ACCEPT_HEADER);
 	}

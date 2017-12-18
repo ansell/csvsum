@@ -265,8 +265,8 @@ public final class CSVUtil {
 
 			final Function<ValueMapping, String> outputFields = e -> e.getOutputField();
 
-			final List<String> outputHeaders = map.stream().filter(k -> k.getShown()).map(outputFields)
-					.collect(Collectors.toList());
+			final List<String> outputHeaders = ValueMapping.getOutputFieldsFromList(map);
+			final Map<String, String> defaultValues = ValueMapping.getDefaultValuesFromList(map);
 
 			final List<ValueMapping> mergeFieldsOrdered = map.stream()
 					.filter(k -> k.getLanguage() == ValueMappingLanguage.CSVJOIN).collect(Collectors.toList());
@@ -352,7 +352,7 @@ public final class CSVUtil {
 
 							final List<String> mapLine = ValueMapping.mapLine(mergedInputHeaders, nextMergedLine,
 									previousLine, previousMappedLine, map, primaryKeys, nextLineNumber,
-									nextFilteredLineNumber, mapLineConsumer);
+									nextFilteredLineNumber, mapLineConsumer, outputHeaders, defaultValues);
 							mapLineConsumer.accept(nextMergedLine, mapLine);
 
 						} catch (final LineFilteredException e) {
@@ -388,7 +388,7 @@ public final class CSVUtil {
 
 							final List<String> mapLine = ValueMapping.mapLine(otherH, nextMergedLine, previousLine,
 									previousMappedLine, map, primaryKeys, nextLineNumber, nextFilteredLineNumber,
-									mapLineConsumer);
+									mapLineConsumer, outputHeaders, defaultValues);
 							mapLineConsumer.accept(nextMergedLine, mapLine);
 						} catch (final LineFilteredException e) {
 							// Swallow line filtered exception and return

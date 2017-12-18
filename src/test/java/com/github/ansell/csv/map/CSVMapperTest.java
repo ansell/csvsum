@@ -29,9 +29,12 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -45,6 +48,8 @@ import org.junit.rules.TemporaryFolder;
 
 import com.github.ansell.csv.map.CSVMapper;
 import com.github.ansell.csv.stream.CSVStream;
+import com.github.ansell.csv.stream.CSVStreamException;
+
 import joptsimple.OptionException;
 
 /**
@@ -178,7 +183,71 @@ public class CSVMapperTest {
 
 		lines.get(0).forEach(k -> System.out.print("\"" + k + "\", "));
 
+		assertEquals(Arrays.asList("anotherfield", "Field2", "varietyOrSubspecies", "Field3", "naturalised", "Field4",
+				"unrelatedField", "Field5"), headers);
 		assertEquals(Arrays.asList("A1", "A2", "", "A3", "", "A4", "Useful", "A5a"), lines.get(0));
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainCompleteWithOutputFileAppend() throws Exception {
+		Path testDirectory = tempDir.newFolder("test").toPath();
+
+		Path existingOutput = testDirectory.resolve("test-output.csv");
+		try (Writer existingOutputWriter = Files.newBufferedWriter(existingOutput, StandardCharsets.UTF_8,
+				StandardOpenOption.CREATE_NEW);) {
+			existingOutputWriter
+					.write("anotherfield,Field2,varietyOrSubspecies,Field3,naturalised,Field4,unrelatedField,Field5\n");
+			existingOutputWriter.write("Z1,Z2,Z2A,Z3,Z3A,Z4,Z4A,Z5\n");
+		}
+
+		CSVMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
+				testMapping.toAbsolutePath().toString(), "--output", existingOutput.toString(), "--append-to-existing",
+				"true");
+
+		List<String> headers = new ArrayList<>();
+		List<List<String>> lines = new ArrayList<>();
+		try (BufferedReader reader = Files.newBufferedReader(existingOutput);) {
+			CSVStream.parse(reader, h -> headers.addAll(h), (h, l) -> l, l -> lines.add(l));
+		}
+		assertEquals(8, headers.size());
+		assertEquals(5, lines.size());
+		lines.sort(Comparator.comparing(l -> l.get(0)));
+
+		// lines.get(0).forEach(k -> System.out.print("\"" + k + "\", "));
+
+		assertEquals(Arrays.asList("anotherfield", "Field2", "varietyOrSubspecies", "Field3", "naturalised", "Field4",
+				"unrelatedField", "Field5"), headers);
+		assertEquals(Arrays.asList("A1", "A2", "", "A3", "", "A4", "Useful", "A5a"), lines.get(0));
+
+		Files.copy(existingOutput, System.out);
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.map.CSVMapper#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainCompleteWithOutputFileAppendHeaderListDifferentElements() throws Exception {
+		Path testDirectory = tempDir.newFolder("test").toPath();
+
+		Path existingOutput = testDirectory.resolve("test-output.csv");
+		try (Writer existingOutputWriter = Files.newBufferedWriter(existingOutput, StandardCharsets.UTF_8,
+				StandardOpenOption.CREATE_NEW);) {
+			// Create previous with "Field6" at end instead of "Field5" to check that it fails
+			existingOutputWriter
+					.write("anotherfield,Field2,varietyOrSubspecies,Field3,naturalised,Field4,unrelatedField,Field6\n");
+			existingOutputWriter.write("Z1,Z2,Z2A,Z3,Z3A,Z4,Z4A,Z5\n");
+		}
+
+		thrown.expect(CSVStreamException.class);
+		thrown.expectMessage("Could not verify headers for csv file");
+		CSVMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
+				testMapping.toAbsolutePath().toString(), "--output", existingOutput.toString(), "--append-to-existing",
+				"true");
 	}
 
 	/**
@@ -231,10 +300,15 @@ public class CSVMapperTest {
 		lines.get(0).forEach(k -> System.out.print("\"" + k + "\", "));
 
 		assertEquals(Arrays.asList("dummy-value", "A1", "no-previous", "no-map-previous"), lines.get(0));
-		assertEquals(Arrays.asList("dummy-value", "B1", "found-previousA1", "found-map-previousno-previous"), lines.get(1));
-		assertEquals(Arrays.asList("dummy-value", "C1", "found-previousB1", "found-map-previousfound-previousA1"), lines.get(2));
-		assertEquals(Arrays.asList("dummy-value", "D1", "found-previousC1", "found-map-previousfound-previousB1"), lines.get(3));
-		assertEquals(Arrays.asList("dummy-value", "E1", "found-previousD1", "found-map-previousfound-previousC1"), lines.get(4));
-		assertEquals(Arrays.asList("dummy-value", "F1", "found-previousE1", "found-map-previousfound-previousD1"), lines.get(5));
+		assertEquals(Arrays.asList("dummy-value", "B1", "found-previousA1", "found-map-previousno-previous"),
+				lines.get(1));
+		assertEquals(Arrays.asList("dummy-value", "C1", "found-previousB1", "found-map-previousfound-previousA1"),
+				lines.get(2));
+		assertEquals(Arrays.asList("dummy-value", "D1", "found-previousC1", "found-map-previousfound-previousB1"),
+				lines.get(3));
+		assertEquals(Arrays.asList("dummy-value", "E1", "found-previousD1", "found-map-previousfound-previousC1"),
+				lines.get(4));
+		assertEquals(Arrays.asList("dummy-value", "F1", "found-previousE1", "found-map-previousfound-previousD1"),
+				lines.get(5));
 	}
 }

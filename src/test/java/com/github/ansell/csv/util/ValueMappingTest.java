@@ -54,38 +54,38 @@ public class ValueMappingTest {
 
 	@Before
 	public void setUp() throws Exception {
-		testDefaultMapping = ValueMapping.newMapping("Default", "anInput", "anotherField", "", "");
-		testDefaultMapping2 = ValueMapping.newMapping("Default", "anInput", "anotherField", "inputValue", "");
-		testDefaultMapping3 = ValueMapping.newMapping("Default", "anInput3", "anotherField3", "inputValue", "");
+		testDefaultMapping = ValueMapping.newMapping("Default", "anInput", "anotherField", "", "", "");
+		testDefaultMapping2 = ValueMapping.newMapping("Default", "anInput", "anotherField", "inputValue", "", "");
+		testDefaultMapping3 = ValueMapping.newMapping("Default", "anInput3", "anotherField3", "inputValue", "", "");
 		testDefaultMapping4 = ValueMapping.newMapping("Default", "anInput3", "anotherFieldNotShown", "inputValue",
-				"no");
+				"no", "");
 		testJavascriptMapping = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
-				"return inputValue.substring(0, 1);", "");
+				"return inputValue.substring(0, 1);", "", "");
 		testPreviousMapping = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField2",
 				"return previousLine.isEmpty() ? 'no-previous' : previousLine.get(outputHeaders.indexOf(outputField));",
-				"");
+				"", "");
 		testDateMatching = ValueMapping.newMapping("Javascript", "dateInput", "usefulDate",
-				"return dateMatches(inputValue, Format.ISO_LOCAL_DATE) ? inputValue : 'fix-your-date-format';", "");
+				"return dateMatches(inputValue, Format.ISO_LOCAL_DATE) ? inputValue : 'fix-your-date-format';", "", "");
 		testDateMapping = ValueMapping.newMapping("Javascript", "dateInput", "usefulDate",
 				"return dateMatches(inputValue, Format.ISO_LOCAL_DATE) ? dateConvert(inputValue, Format.ISO_LOCAL_DATE, Format.ISO_WEEK_DATE) : 'fix-your-date-format';",
-				"");
+				"", "");
 		testJavascriptPrimaryKeyMapping = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
-				"return !primaryKeys.get(\"Primary\").add(inputValue) ? filter() : inputValue;", "");
+				"return !primaryKeys.get(\"Primary\").add(inputValue) ? filter() : inputValue;", "", "");
 		testJavascriptPrimaryKeyMappingFunction = ValueMapping.newMapping("Javascript", "aDifferentInput",
-				"aDifferentField", "return primaryKeyFilter(inputValue);", "");
+				"aDifferentField", "return primaryKeyFilter(inputValue);", "", "");
 		testJavascriptLineNumber = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
-				"return Integer.toString(lineNumber);", "");
+				"return Integer.toString(lineNumber);", "", "");
 		testJavascriptFilteredLineNumber = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
-				"return lineNumber % 2 != 0 ? Integer.toString(filteredLineNumber) : filter();", "");
+				"return lineNumber % 2 != 0 ? Integer.toString(filteredLineNumber) : filter();", "", "");
 		testJavascriptMapLineConsumerAndReturn = ValueMapping.newMapping("Javascript", "aDifferentInput",
 				"aDifferentField",
-				"mapLineConsumer(line, Arrays.asList(inputValue, \"ABC-\" + inputValue)); return inputValue;", "");
+				"mapLineConsumer(line, Arrays.asList(inputValue, \"ABC-\" + inputValue)); return inputValue;", "", "");
 		testJavascriptMapLineConsumerFilter = ValueMapping.newMapping("Javascript", "aDifferentInput",
 				"aDifferentField",
 				"mapLineConsumer(line, Arrays.asList(inputValue, \"ABC-\" + inputValue)); filter(); return inputValue;",
-				"");
+				"", "");
 		testJavascriptReplaceLineEndings = ValueMapping.newMapping("Javascript", "anInput", "aDifferentField",
-				"return replaceLineEndingsWith(inputValue, \"\");", "");
+				"return replaceLineEndingsWith(inputValue, \"\");", "", "");
 
 		testPrimaryKeys = new JDefaultDict<>(k -> new HashSet<>());
 	}
