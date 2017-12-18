@@ -179,8 +179,10 @@ public final class JSONMapper {
 		final List<String> inputHeaders = ValueMapping.getInputFieldsFromList(map);
 		final List<String> outputHeaders = ValueMapping.getOutputFieldsFromList(map);
 		final Map<String, String> defaultValues = ValueMapping.getDefaultValuesFromList(map);
-		final Map<String, JsonPointer> fieldRelativePaths = map.stream().collect(Collectors
-				.toMap(ValueMapping::getOutputField, nextMapping -> JsonPointer.compile(nextMapping.getInputField())));
+		final Map<String, JsonPointer> fieldRelativePaths = map.stream()
+				.collect(Collectors.toMap(ValueMapping::getOutputField,
+						nextMapping -> nextMapping.getInputField().trim().isEmpty() ? null
+								: JsonPointer.compile(nextMapping.getInputField())));
 		final CsvSchema schema = CSVStream.buildSchema(outputHeaders, writeHeaders);
 		final Writer writer = output;
 
