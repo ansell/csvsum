@@ -123,28 +123,54 @@ public final class JSONMapper {
 			throw new FileNotFoundException("Could not find mapping CSV file: " + mappingPath.toString());
 		}
 
-		OpenOption[] writeOptions = new OpenOption[1];
-		// Append if needed, otherwise verify that the file is created from scratch
-		writeOptions[0] = appendToExistingOption.value(options) ? StandardOpenOption.APPEND
-				: StandardOpenOption.CREATE_NEW;
-
-		final Writer writer;
-		if (options.has(output)) {
-			writer = Files.newBufferedWriter(output.value(options).toPath(), StandardCharsets.UTF_8, writeOptions);
-		} else {
-			writer = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
-		}
-
 		JsonPointer basePath = JsonPointer.compile(basePathOption.value(options));
 
 		ObjectMapper jsonMapper = new ObjectMapper();
+
+		// Double up for now on the append option, as we always want to write headers,
+		// except when we are appending to an existing file, in which case we check that
+		// the headers already exist
+		boolean writeHeaders = !appendToExistingOption.value(options);
+
+		OpenOption[] writeOptions = new OpenOption[1];
+		// Append if needed, otherwise verify that the file is created from scratch
+		writeOptions[0] = writeHeaders ? StandardOpenOption.CREATE_NEW : StandardOpenOption.APPEND;
+
 		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);
 				final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
 			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
+			final List<String> outputHeaders = ValueMapping.getOutputFieldsFromList(map);
 
-			runMapper(readerInput, map, writer, basePath, jsonMapper);
-		} finally {
-			writer.close();
+			Writer writer = null;
+			try {
+				if (options.has(output)) {
+					// If we aren't planning on writing headers, we parse just the header line
+					if (!writeHeaders) {
+						CSVStream.parse(Files.newBufferedReader(output.value(options).toPath(), StandardCharsets.UTF_8),
+								h -> {
+									// Headers must match exactly with those we are planning to write out
+									if (!outputHeaders.equals(h)) {
+										throw new IllegalArgumentException(
+												"Could not append to file as its existing headers did not match: existing=["
+														+ h + "] new=[" + outputHeaders + "]");
+									}
+								}, (h, l) -> l, l -> {
+								});
+
+					}
+
+					writer = Files.newBufferedWriter(output.value(options).toPath(), StandardCharsets.UTF_8,
+							writeOptions);
+				} else {
+					writer = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
+				}
+
+				runMapper(readerInput, map, writer, basePath, jsonMapper);
+			} finally {
+				if (writer != null) {
+					writer.close();
+				}
+			}
 		}
 	}
 

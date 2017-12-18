@@ -292,6 +292,10 @@
 							<id>csvmap</id>
 						</program>
 						<program>
+							<mainClass>com.github.ansell.csv.map.JSONMapper</mainClass>
+							<id>jsonmap</id>
+						</program>
+						<program>
 							<mainClass>com.github.ansell.csv.join.CSVJoiner</mainClass>
 							<id>csvmerge</id>
 						</program>
