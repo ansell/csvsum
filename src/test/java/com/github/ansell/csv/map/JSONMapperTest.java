@@ -76,11 +76,11 @@ public class JSONMapperTest {
 	@Before
 	public void setUp() throws Exception {
 		testMapping = tempDir.newFile("test-mapping-many-entries-json.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-mapping-many-entries-json.csv"), testMapping,
-				StandardCopyOption.REPLACE_EXISTING);
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-mapping-many-entries-json.csv"),
+				testMapping, StandardCopyOption.REPLACE_EXISTING);
 		testFile = tempDir.newFile("test-array-many-entries.json").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-array-many-entries.json"), testFile,
-				StandardCopyOption.REPLACE_EXISTING);
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-array-many-entries.json"),
+				testFile, StandardCopyOption.REPLACE_EXISTING);
 	}
 
 	/**
@@ -112,7 +112,7 @@ public class JSONMapperTest {
 
 		thrown.expect(FileNotFoundException.class);
 		JSONMapper.main("--input", testDirectory.resolve("test-does-not-exist.csv").toString(), "--mapping",
-				testMapping.toAbsolutePath().toString());
+				testMapping.toAbsolutePath().toString(), "--base-path", "/");
 	}
 
 	/**
@@ -125,7 +125,7 @@ public class JSONMapperTest {
 
 		thrown.expect(FileNotFoundException.class);
 		JSONMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
-				testDirectory.resolve("test-does-not-exist.csv").toString());
+				testDirectory.resolve("test-does-not-exist.csv").toString(), "--base-path", "/");
 	}
 
 	/**
