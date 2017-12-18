@@ -164,7 +164,7 @@ public final class JSONMapper {
 					writer = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
 				}
 
-				runMapper(readerInput, map, writer, basePath, jsonMapper);
+				runMapper(readerInput, map, writer, basePath, jsonMapper, writeHeaders);
 			} finally {
 				if (writer != null) {
 					writer.close();
@@ -174,14 +174,14 @@ public final class JSONMapper {
 	}
 
 	private static void runMapper(Reader input, List<ValueMapping> map, Writer output, JsonPointer basePath,
-			ObjectMapper jsonMapper) throws ScriptException, IOException {
+			ObjectMapper jsonMapper, boolean writeHeaders) throws ScriptException, IOException {
 
 		final List<String> inputHeaders = ValueMapping.getInputFieldsFromList(map);
 		final List<String> outputHeaders = ValueMapping.getOutputFieldsFromList(map);
 		final Map<String, String> defaultValues = ValueMapping.getDefaultValuesFromList(map);
 		final Map<String, JsonPointer> fieldRelativePaths = map.stream().collect(Collectors
 				.toMap(ValueMapping::getOutputField, nextMapping -> JsonPointer.compile(nextMapping.getInputField())));
-		final CsvSchema schema = CSVStream.buildSchema(outputHeaders);
+		final CsvSchema schema = CSVStream.buildSchema(outputHeaders, writeHeaders);
 		final Writer writer = output;
 
 		try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(writer, schema);) {
