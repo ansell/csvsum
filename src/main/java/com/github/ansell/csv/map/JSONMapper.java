@@ -43,6 +43,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -179,10 +180,10 @@ public final class JSONMapper {
 		final List<String> inputHeaders = ValueMapping.getInputFieldsFromList(map);
 		final List<String> outputHeaders = ValueMapping.getOutputFieldsFromList(map);
 		final Map<String, String> defaultValues = ValueMapping.getDefaultValuesFromList(map);
-		final Map<String, JsonPointer> fieldRelativePaths = map.stream()
+		final Map<String, Optional<JsonPointer>> fieldRelativePaths = map.stream()
 				.collect(Collectors.toMap(ValueMapping::getOutputField,
-						nextMapping -> nextMapping.getInputField().trim().isEmpty() ? null
-								: JsonPointer.compile(nextMapping.getInputField())));
+						nextMapping -> nextMapping.getInputField().trim().isEmpty() ? Optional.empty()
+								: Optional.of(JsonPointer.compile(nextMapping.getInputField()))));
 		final CsvSchema schema = CSVStream.buildSchema(outputHeaders, writeHeaders);
 		final Writer writer = output;
 
@@ -200,7 +201,7 @@ public final class JSONMapper {
 				previousMappedLine.addAll(m);
 				csvWriter.write(m);
 			});
-			JSONStream.parse(input, h -> inputHeaders.addAll(h), (h, l) -> {
+			JSONStream.parse(input, h -> {}, (h, l) -> {
 				final int nextLineNumber = lineNumber.incrementAndGet();
 				if (nextLineNumber % 1000 == 0) {
 					double secondsSinceStart = (System.currentTimeMillis() - startTime) / 1000.0d;

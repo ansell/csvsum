@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -178,7 +179,7 @@ public final class JSONSummariser {
 
 		// Defaults to null, with any strings in the file overriding that
 		Map<String, String> defaultsMap = new LinkedHashMap<>();
-		Map<String, JsonPointer> pathsMap = new LinkedHashMap<>();
+		Map<String, Optional<JsonPointer>> pathsMap = new LinkedHashMap<>();
 		if (options.has(fieldsFile)) {
 			// Files.copy(fieldsFile.value(options).toPath(), System.out);
 			try (final BufferedReader newBufferedReader = Files
@@ -226,12 +227,14 @@ public final class JSONSummariser {
 	 *             If there is an issue with the CSV syntax.
 	 */
 	public static void parseFieldsMap(final Reader inputReader, final Map<String, String> defaultsMap,
-			final Map<String, JsonPointer> pathsMap) throws IOException, CSVStreamException {
+			final Map<String, Optional<JsonPointer>> pathsMap) throws IOException, CSVStreamException {
 		CSVStream.parse(inputReader, h -> {
 			// TODO: Validate the headers as expected
 		}, (h, l) -> {
 			defaultsMap.put(l.get(h.indexOf(FIELD)), l.get(h.indexOf(DEFAULT)));
-			pathsMap.put(l.get(h.indexOf(FIELD)), JsonPointer.compile(l.get(h.indexOf(RELATIVE_PATH))));
+			String relativePath = l.get(h.indexOf(RELATIVE_PATH)).trim();
+			pathsMap.put(l.get(h.indexOf(FIELD)),
+					relativePath.isEmpty() ? Optional.empty() : Optional.of(JsonPointer.compile(relativePath)));
 			return l;
 		}, l -> {
 		}, null, CSVStream.DEFAULT_HEADER_COUNT);
@@ -278,8 +281,8 @@ public final class JSONSummariser {
 	 */
 	public static void runSummarise(final Reader input, final ObjectMapper inputMapper, final Writer output,
 			final Writer mappingOutput, final int maxSampleCount, final boolean showSampleCounts, final boolean debug,
-			final Map<String, String> defaultValues, JsonPointer basePath, Map<String, JsonPointer> fieldRelativePaths)
-			throws IOException {
+			final Map<String, String> defaultValues, JsonPointer basePath,
+			Map<String, Optional<JsonPointer>> fieldRelativePaths) throws IOException {
 		final JDefaultDict<String, AtomicInteger> emptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		final JDefaultDict<String, AtomicInteger> nonEmptyCounts = new JDefaultDict<>(k -> new AtomicInteger());
 		// Default to true, and set to false if a non-integer is detected. The
@@ -358,8 +361,8 @@ public final class JSONSummariser {
 			final JDefaultDict<String, AtomicBoolean> possibleIntegerFields,
 			final JDefaultDict<String, AtomicBoolean> possibleDoubleFields,
 			final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts, final AtomicInteger rowCount,
-			Map<String, String> defaultValues, JsonPointer basePath, Map<String, JsonPointer> fieldRelativePaths)
-			throws IOException, CSVStreamException {
+			Map<String, String> defaultValues, JsonPointer basePath,
+			Map<String, Optional<JsonPointer>> fieldRelativePaths) throws IOException, CSVStreamException {
 		final long startTime = System.currentTimeMillis();
 		final BiFunction<List<String>, List<String>, List<String>> summariseFunction = CSVSummariser
 				.getSummaryFunctionWithStartTime(emptyCounts, nonEmptyCounts, possibleIntegerFields,
@@ -401,7 +404,8 @@ public final class JSONSummariser {
 	 */
 	private static List<String> parseForSummarise(final Reader input, final ObjectMapper inputMapper,
 			Map<String, String> defaultValues, BiFunction<List<String>, List<String>, List<String>> summariseFunction,
-			JsonPointer basePath, Map<String, JsonPointer> fieldRelativePaths) throws IOException, CSVStreamException {
+			JsonPointer basePath, Map<String, Optional<JsonPointer>> fieldRelativePaths)
+			throws IOException, CSVStreamException {
 		// This will be populated with whatever is recognised as the headers when the
 		// input is parsed, so we can return it from this function
 		final List<String> headers = new ArrayList<>();
