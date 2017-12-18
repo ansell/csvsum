@@ -33,9 +33,13 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -84,6 +88,8 @@ public final class CSVMapper {
 				.describedAs("The mapping file.");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
 				.describedAs("The mapped CSV file, or the console if not specified.");
+		final OptionSpec<Boolean> appendToExistingOption = parser.accepts("append-to-existing").withRequiredArg()
+				.ofType(Boolean.class).describedAs("Append to an existing file").defaultsTo(false);
 
 		OptionSet options = null;
 
@@ -110,28 +116,58 @@ public final class CSVMapper {
 			throw new FileNotFoundException("Could not find mapping CSV file: " + mappingPath.toString());
 		}
 
-		final Writer writer;
-		if (options.has(output)) {
-			writer = Files.newBufferedWriter(output.value(options).toPath());
-		} else {
-			writer = new BufferedWriter(new OutputStreamWriter(System.out));
-		}
+		// Double up for now on the append option, as we always want to write headers,
+		// except when we are appending to an existing file, in which case we check that
+		// the headers already exist
+		boolean writeHeaders = !appendToExistingOption.value(options);
+
+		OpenOption[] writeOptions = new OpenOption[1];
+		// Append if needed, otherwise verify that the file is created from scratch
+		writeOptions[0] = writeHeaders ? StandardOpenOption.CREATE_NEW : StandardOpenOption.APPEND;
 
 		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);
 				final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
 			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
-			runMapper(readerInput, map, writer);
-		} finally {
-			writer.close();
+			final List<String> outputHeaders = ValueMapping.getOutputFieldsFromList(map);
+
+			Writer writer = null;
+			try {
+				if (options.has(output)) {
+					// If we aren't planning on writing headers, we parse just the header line
+					if (!writeHeaders) {
+						CSVStream.parse(Files.newBufferedReader(output.value(options).toPath(), StandardCharsets.UTF_8),
+								h -> {
+									// Headers must match exactly with those we are planning to write out
+									if (!outputHeaders.equals(h)) {
+										throw new IllegalArgumentException(
+												"Could not append to file as its existing headers did not match: existing=["
+														+ h + "] new=[" + outputHeaders + "]");
+									}
+								}, (h, l) -> l, l -> {
+								});
+
+					}
+
+					writer = Files.newBufferedWriter(output.value(options).toPath(), StandardCharsets.UTF_8,
+							writeOptions);
+				} else {
+					writer = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
+				}
+
+				runMapper(readerInput, map, writer, writeHeaders, outputHeaders);
+			} finally {
+				if (writer != null) {
+					writer.close();
+				}
+			}
 		}
 	}
 
-	private static void runMapper(Reader input, List<ValueMapping> map, Writer output)
-			throws ScriptException, IOException {
+	private static void runMapper(Reader input, List<ValueMapping> map, Writer output, boolean writeHeaders,
+			List<String> outputHeaders) throws ScriptException, IOException {
 
-		final List<String> outputHeaders = ValueMapping.getOutputFieldsFromList(map);
 		final Map<String, String> defaultValues = ValueMapping.getDefaultValuesFromList(map);
-		final CsvSchema schema = CSVStream.buildSchema(outputHeaders);
+		final CsvSchema schema = CSVStream.buildSchema(outputHeaders, writeHeaders);
 		final Writer writer = output;
 
 		try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(writer, schema);) {
@@ -151,15 +187,16 @@ public final class CSVMapper {
 			});
 			CSVStream.parse(input, h -> inputHeaders.addAll(h), (h, l) -> {
 				final int nextLineNumber = lineNumber.incrementAndGet();
-				if(nextLineNumber % 1000 == 0) {
-					double secondsSinceStart = (System.currentTimeMillis() - startTime)/1000.0d;
-					System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n", nextLineNumber, secondsSinceStart, 
-							nextLineNumber/secondsSinceStart);
+				if (nextLineNumber % 1000 == 0) {
+					double secondsSinceStart = (System.currentTimeMillis() - startTime) / 1000.0d;
+					System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n", nextLineNumber,
+							secondsSinceStart, nextLineNumber / secondsSinceStart);
 				}
 				final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
 					List<String> mapLine = ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map,
-							primaryKeys, nextLineNumber, nextFilteredLineNumber, mapLineConsumer, outputHeaders, defaultValues);
+							primaryKeys, nextLineNumber, nextFilteredLineNumber, mapLineConsumer, outputHeaders,
+							defaultValues);
 					mapLineConsumer.accept(l, mapLine);
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
@@ -173,7 +210,7 @@ public final class CSVMapper {
 					}
 				}
 				return null;
-			} , l -> {
+			}, l -> {
 			});
 		}
 	}

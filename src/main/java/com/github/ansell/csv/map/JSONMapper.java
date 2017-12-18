@@ -33,8 +33,11 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.OpenOption;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -92,6 +95,8 @@ public final class JSONMapper {
 		final OptionSpec<String> basePathOption = parser.accepts("base-path").withRequiredArg().ofType(String.class)
 				.describedAs("The base path in the JSON document to locate the array of objects to be summarised")
 				.defaultsTo("/");
+		final OptionSpec<Boolean> appendToExistingOption = parser.accepts("append-to-existing").withRequiredArg()
+				.ofType(Boolean.class).describedAs("Append to an existing file").defaultsTo(false);
 
 		OptionSet options = null;
 
@@ -110,7 +115,7 @@ public final class JSONMapper {
 
 		final Path inputPath = input.value(options).toPath();
 		if (!Files.exists(inputPath)) {
-			throw new FileNotFoundException("Could not find input JSONss file: " + inputPath.toString());
+			throw new FileNotFoundException("Could not find input JSON file: " + inputPath.toString());
 		}
 
 		final Path mappingPath = mapping.value(options).toPath();
@@ -118,11 +123,16 @@ public final class JSONMapper {
 			throw new FileNotFoundException("Could not find mapping CSV file: " + mappingPath.toString());
 		}
 
+		OpenOption[] writeOptions = new OpenOption[1];
+		// Append if needed, otherwise verify that the file is created from scratch
+		writeOptions[0] = appendToExistingOption.value(options) ? StandardOpenOption.APPEND
+				: StandardOpenOption.CREATE_NEW;
+
 		final Writer writer;
 		if (options.has(output)) {
-			writer = Files.newBufferedWriter(output.value(options).toPath());
+			writer = Files.newBufferedWriter(output.value(options).toPath(), StandardCharsets.UTF_8, writeOptions);
 		} else {
-			writer = new BufferedWriter(new OutputStreamWriter(System.out));
+			writer = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
 		}
 
 		JsonPointer basePath = JsonPointer.compile(basePathOption.value(options));
