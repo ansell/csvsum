@@ -75,17 +75,11 @@ public class JSONMapperTest {
 
 	@Before
 	public void setUp() throws Exception {
-		testMapping = tempDir.newFile("test-mapping.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-mapping.csv"), testMapping,
+		testMapping = tempDir.newFile("test-mapping-many-entries-json.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-mapping-many-entries-json.csv"), testMapping,
 				StandardCopyOption.REPLACE_EXISTING);
-		testMappingHidden = tempDir.newFile("test-mapping-with-hidden.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-mapping-with-hidden.csv"),
-				testMappingHidden, StandardCopyOption.REPLACE_EXISTING);
-		testMappingPrevious = tempDir.newFile("test-mapping-previous.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-mapping-previous.csv"),
-				testMappingPrevious, StandardCopyOption.REPLACE_EXISTING);
-		testFile = tempDir.newFile("test-source.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-source.csv"), testFile,
+		testFile = tempDir.newFile("test-array-many-entries.json").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-array-many-entries.json"), testFile,
 				StandardCopyOption.REPLACE_EXISTING);
 	}
 
@@ -139,25 +133,9 @@ public class JSONMapperTest {
 	 * {@link com.github.ansell.csv.map.JSONMapper#main(java.lang.String[])}.
 	 */
 	@Test
-	public final void testMainEmpty() throws Exception {
-		Path testFile = tempDir.newFile("test-empty.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-empty.csv"), testFile,
-				StandardCopyOption.REPLACE_EXISTING);
-
-		thrown.expect(RuntimeException.class);
-		thrown.expectMessage("CSV file did not contain a valid header line");
-		JSONMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
-				testMapping.toAbsolutePath().toString());
-	}
-
-	/**
-	 * Test method for
-	 * {@link com.github.ansell.csv.map.JSONMapper#main(java.lang.String[])}.
-	 */
-	@Test
 	public final void testMainComplete() throws Exception {
 		JSONMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
-				testMapping.toAbsolutePath().toString());
+				testMapping.toAbsolutePath().toString(), "--base-path", "/nodes");
 	}
 
 }
