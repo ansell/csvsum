@@ -144,7 +144,11 @@ public class ValueMapping {
 	}
 
 	public static List<String> getOutputFieldsFromList(List<ValueMapping> map) {
-		return map.stream().filter(k -> k.getShown()).map(k -> k.getOutputField()).collect(Collectors.toList());
+		return map.stream().filter(k -> k.getShown()).map(ValueMapping::getOutputField).collect(Collectors.toList());
+	}
+
+	public static List<String> getInputFieldsFromList(List<ValueMapping> map) {
+		return map.stream().filter(k -> k.getShown()).map(ValueMapping::getInputField).collect(Collectors.toList());
 	}
 
 	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,

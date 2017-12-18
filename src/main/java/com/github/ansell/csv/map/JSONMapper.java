@@ -93,8 +93,8 @@ public final class JSONMapper {
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
 				.describedAs("The mapped CSV file, or the console if not specified.");
 		final OptionSpec<String> basePathOption = parser.accepts("base-path").withRequiredArg().ofType(String.class)
-				.describedAs("The base path in the JSON document to locate the array of objects to be summarised")
-				.defaultsTo("/");
+				.required()
+				.describedAs("The base path in the JSON document to locate the array of objects to be summarised");
 		final OptionSpec<Boolean> appendToExistingOption = parser.accepts("append-to-existing").withRequiredArg()
 				.ofType(Boolean.class).describedAs("Append to an existing file").defaultsTo(false);
 
@@ -156,7 +156,6 @@ public final class JSONMapper {
 									}
 								}, (h, l) -> l, l -> {
 								});
-
 					}
 
 					writer = Files.newBufferedWriter(output.value(options).toPath(), StandardCharsets.UTF_8,
@@ -177,6 +176,7 @@ public final class JSONMapper {
 	private static void runMapper(Reader input, List<ValueMapping> map, Writer output, JsonPointer basePath,
 			ObjectMapper jsonMapper) throws ScriptException, IOException {
 
+		final List<String> inputHeaders = ValueMapping.getInputFieldsFromList(map);
 		final List<String> outputHeaders = ValueMapping.getOutputFieldsFromList(map);
 		final Map<String, String> defaultValues = ValueMapping.getDefaultValuesFromList(map);
 		final Map<String, JsonPointer> fieldRelativePaths = map.stream().collect(Collectors
@@ -185,7 +185,6 @@ public final class JSONMapper {
 		final Writer writer = output;
 
 		try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(writer, schema);) {
-			final List<String> inputHeaders = new ArrayList<>();
 			final List<String> previousLine = new ArrayList<>();
 			final List<String> previousMappedLine = new ArrayList<>();
 			final JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
