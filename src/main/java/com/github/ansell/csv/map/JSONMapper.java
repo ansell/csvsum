@@ -62,6 +62,7 @@ import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.csv.stream.JSONStream;
 import com.github.ansell.csv.util.LineFilteredException;
 import com.github.ansell.csv.util.ValueMapping;
+import com.github.ansell.csv.util.ValueMappingContext;
 import com.github.ansell.jdefaultdict.JDefaultDict;
 
 import joptsimple.OptionException;
@@ -210,9 +211,9 @@ public final class JSONMapper {
 				}
 				final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
-					List<String> mapLine = ValueMapping.mapLine(inputHeaders, line, previousLine, previousMappedLine, map,
+					List<String> mapLine = ValueMapping.mapLine(new ValueMappingContext(inputHeaders, line, previousLine, previousMappedLine, map,
 							primaryKeys, nextLineNumber, nextFilteredLineNumber, mapLineConsumer, outputHeaders,
-							defaultValues);
+							defaultValues, Optional.of(node)));
 					mapLineConsumer.accept(line, mapLine);
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to

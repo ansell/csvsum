@@ -44,6 +44,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.Set;
 import java.util.function.BiConsumer;
@@ -350,9 +351,9 @@ public final class CSVUtil {
 							otherLines.parallelStream().filter(otherLinePredicate).findAny()
 									.ifPresent(otherLineConsumer);
 
-							final List<String> mapLine = ValueMapping.mapLine(mergedInputHeaders, nextMergedLine,
+							final List<String> mapLine = ValueMapping.mapLine(new ValueMappingContext(mergedInputHeaders, nextMergedLine,
 									previousLine, previousMappedLine, map, primaryKeys, nextLineNumber,
-									nextFilteredLineNumber, mapLineConsumer, outputHeaders, defaultValues);
+									nextFilteredLineNumber, mapLineConsumer, outputHeaders, defaultValues, Optional.empty()));
 							mapLineConsumer.accept(nextMergedLine, mapLine);
 
 						} catch (final LineFilteredException e) {
@@ -386,9 +387,9 @@ public final class CSVUtil {
 										}
 									});
 
-							final List<String> mapLine = ValueMapping.mapLine(otherH, nextMergedLine, previousLine,
+							final List<String> mapLine = ValueMapping.mapLine(new ValueMappingContext(otherH, nextMergedLine, previousLine,
 									previousMappedLine, map, primaryKeys, nextLineNumber, nextFilteredLineNumber,
-									mapLineConsumer, outputHeaders, defaultValues);
+									mapLineConsumer, outputHeaders, defaultValues, Optional.empty()));
 							mapLineConsumer.accept(nextMergedLine, mapLine);
 						} catch (final LineFilteredException e) {
 							// Swallow line filtered exception and return

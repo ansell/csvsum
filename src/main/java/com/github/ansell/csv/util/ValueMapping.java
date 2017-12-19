@@ -136,8 +136,8 @@ public class ValueMapping {
 			int lineNumber, int filteredLineNumber, BiConsumer<List<String>, List<String>> mapLineConsumer)
 			throws LineFilteredException {
 
-		return mapLine(inputHeaders, line, previousLine, previousMappedLine, map, primaryKeys, lineNumber,
-				filteredLineNumber, mapLineConsumer, getOutputFieldsFromList(map), getDefaultValuesFromList(map));
+		return mapLine(new ValueMappingContext(inputHeaders, line, previousLine, previousMappedLine, map, primaryKeys, lineNumber,
+				filteredLineNumber, mapLineConsumer, getOutputFieldsFromList(map), getDefaultValuesFromList(map), Optional.empty()));
 	}
 
 	public static Map<String, String> getDefaultValuesFromList(List<ValueMapping> map) {

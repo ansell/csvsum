@@ -43,6 +43,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
@@ -58,6 +59,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.csv.util.LineFilteredException;
 import com.github.ansell.csv.util.ValueMapping;
+import com.github.ansell.csv.util.ValueMappingContext;
 import com.github.ansell.jdefaultdict.JDefaultDict;
 
 import joptsimple.OptionException;
@@ -194,9 +196,9 @@ public final class CSVMapper {
 				}
 				final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
-					List<String> mapLine = ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map,
+					List<String> mapLine = ValueMapping.mapLine(new ValueMappingContext(inputHeaders, l, previousLine, previousMappedLine, map,
 							primaryKeys, nextLineNumber, nextFilteredLineNumber, mapLineConsumer, outputHeaders,
-							defaultValues);
+							defaultValues, Optional.empty()));
 					mapLineConsumer.accept(l, mapLine);
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
