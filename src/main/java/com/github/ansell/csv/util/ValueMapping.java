@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
@@ -46,6 +47,7 @@ import javax.script.ScriptEngineFactory;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.jdefaultdict.JDefaultDict;
 
@@ -151,22 +153,34 @@ public class ValueMapping {
 		return map.stream().filter(k -> k.getShown()).map(ValueMapping::getInputField).collect(Collectors.toList());
 	}
 
+	/**
+	 * @deprecated Use {@link #mapLine(ValueMappingContext)} instead.
+	 */
+	@Deprecated
 	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,
 			List<String> previousMappedLine, List<ValueMapping> map, JDefaultDict<String, Set<String>> primaryKeys,
 			int lineNumber, int filteredLineNumber, BiConsumer<List<String>, List<String>> mapLineConsumer,
 			List<String> outputHeaders, Map<String, String> defaultValues) throws LineFilteredException {
+		ValueMappingContext context = new ValueMappingContext(inputHeaders, line, previousLine, previousMappedLine, map, primaryKeys, lineNumber,
+				filteredLineNumber, mapLineConsumer, outputHeaders, defaultValues, Optional.empty());
+		return mapLine(context);
+	}
 
-		HashMap<String, String> outputValues = new HashMap<>(map.size(), 0.75f);
+	public static List<String> mapLine(ValueMappingContext context) throws LineFilteredException {
+//		return mapLine(context.getInputHeaders(), context.getLine(), context.getPreviousLine(),
+//				context.getPreviousMappedLine(), context.getMappings(), context.getPrimaryKeys(),
+//				context.getLineNumber(), context.getFilteredLineNumber(), context.getMapLineConsumer(),
+//				context.getOutputHeaders(), context.getDefaultValues(), context.getJsonNode());
+		HashMap<String, String> outputValues = new HashMap<>(context.getMappings().size(), 0.75f);
 
-		map.forEach(nextMapping -> {
-			String mappedValue = nextMapping.apply(inputHeaders, line, previousLine, previousMappedLine, outputHeaders,
-					outputValues, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer);
+		context.getMappings().forEach(nextMapping -> {
+			String mappedValue = nextMapping.apply(context,	outputValues);
 			outputValues.put(nextMapping.getOutputField(), mappedValue);
 		});
 
-		List<String> result = new ArrayList<>(outputHeaders.size());
-		outputHeaders.forEach(nextOutput -> result
-				.add(outputValues.getOrDefault(nextOutput, defaultValues.getOrDefault(nextOutput, ""))));
+		List<String> result = new ArrayList<>(context.getOutputHeaders().size());
+		context.getOutputHeaders().forEach(nextOutput -> result
+				.add(outputValues.getOrDefault(nextOutput, context.getDefaultValues().getOrDefault(nextOutput, ""))));
 
 		outputValues.clear();
 
@@ -242,14 +256,11 @@ public class ValueMapping {
 		this.sourceFields = CSVUtil.COMMA_PATTERN.split(this.input);
 	}
 
-	private String apply(List<String> inputHeaders, List<String> line, List<String> previousLine,
-			List<String> previousMappedLine, List<String> outputHeaders, Map<String, String> mappedLine,
-			JDefaultDict<String, Set<String>> primaryKeys, int lineNumber, int filteredLineNumber,
-			BiConsumer<List<String>, List<String>> mapLineConsumer) {
-		int indexOf = inputHeaders.indexOf(getInputField());
+	private String apply(ValueMappingContext context, Map<String, String> mappedLine) {
+		int indexOf = context.getInputHeaders().indexOf(getInputField());
 		String nextInputValue;
 		if (indexOf >= 0) {
-			nextInputValue = line.get(indexOf);
+			nextInputValue = context.getLine().get(indexOf);
 		} else {
 			// Provide a default input value for these cases. Likely the input
 			// field in this case was a set of fields and won't be directly
@@ -269,27 +280,28 @@ public class ValueMapping {
 				if (scriptEngine instanceof Invocable) {
 					// evaluate script code and access the variable that results
 					// from the mapping
-					return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", inputHeaders,
-							this.getInputField(), nextInputValue, outputHeaders, this.getOutputField(), line,
-							mappedLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber,
-							mapLineConsumer, theDefault);
+					return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", context.getInputHeaders(),
+							this.getInputField(), nextInputValue, context.getOutputHeaders(), this.getOutputField(), context.getLine(),
+							mappedLine, context.getPreviousLine(), context.getPreviousMappedLine(), context.getPrimaryKeys(), context.getLineNumber(), context.getFilteredLineNumber(),
+							context.getMapLineConsumer(), theDefault);
 				} else if (compiledScript != null) {
 					Bindings bindings = scriptEngine.createBindings();
 					// inputHeaders, inputField, inputValue, outputField, line
-					bindings.put("inputHeaders", inputHeaders);
+					bindings.put("inputHeaders", context.getInputHeaders());
 					bindings.put("inputField", this.getInputField());
 					bindings.put("inputValue", nextInputValue);
-					bindings.put("outputHeaders", outputHeaders);
+					bindings.put("outputHeaders", context.getOutputHeaders());
 					bindings.put("outputField", this.getOutputField());
-					bindings.put("line", line);
+					bindings.put("line", context.getLine());
 					bindings.put("mapLine", mappedLine);
-					bindings.put("previousLine", previousLine);
-					bindings.put("previousMappedLine", previousMappedLine);
-					bindings.put("primaryKeys", primaryKeys);
-					bindings.put("lineNumber", lineNumber);
-					bindings.put("filteredLineNumber", filteredLineNumber);
-					bindings.put("mapLineConsumer", mapLineConsumer);
+					bindings.put("previousLine", context.getPreviousLine());
+					bindings.put("previousMappedLine", context.getPreviousMappedLine());
+					bindings.put("primaryKeys", context.getPrimaryKeys());
+					bindings.put("lineNumber", context.getLineNumber());
+					bindings.put("filteredLineNumber", context.getFilteredLineNumber());
+					bindings.put("mapLineConsumer", context.getMapLineConsumer());
 					bindings.put("defaultValue", theDefault);
+					bindings.put("jsonNode", context.getJsonNode());
 					return (String) compiledScript.eval(bindings);
 				} else {
 					throw new UnsupportedOperationException(
@@ -377,7 +389,8 @@ public class ValueMapping {
 				javascriptFunction.append("var UTM = Java.type('com.github.ansell.shp.UTM'); \n");
 				javascriptFunction.append("var WGS84 = Java.type('com.github.ansell.shp.WGS84'); \n");
 				javascriptFunction.append("var JSONUtil = Java.type('com.github.ansell.csv.util.JSONUtil'); \n");
-				javascriptFunction.append("var JSONStreamUtil = Java.type('com.github.ansell.csv.stream.util.JSONStreamUtil'); \n");
+				javascriptFunction.append(
+						"var JSONStreamUtil = Java.type('com.github.ansell.csv.stream.util.JSONStreamUtil'); \n");
 				javascriptFunction.append("var Paths = Java.type('java.nio.file.Paths'); \n");
 				javascriptFunction.append("var JsonPointer = Java.type('com.fasterxml.jackson.core.JsonPointer'); \n");
 				javascriptFunction.append("var Thread = Java.type('java.lang.Thread'); \n");
@@ -403,7 +416,7 @@ public class ValueMapping {
 				javascriptFunction.append(
 						"var columnFunctionMap = function(searchHeader, mapLine) { return mapLine.get(searchHeader); };\n");
 				javascriptFunction.append(
-						"var mapFunction = function(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer, defaultValue) { ");
+						"var mapFunction = function(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer, defaultValue, jsonNode) { ");
 				javascriptFunction.append(
 						"    var primaryKeyBoolean = function(nextPrimaryKey, primaryKeyField) { \n if(!primaryKeyField) { primaryKeyField = \"Primary\"; } \n return primaryKeys.get(primaryKeyField).add(nextPrimaryKey); }; \n ");
 				javascriptFunction.append(
