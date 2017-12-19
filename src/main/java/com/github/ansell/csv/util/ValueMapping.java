@@ -167,10 +167,6 @@ public class ValueMapping {
 	}
 
 	public static List<String> mapLine(ValueMappingContext context) throws LineFilteredException {
-//		return mapLine(context.getInputHeaders(), context.getLine(), context.getPreviousLine(),
-//				context.getPreviousMappedLine(), context.getMappings(), context.getPrimaryKeys(),
-//				context.getLineNumber(), context.getFilteredLineNumber(), context.getMapLineConsumer(),
-//				context.getOutputHeaders(), context.getDefaultValues(), context.getJsonNode());
 		HashMap<String, String> outputValues = new HashMap<>(context.getMappings().size(), 0.75f);
 
 		context.getMappings().forEach(nextMapping -> {
@@ -275,7 +271,7 @@ public class ValueMapping {
 
 		if (this.language == ValueMappingLanguage.JAVASCRIPT || this.language == ValueMappingLanguage.GROOVY
 				|| this.language == ValueMappingLanguage.LUA) {
-
+			Object nodeToUse = context.getJsonNode().isPresent() ? context.getJsonNode().get() : "No JSON Node for this mapping context";
 			try {
 				if (scriptEngine instanceof Invocable) {
 					// evaluate script code and access the variable that results
@@ -283,7 +279,7 @@ public class ValueMapping {
 					return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", context.getInputHeaders(),
 							this.getInputField(), nextInputValue, context.getOutputHeaders(), this.getOutputField(), context.getLine(),
 							mappedLine, context.getPreviousLine(), context.getPreviousMappedLine(), context.getPrimaryKeys(), context.getLineNumber(), context.getFilteredLineNumber(),
-							context.getMapLineConsumer(), theDefault);
+							context.getMapLineConsumer(), theDefault, nodeToUse);
 				} else if (compiledScript != null) {
 					Bindings bindings = scriptEngine.createBindings();
 					// inputHeaders, inputField, inputValue, outputField, line
@@ -301,7 +297,7 @@ public class ValueMapping {
 					bindings.put("filteredLineNumber", context.getFilteredLineNumber());
 					bindings.put("mapLineConsumer", context.getMapLineConsumer());
 					bindings.put("defaultValue", theDefault);
-					bindings.put("jsonNode", context.getJsonNode());
+					bindings.put("jsonNode", nodeToUse);
 					return (String) compiledScript.eval(bindings);
 				} else {
 					throw new UnsupportedOperationException(
@@ -437,7 +433,7 @@ public class ValueMapping {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("groovy");
 
 				scriptEngine.eval(
-						"def mapFunction(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer, defaultValue) {  "
+						"def mapFunction(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer, defaultValue, jsonNode) {  "
 								+ this.mapping + " }");
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);
