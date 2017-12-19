@@ -201,7 +201,7 @@ public final class JSONMapper {
 				previousMappedLine.addAll(m);
 				csvWriter.write(m);
 			});
-			JSONStream.parse(input, h -> {}, (h, l) -> {
+			JSONStream.parse(input, h -> {}, (node, headers, line) -> {
 				final int nextLineNumber = lineNumber.incrementAndGet();
 				if (nextLineNumber % 1000 == 0) {
 					double secondsSinceStart = (System.currentTimeMillis() - startTime) / 1000.0d;
@@ -210,10 +210,10 @@ public final class JSONMapper {
 				}
 				final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
-					List<String> mapLine = ValueMapping.mapLine(inputHeaders, l, previousLine, previousMappedLine, map,
+					List<String> mapLine = ValueMapping.mapLine(inputHeaders, line, previousLine, previousMappedLine, map,
 							primaryKeys, nextLineNumber, nextFilteredLineNumber, mapLineConsumer, outputHeaders,
 							defaultValues);
-					mapLineConsumer.accept(l, mapLine);
+					mapLineConsumer.accept(line, mapLine);
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to
 					// eliminate it

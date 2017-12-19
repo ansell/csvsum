@@ -53,6 +53,7 @@ import java.util.stream.Stream;
 import org.apache.commons.io.output.NullWriter;
 
 import com.fasterxml.jackson.core.JsonPointer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SequenceWriter;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
@@ -60,6 +61,7 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.stream.CSVStream;
 import com.github.ansell.csv.stream.CSVStreamException;
 import com.github.ansell.csv.stream.JSONStream;
+import com.github.ansell.csv.stream.TriFunction;
 import com.github.ansell.csv.util.ValueMapping;
 import com.github.ansell.jdefaultdict.JDefaultDict;
 
@@ -364,10 +366,70 @@ public final class JSONSummariser {
 			Map<String, String> defaultValues, JsonPointer basePath,
 			Map<String, Optional<JsonPointer>> fieldRelativePaths) throws IOException, CSVStreamException {
 		final long startTime = System.currentTimeMillis();
-		final BiFunction<List<String>, List<String>, List<String>> summariseFunction = CSVSummariser
+		final TriFunction<JsonNode, List<String>, List<String>, List<String>> summariseFunction = JSONSummariser
 				.getSummaryFunctionWithStartTime(emptyCounts, nonEmptyCounts, possibleIntegerFields,
 						possibleDoubleFields, valueCounts, rowCount, startTime);
 		return parseForSummarise(input, inputMapper, defaultValues, summariseFunction, basePath, fieldRelativePaths);
+	}
+
+	/**
+	 * Returns a function that can be used as a summary function, using the given
+	 * start time for timing analysis.
+	 * 
+	 * @param emptyCounts
+	 *            A {@link JDefaultDict} used to store counts of non-empty fields,
+	 *            based on {@link String#trim()} and {@link String#isEmpty()}.
+	 * @param nonEmptyCounts
+	 *            A {@link JDefaultDict} used to store counts of non-empty fields,
+	 *            based on {@link String#trim()} and {@link String#isEmpty()}.
+	 * @param possibleIntegerFields
+	 *            A {@link JDefaultDict} used to store possible integer fields
+	 * @param possibleDoubleFields
+	 *            A {@link JDefaultDict} used to store possible double fields
+	 * @param valueCounts
+	 *            A {@link JDefaultDict} used to store value counts
+	 * @param rowCount
+	 *            The row count variable
+	 * @param startTime
+	 *            The start time reference, obtained using
+	 *            {@link System#currentTimeMillis()}, for the timing analysis.
+	 * @return A function which can be passed to
+	 *         {@link #parseForSummarise(Reader, CsvMapper, CsvSchema, List, int, List, BiFunction)}
+	 */
+	public static TriFunction<JsonNode, List<String>, List<String>, List<String>> getSummaryFunctionWithStartTime(
+			final JDefaultDict<String, AtomicInteger> emptyCounts,
+			final JDefaultDict<String, AtomicInteger> nonEmptyCounts,
+			final JDefaultDict<String, AtomicBoolean> possibleIntegerFields,
+			final JDefaultDict<String, AtomicBoolean> possibleDoubleFields,
+			final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts, final AtomicInteger rowCount,
+			final long startTime) {
+		return (node, header, line) -> {
+			int nextLineNumber = rowCount.incrementAndGet();
+			if (nextLineNumber % 10000 == 0) {
+				double secondsSinceStart = (System.currentTimeMillis() - startTime) / 1000.0d;
+				System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n", nextLineNumber,
+						secondsSinceStart, nextLineNumber / secondsSinceStart);
+			}
+			for (int i = 0; i < header.size(); i++) {
+				if (line.get(i).trim().isEmpty()) {
+					emptyCounts.get(header.get(i)).incrementAndGet();
+				} else {
+					nonEmptyCounts.get(header.get(i)).incrementAndGet();
+					valueCounts.get(header.get(i)).get(line.get(i)).incrementAndGet();
+					try {
+						Integer.parseInt(line.get(i));
+					} catch (NumberFormatException nfe) {
+						possibleIntegerFields.get(header.get(i)).set(false);
+					}
+					try {
+						Double.parseDouble(line.get(i));
+					} catch (NumberFormatException nfe) {
+						possibleDoubleFields.get(header.get(i)).set(false);
+					}
+				}
+			}
+			return line;
+		};
 	}
 
 	/**
@@ -403,7 +465,7 @@ public final class JSONSummariser {
 	 *             If there is a problem processing the CSV content
 	 */
 	private static List<String> parseForSummarise(final Reader input, final ObjectMapper inputMapper,
-			Map<String, String> defaultValues, BiFunction<List<String>, List<String>, List<String>> summariseFunction,
+			Map<String, String> defaultValues, TriFunction<JsonNode, List<String>, List<String>, List<String>> summariseFunction,
 			JsonPointer basePath, Map<String, Optional<JsonPointer>> fieldRelativePaths)
 			throws IOException, CSVStreamException {
 		// This will be populated with whatever is recognised as the headers when the
