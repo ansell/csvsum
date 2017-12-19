@@ -377,10 +377,12 @@ public class ValueMapping {
 				javascriptFunction.append("var UTM = Java.type('com.github.ansell.shp.UTM'); \n");
 				javascriptFunction.append("var WGS84 = Java.type('com.github.ansell.shp.WGS84'); \n");
 				javascriptFunction.append("var JSONUtil = Java.type('com.github.ansell.csv.util.JSONUtil'); \n");
+				javascriptFunction.append("var JSONStreamUtil = Java.type('com.github.ansell.csv.stream.util.JSONStreamUtil'); \n");
 				javascriptFunction.append("var Paths = Java.type('java.nio.file.Paths'); \n");
 				javascriptFunction.append("var JsonPointer = Java.type('com.fasterxml.jackson.core.JsonPointer'); \n");
 				javascriptFunction.append("var Thread = Java.type('java.lang.Thread'); \n");
 				javascriptFunction.append("var System = Java.type('java.lang.System'); \n");
+				javascriptFunction.append("var StringReader = Java.type('java.io.StringReader');");
 				javascriptFunction.append("var sleep = function(sleepTime) { Thread.sleep(sleepTime); }; \n");
 				javascriptFunction.append(
 						"var digest = function(value, algorithm, formatPattern) { if(!algorithm) { algorithm = \"SHA-256\"; } if(!formatPattern) { formatPattern = \"%064x\";} var md = MessageDigest.getInstance(algorithm); md.update(value.getBytes(\"UTF-8\")); var digestValue = md.digest(); return String.format(formatPattern, new BigInteger(1, digestValue));}; \n");
