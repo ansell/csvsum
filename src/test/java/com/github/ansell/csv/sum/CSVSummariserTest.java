@@ -152,6 +152,19 @@ public class CSVSummariserTest {
 	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
 	 */
 	@Test
+	public final void testMainSingleHeaderOneLineEscapedValue() throws Exception {
+		Path testFile = tempDir.newFile("test-single-header-one-line-escaped-value.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-one-line-escaped-value.csv"),
+				testFile, StandardCopyOption.REPLACE_EXISTING);
+
+		CSVSummariser.main("--input", testFile.toAbsolutePath().toString(), "--escape-char", "\\");
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
 	public final void testMainSingleHeaderOneLineFileOutput() throws Exception {
 		Path testFile = tempDir.newFile("test-single-header-one-line.csv").toPath();
 		Path testOutput = tempDir.newFile("test-single-header-one-line-output.csv").toPath();
