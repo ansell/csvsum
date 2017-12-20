@@ -116,6 +116,15 @@ public final class CSVSummariser {
 				.describedAs("Set to true to add counts for each of the samples shown after the sample display value.");
 		final OptionSpec<Boolean> debug = parser.accepts("debug").withRequiredArg().ofType(Boolean.class)
 				.defaultsTo(Boolean.FALSE).describedAs("Set to true to debug.");
+		final OptionSpec<String> separatorCharacterOption = parser.accepts("separator-char").withRequiredArg()
+				.ofType(String.class).defaultsTo(",")
+				.describedAs("Overrides the default RFC4180 Section 2 column separator character");
+		final OptionSpec<String> quoteCharacterOption = parser.accepts("quote-char").withRequiredArg()
+				.ofType(String.class).defaultsTo("\"")
+				.describedAs("Overrides the default RFC4180 Section 2 quote character");
+		final OptionSpec<String> escapeCharacterOption = parser.accepts("escape-char").withRequiredArg()
+				.ofType(String.class).defaultsTo("").describedAs(
+						"RFC4180 Section 2 does not define escape characters, but some implementations use a different character to the quote character, so support for those can be enabled using this option");
 
 		OptionSet options = null;
 
@@ -174,12 +183,34 @@ public final class CSVSummariser {
 			System.out.println("Running summarise on: " + inputPath + " samples=" + samplesToShowInt);
 		}
 
+		CsvMapper inputMapper = CSVStream.defaultMapper();
+		final CsvSchema inputSchema;
+		if (!options.has(separatorCharacterOption) && !options.has(quoteCharacterOption)
+				&& !options.has(escapeCharacterOption)) {
+			inputSchema = CSVStream.defaultSchema();
+		} else {
+			CsvSchema customSchema = CSVStream.defaultSchema()
+					.withColumnSeparator(separatorCharacterOption.value(options).charAt(0));
+			if (options.has(quoteCharacterOption) && !quoteCharacterOption.value(options).isEmpty()) {
+				customSchema = customSchema.withQuoteChar(quoteCharacterOption.value(options).charAt(0));
+			} else {
+				customSchema = customSchema.withoutQuoteChar();
+			}
+			if (options.has(escapeCharacterOption) && !escapeCharacterOption.value(options).isEmpty()) {
+				customSchema = customSchema.withEscapeChar(escapeCharacterOption.value(options).charAt(0));
+			} else {
+				customSchema = customSchema.withoutEscapeChar();
+			}
+			inputSchema = customSchema;
+		}
+
 		try (final BufferedReader newBufferedReader = Files.newBufferedReader(inputPath);
 				final Writer mappingWriter = options.has(outputMappingTemplate)
 						? Files.newBufferedWriter(outputMappingPath)
 						: NullWriter.NULL_WRITER) {
-			runSummarise(newBufferedReader, writer, mappingWriter, samplesToShowInt, showSampleCounts.value(options),
-					debugBoolean, overrideHeadersList.get(), headerLineCountInt);
+			runSummarise(newBufferedReader, inputMapper, inputSchema, writer, mappingWriter, samplesToShowInt,
+					showSampleCounts.value(options), debugBoolean, overrideHeadersList.get(), Collections.emptyList(),
+					headerLineCountInt);
 		}
 	}
 
@@ -242,44 +273,6 @@ public final class CSVSummariser {
 			final List<String> overrideHeaders, final int headerLineCount) throws IOException {
 		final CsvMapper inputMapper = CSVStream.defaultMapper();
 		final CsvSchema inputSchema = CSVStream.defaultSchema();
-		runSummarise(input, inputMapper, inputSchema, output, mappingOutput, maxSampleCount, showSampleCounts, debug,
-				overrideHeaders, headerLineCount);
-	}
-
-	/**
-	 * Summarise the CSV file from the input {@link Reader} and emit the summary CSV
-	 * file to the output {@link Writer}, including the given maximum number of
-	 * sample values in the summary for each field.
-	 * 
-	 * @param input
-	 *            The input CSV file, as a {@link Reader}.
-	 * @param inputMapper
-	 *            The CsvMapper to use to parse the file into memory
-	 * @param inputSchema
-	 *            The CsvSchema to use to help the mapper parse the file into memory
-	 * @param output
-	 *            The output CSV file as a {@link Writer}.
-	 * @param mappingOutput
-	 *            The output mapping template file as a {@link Writer}.
-	 * @param maxSampleCount
-	 *            The maximum number of sample values in the summary for each field.
-	 *            Set to -1 to include all unique values for each field.
-	 * @param showSampleCounts
-	 *            Show counts next to sample values
-	 * @param debug
-	 *            Set to true to add debug statements.
-	 * @param overrideHeaders
-	 *            A set of headers to override those in the file or null to use the
-	 *            headers from the file. If this is null and headerLineCount is set
-	 *            to 0, an IllegalArgumentException ill be thrown.
-	 * @param headerLineCount
-	 *            The number of header lines to expect
-	 * @throws IOException
-	 *             If there is an error reading or writing.
-	 */
-	public static void runSummarise(final Reader input, final CsvMapper inputMapper, final CsvSchema inputSchema,
-			final Writer output, final Writer mappingOutput, final int maxSampleCount, final boolean showSampleCounts,
-			final boolean debug, final List<String> overrideHeaders, final int headerLineCount) throws IOException {
 		runSummarise(input, inputMapper, inputSchema, output, mappingOutput, maxSampleCount, showSampleCounts, debug,
 				overrideHeaders, Collections.emptyList(), headerLineCount);
 	}
@@ -398,8 +391,7 @@ public final class CSVSummariser {
 		// Shared StringBuilder across fields for efficiency
 		// After each field the StringBuilder is truncated
 		final StringBuilder sharedSampleValueBuilder = new StringBuilder();
-		final BiConsumer<? super String, ? super String> sampleHandler = (nextSample, 
-				nextCount) -> {
+		final BiConsumer<? super String, ? super String> sampleHandler = (nextSample, nextCount) -> {
 			if (sharedSampleValueBuilder.length() > 0) {
 				sharedSampleValueBuilder.append(", ");
 			}
@@ -454,8 +446,8 @@ public final class CSVSummariser {
 					csvWriter.write(Arrays.asList(nextHeader, emptyCount, nonEmptyCount, valueCount, possiblePrimaryKey,
 							possiblyInteger, possiblyDouble, sharedSampleValueBuilder));
 					final String mappingFieldType = possiblyInteger ? "INTEGER" : possiblyDouble ? "DECIMAL" : "TEXT";
-					mappingWriter.write(Arrays.asList(nextHeader, nextHeader, "", ValueMapping.ValueMappingLanguage.DBSCHEMA.name(),
-							mappingFieldType));
+					mappingWriter.write(Arrays.asList(nextHeader, nextHeader, "",
+							ValueMapping.ValueMappingLanguage.DBSCHEMA.name(), mappingFieldType));
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				} finally {
