@@ -48,6 +48,7 @@ import org.apache.http.client.protocol.RequestAcceptEncoding;
 import org.apache.http.client.protocol.ResponseContentEncoding;
 import org.apache.http.entity.ContentType;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.cache.BasicHttpCacheStorage;
 import org.apache.http.impl.client.cache.CacheConfig;
 import org.apache.http.impl.client.cache.CachingHttpClientBuilder;
@@ -165,7 +166,7 @@ public class JSONUtil {
 			return JSON_MAPPER.readTree(inputReader);
 		}
 	}
-	
+
 	public static InputStream openStreamForURL(java.net.URL url, CloseableHttpClient httpClient) throws IOException {
 		return openStreamForURL(url, httpClient, DEFAULT_ACCEPT_HEADER);
 	}
@@ -199,7 +200,13 @@ public class JSONUtil {
 		return response.getEntity().getContent();
 	}
 
-	private static CloseableHttpClient createNewHttpClient() {
+	public static CloseableHttpClient createNewHttpClient() {
+		HttpClientBuilder clientBuilder = getHttpClientBuilder();
+
+		return clientBuilder.build();
+	}
+
+	public static HttpClientBuilder getHttpClientBuilder() {
 		// Common CacheConfig for both the JarCacheStorage and the underlying
 		// BasicHttpCacheStorage
 		final CacheConfig cacheConfig = CacheConfig.custom().setMaxCacheEntries(1000).setMaxObjectSize(1024 * 128)
@@ -208,7 +215,7 @@ public class JSONUtil {
 		RequestConfig config = RequestConfig.custom().setConnectTimeout(DEFAULT_TIMEOUT)
 				.setConnectionRequestTimeout(DEFAULT_TIMEOUT).setSocketTimeout(DEFAULT_TIMEOUT).build();
 
-		CloseableHttpClient result = CachingHttpClientBuilder.create()
+		HttpClientBuilder clientBuilder = CachingHttpClientBuilder.create()
 				// allow caching
 				.setCacheConfig(cacheConfig)
 				// Wrap the local JarCacheStorage around a BasicHttpCacheStorage
@@ -217,8 +224,7 @@ public class JSONUtil {
 				// http://hc.apache.org/httpcomponents-client-ga/tutorial/html/httpagent.html#d5e1238
 				.addInterceptorFirst(new RequestAcceptEncoding()).addInterceptorFirst(new ResponseContentEncoding())
 				// use system defaults for proxy etc.
-				.useSystemProperties().setDefaultRequestConfig(config).build();
-
-		return result;
+				.useSystemProperties().setDefaultRequestConfig(config);
+		return clientBuilder;
 	}
 }
