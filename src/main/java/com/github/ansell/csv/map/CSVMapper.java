@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -55,8 +56,10 @@ import javax.script.ScriptException;
 import org.jooq.lambda.Unchecked;
 
 import com.fasterxml.jackson.databind.SequenceWriter;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import com.github.ansell.csv.stream.CSVStream;
+import com.github.ansell.csv.sum.CSVSummariser;
 import com.github.ansell.csv.util.LineFilteredException;
 import com.github.ansell.csv.util.ValueMapping;
 import com.github.ansell.csv.util.ValueMappingContext;
@@ -90,8 +93,27 @@ public final class CSVMapper {
 				.describedAs("The mapping file.");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
 				.describedAs("The mapped CSV file, or the console if not specified.");
+		final OptionSpec<File> overrideHeadersFile = parser.accepts("override-headers-file").withRequiredArg()
+				.ofType(File.class).describedAs(
+						"A file whose first line contains the headers to use, to override those found in the file.");
+		final OptionSpec<Integer> headerLineCount = parser.accepts("header-line-count").withRequiredArg()
+				.ofType(Integer.class)
+				.describedAs(
+						"The number of header lines present in the file. Can be used in conjunction with override-headers-file to substitute a different set of headers")
+				.defaultsTo(1);
 		final OptionSpec<Boolean> appendToExistingOption = parser.accepts("append-to-existing").withRequiredArg()
 				.ofType(Boolean.class).describedAs("Append to an existing file").defaultsTo(false);
+		final OptionSpec<Boolean> debug = parser.accepts("debug").withRequiredArg().ofType(Boolean.class)
+				.defaultsTo(Boolean.FALSE).describedAs("Set to true to debug.");
+		final OptionSpec<String> separatorCharacterOption = parser.accepts("separator-char").withRequiredArg()
+				.ofType(String.class).defaultsTo(",")
+				.describedAs("Overrides the default RFC4180 Section 2 column separator character");
+		final OptionSpec<String> quoteCharacterOption = parser.accepts("quote-char").withRequiredArg()
+				.ofType(String.class).defaultsTo("\"")
+				.describedAs("Overrides the default RFC4180 Section 2 quote character");
+		final OptionSpec<String> escapeCharacterOption = parser.accepts("escape-char").withRequiredArg()
+				.ofType(String.class).defaultsTo("").describedAs(
+						"RFC4180 Section 2 does not define escape characters, but some implementations use a different character to the quote character, so support for those can be enabled using this option");
 
 		OptionSet options = null;
 
@@ -118,6 +140,45 @@ public final class CSVMapper {
 			throw new FileNotFoundException("Could not find mapping CSV file: " + mappingPath.toString());
 		}
 
+		boolean debugBoolean = debug.value(options);
+
+		int headerLineCountInt = headerLineCount.value(options);
+
+		// Defaults to null, with any strings in the file overriding that
+		AtomicReference<List<String>> overrideHeadersList = new AtomicReference<>();
+		if (options.has(overrideHeadersFile)) {
+			CSVSummariser.parseOverrideHeaders(overrideHeadersFile, options, overrideHeadersList);
+		}
+
+		CsvMapper inputMapper = CSVStream.defaultMapper();
+		final CsvSchema inputSchema;
+		if (!options.has(separatorCharacterOption) && !options.has(quoteCharacterOption)
+				&& !options.has(escapeCharacterOption)) {
+			inputSchema = CSVStream.defaultSchema();
+		} else {
+			CsvSchema customSchema = CSVStream.defaultSchema()
+					.withColumnSeparator(separatorCharacterOption.value(options).charAt(0));
+			if (!quoteCharacterOption.value(options).isEmpty()) {
+				char quoteCharChosen = quoteCharacterOption.value(options).charAt(0);
+				if (debugBoolean) {
+					System.out.println("Setting quote char to: " + quoteCharChosen);
+				}
+				customSchema = customSchema.withQuoteChar(quoteCharChosen);
+			} else {
+				customSchema = customSchema.withoutQuoteChar();
+			}
+			if (!escapeCharacterOption.value(options).isEmpty()) {
+				char escapeCharChosen = escapeCharacterOption.value(options).charAt(0);
+				if (debugBoolean) {
+					System.out.println("Setting escape char to: " + escapeCharChosen);
+				}
+				customSchema = customSchema.withEscapeChar(escapeCharChosen);
+			} else {
+				customSchema = customSchema.withoutEscapeChar();
+			}
+			inputSchema = customSchema;
+		}
+
 		// Double up for now on the append option, as we always want to write headers,
 		// except when we are appending to an existing file, in which case we check that
 		// the headers already exist
@@ -133,6 +194,8 @@ public final class CSVMapper {
 			final List<String> outputHeaders = ValueMapping.getOutputFieldsFromList(map);
 
 			Writer writer = null;
+			List<String> defaultValues = Collections.emptyList();
+			List<String> overrideHeaders = overrideHeadersList.get();
 			try {
 				if (options.has(output)) {
 					// If we aren't planning on writing headers, we parse just the header line
@@ -146,7 +209,7 @@ public final class CSVMapper {
 														+ h + "] new=[" + outputHeaders + "]");
 									}
 								}, (h, l) -> l, l -> {
-								});
+								}, overrideHeaders, defaultValues, headerLineCountInt, inputMapper, inputSchema);
 
 					}
 
@@ -196,9 +259,9 @@ public final class CSVMapper {
 				}
 				final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
-					List<String> mapLine = ValueMapping.mapLine(new ValueMappingContext(inputHeaders, l, previousLine, previousMappedLine, map,
-							primaryKeys, nextLineNumber, nextFilteredLineNumber, mapLineConsumer, outputHeaders,
-							defaultValues, Optional.empty()));
+					List<String> mapLine = ValueMapping.mapLine(new ValueMappingContext(inputHeaders, l, previousLine,
+							previousMappedLine, map, primaryKeys, nextLineNumber, nextFilteredLineNumber,
+							mapLineConsumer, outputHeaders, defaultValues, Optional.empty()));
 					mapLineConsumer.accept(l, mapLine);
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to

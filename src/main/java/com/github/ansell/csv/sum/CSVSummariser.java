@@ -168,15 +168,7 @@ public final class CSVSummariser {
 		// Defaults to null, with any strings in the file overriding that
 		AtomicReference<List<String>> overrideHeadersList = new AtomicReference<>();
 		if (options.has(overrideHeadersFile)) {
-			try (final BufferedReader newBufferedReader = Files
-					.newBufferedReader(overrideHeadersFile.value(options).toPath());) {
-				CSVStream.parse(newBufferedReader, h -> {
-					overrideHeadersList.set(h);
-				}, (h, l) -> {
-					return l;
-				}, l -> {
-				}, null, CSVStream.DEFAULT_HEADER_COUNT);
-			}
+			parseOverrideHeaders(overrideHeadersFile, options, overrideHeadersList);
 		}
 
 		if (debugBoolean) {
@@ -193,7 +185,7 @@ public final class CSVSummariser {
 					.withColumnSeparator(separatorCharacterOption.value(options).charAt(0));
 			if (!quoteCharacterOption.value(options).isEmpty()) {
 				char quoteCharChosen = quoteCharacterOption.value(options).charAt(0);
-				if(debugBoolean) {
+				if (debugBoolean) {
 					System.out.println("Setting quote char to: " + quoteCharChosen);
 				}
 				customSchema = customSchema.withQuoteChar(quoteCharChosen);
@@ -202,7 +194,7 @@ public final class CSVSummariser {
 			}
 			if (!escapeCharacterOption.value(options).isEmpty()) {
 				char escapeCharChosen = escapeCharacterOption.value(options).charAt(0);
-				if(debugBoolean) {
+				if (debugBoolean) {
 					System.out.println("Setting escape char to: " + escapeCharChosen);
 				}
 				customSchema = customSchema.withEscapeChar(escapeCharChosen);
@@ -219,6 +211,19 @@ public final class CSVSummariser {
 			runSummarise(newBufferedReader, inputMapper, inputSchema, writer, mappingWriter, samplesToShowInt,
 					showSampleCounts.value(options), debugBoolean, overrideHeadersList.get(), Collections.emptyList(),
 					headerLineCountInt);
+		}
+	}
+
+	public static void parseOverrideHeaders(final OptionSpec<File> overrideHeadersFile, OptionSet options,
+			AtomicReference<List<String>> overrideHeadersList) throws IOException {
+		try (final BufferedReader newBufferedReader = Files
+				.newBufferedReader(overrideHeadersFile.value(options).toPath());) {
+			CSVStream.parse(newBufferedReader, h -> {
+				overrideHeadersList.set(h);
+			}, (h, l) -> {
+				return l;
+			}, l -> {
+			}, null, CSVStream.DEFAULT_HEADER_COUNT);
 		}
 	}
 
