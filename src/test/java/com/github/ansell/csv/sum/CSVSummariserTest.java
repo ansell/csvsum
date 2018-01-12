@@ -154,10 +154,39 @@ public class CSVSummariserTest {
 	@Test
 	public final void testMainSingleHeaderOneLineEscapedValue() throws Exception {
 		Path testFile = tempDir.newFile("test-single-header-one-line-escaped-value.csv").toPath();
-		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-single-header-one-line-escaped-value.csv"),
+		Files.copy(
+				this.getClass()
+						.getResourceAsStream("/com/github/ansell/csvsum/test-single-header-one-line-escaped-value.csv"),
 				testFile, StandardCopyOption.REPLACE_EXISTING);
 
 		CSVSummariser.main("--input", testFile.toAbsolutePath().toString(), "--escape-char", "\\");
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainSingleHeaderTroublesomeEscapes() throws Exception {
+		Path testFile = tempDir.newFile("test-escape-quotes.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-escape-quotes.csv"), testFile,
+				StandardCopyOption.REPLACE_EXISTING);
+
+		CSVSummariser.main("--input", testFile.toAbsolutePath().toString(), "--escape-char", "\\", "--debug", "true");
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.sum.CSVSummariser#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainSingleHeaderTroublesomeEscapesWithQuoteChar() throws Exception {
+		Path testFile = tempDir.newFile("test-escape-quotes.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvsum/test-escape-quotes.csv"), testFile,
+				StandardCopyOption.REPLACE_EXISTING);
+
+		CSVSummariser.main("--input", testFile.toAbsolutePath().toString(), "--escape-char", "\\", "--debug", "true",
+				"--quote-char", "\"");
 	}
 
 	/**
@@ -270,8 +299,9 @@ public class CSVSummariserTest {
 
 		Path testOverrideHeader = tempDir.newFile("test-header-override.csv").toPath();
 		Files.write(testOverrideHeader, Arrays.asList("OverriddenHeader"), StandardCharsets.UTF_8);
-		
-		CSVSummariser.main("--input", testFile.toAbsolutePath().toString(), "--override-headers-file", testOverrideHeader.toAbsolutePath().toString(), "--header-line-count", "1");
+
+		CSVSummariser.main("--input", testFile.toAbsolutePath().toString(), "--override-headers-file",
+				testOverrideHeader.toAbsolutePath().toString(), "--header-line-count", "1");
 	}
 
 	/**
@@ -326,7 +356,8 @@ public class CSVSummariserTest {
 		StringWriter output = new StringWriter();
 		StringBuilder input = new StringBuilder("Test\n");
 		IntStream.range(0, 1000).forEach(i -> input.append("N"));
-		CSVSummariser.runSummarise(new StringReader(input.toString()), output, NullWriter.NULL_WRITER, -1, false, false);
+		CSVSummariser.runSummarise(new StringReader(input.toString()), output, NullWriter.NULL_WRITER, -1, false,
+				false);
 	}
 
 	/**
@@ -337,7 +368,8 @@ public class CSVSummariserTest {
 	public final void testSummariseOverrideHeaders() throws Exception {
 		StringWriter output = new StringWriter();
 		StringBuilder input = new StringBuilder("TestShouldNotBeSeen\nValue1");
-		CSVSummariser.runSummarise(new StringReader(input.toString()), output, NullWriter.NULL_WRITER, -1, false, false, Arrays.asList("TestHeader"), 1);
+		CSVSummariser.runSummarise(new StringReader(input.toString()), output, NullWriter.NULL_WRITER, -1, false, false,
+				Arrays.asList("TestHeader"), 1);
 		assertTrue(output.toString().contains("TestHeader"));
 		assertTrue(output.toString().contains("Value1"));
 		assertFalse(output.toString().contains("TestShouldNotBeSeen"));

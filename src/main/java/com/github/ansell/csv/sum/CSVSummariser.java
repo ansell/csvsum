@@ -191,13 +191,21 @@ public final class CSVSummariser {
 		} else {
 			CsvSchema customSchema = CSVStream.defaultSchema()
 					.withColumnSeparator(separatorCharacterOption.value(options).charAt(0));
-			if (options.has(quoteCharacterOption) && !quoteCharacterOption.value(options).isEmpty()) {
-				customSchema = customSchema.withQuoteChar(quoteCharacterOption.value(options).charAt(0));
+			if (!quoteCharacterOption.value(options).isEmpty()) {
+				char quoteCharChosen = quoteCharacterOption.value(options).charAt(0);
+				if(debugBoolean) {
+					System.out.println("Setting quote char to: " + quoteCharChosen);
+				}
+				customSchema = customSchema.withQuoteChar(quoteCharChosen);
 			} else {
 				customSchema = customSchema.withoutQuoteChar();
 			}
-			if (options.has(escapeCharacterOption) && !escapeCharacterOption.value(options).isEmpty()) {
-				customSchema = customSchema.withEscapeChar(escapeCharacterOption.value(options).charAt(0));
+			if (!escapeCharacterOption.value(options).isEmpty()) {
+				char escapeCharChosen = escapeCharacterOption.value(options).charAt(0);
+				if(debugBoolean) {
+					System.out.println("Setting escape char to: " + escapeCharChosen);
+				}
+				customSchema = customSchema.withEscapeChar(escapeCharChosen);
 			} else {
 				customSchema = customSchema.withoutEscapeChar();
 			}
