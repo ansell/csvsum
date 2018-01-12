@@ -219,7 +219,8 @@ public final class CSVMapper {
 					writer = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
 				}
 
-				runMapper(readerInput, map, writer, writeHeaders, outputHeaders);
+				runMapper(readerInput, map, writer, writeHeaders, outputHeaders, overrideHeaders, headerLineCountInt,
+						inputMapper, inputSchema);
 			} finally {
 				if (writer != null) {
 					writer.close();
@@ -229,7 +230,8 @@ public final class CSVMapper {
 	}
 
 	private static void runMapper(Reader input, List<ValueMapping> map, Writer output, boolean writeHeaders,
-			List<String> outputHeaders) throws ScriptException, IOException {
+			List<String> outputHeaders, List<String> overrideHeaders, int headerLineCount, CsvMapper inputMapper,
+			CsvSchema inputSchema) throws ScriptException, IOException {
 
 		final Map<String, String> defaultValues = ValueMapping.getDefaultValuesFromList(map);
 		final CsvSchema schema = CSVStream.buildSchema(outputHeaders, writeHeaders);
@@ -276,7 +278,7 @@ public final class CSVMapper {
 				}
 				return null;
 			}, l -> {
-			});
+			}, overrideHeaders, Collections.emptyList(), headerLineCount, inputMapper, inputSchema);
 		}
 	}
 
