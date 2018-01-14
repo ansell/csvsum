@@ -159,6 +159,9 @@ Run csvmap with a sample csv file:
 
 # Changelog
 
+## 2018-01-15
+* Add incrementCount and getCount functions to ValueMapping
+
 ## 2017-10-17
 * Release 0.5.1
 * Add support for default value interpolation to replace missing values (Used by dwca-utils which has native support for meta.xml)
