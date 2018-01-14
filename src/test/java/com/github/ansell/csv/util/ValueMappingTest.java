@@ -41,6 +41,8 @@ public class ValueMappingTest {
 	private ValueMapping testJavascriptMapping;
 	private ValueMapping testJavascriptPrimaryKeyMapping;
 	private ValueMapping testJavascriptPrimaryKeyMappingFunction;
+	private ValueMapping testJavascriptValueCountIncrement;
+	private ValueMapping testJavascriptValueCountGet;
 	private ValueMapping testJavascriptReplaceLineEndings;
 	private ValueMapping testJavascriptMapLineConsumerAndReturn;
 	private ValueMapping testJavascriptMapLineConsumerFilter;
@@ -75,6 +77,10 @@ public class ValueMappingTest {
 				"return !primaryKeys.get(\"Primary\").add(inputValue) ? filter() : inputValue;", "", "");
 		testJavascriptPrimaryKeyMappingFunction = ValueMapping.newMapping("Javascript", "aDifferentInput",
 				"aDifferentField", "return primaryKeyFilter(inputValue);", "", "");
+		testJavascriptValueCountIncrement = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
+				"return Integer.toString(incrementCount(inputField, inputValue));", "", "");
+		testJavascriptValueCountGet = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
+				"return Integer.toString(getCount(inputField, inputValue));", "", "");
 		testJavascriptLineNumber = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
 				"return Integer.toString(lineNumber);", "", "");
 		testJavascriptFilteredLineNumber = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
@@ -202,6 +208,45 @@ public class ValueMappingTest {
 				Collections.emptyList(), Collections.emptyList(),
 				Arrays.asList(testJavascriptPrimaryKeyMapping, testDefaultMapping), testPrimaryKeys, testValueCounts, 1,
 				1, UNEXPECTED_LINE_CONSUMER);
+	}
+
+	@Test
+	public final void testMapLineValueCount() {
+		List<String> mapLine1 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
+				Arrays.asList("testKey1", "testValue1"), Collections.emptyList(), Collections.emptyList(),
+				Arrays.asList(testJavascriptValueCountGet, testDefaultMapping), testPrimaryKeys, testValueCounts, 1,
+				1, UNEXPECTED_LINE_CONSUMER);
+
+		assertEquals(2, mapLine1.size());
+		assertEquals("0", mapLine1.get(0));
+		assertEquals("testValue1", mapLine1.get(1));
+
+		List<String> mapLine2 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
+				Arrays.asList("testKey1", "testValue2"), Collections.emptyList(), Collections.emptyList(),
+				Arrays.asList(testJavascriptValueCountIncrement, testDefaultMapping), testPrimaryKeys, testValueCounts, 1,
+				1, UNEXPECTED_LINE_CONSUMER);
+
+		assertEquals(2, mapLine2.size());
+		assertEquals("1", mapLine2.get(0));
+		assertEquals("testValue2", mapLine2.get(1));
+
+		List<String> mapLine3 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
+				Arrays.asList("testKey1", "testValue3"), Collections.emptyList(), Collections.emptyList(),
+				Arrays.asList(testJavascriptValueCountGet, testDefaultMapping), testPrimaryKeys, testValueCounts, 1,
+				1, UNEXPECTED_LINE_CONSUMER);
+
+		assertEquals(2, mapLine3.size());
+		assertEquals("1", mapLine3.get(0));
+		assertEquals("testValue3", mapLine3.get(1));
+
+		List<String> mapLine4 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
+				Arrays.asList("testKey1", "testValue4"), Collections.emptyList(), Collections.emptyList(),
+				Arrays.asList(testJavascriptValueCountGet, testDefaultMapping), testPrimaryKeys, testValueCounts, 1,
+				1, UNEXPECTED_LINE_CONSUMER);
+
+		assertEquals(2, mapLine4.size());
+		assertEquals("1", mapLine4.get(0));
+		assertEquals("testValue4", mapLine4.get(1));
 	}
 
 	@Test
