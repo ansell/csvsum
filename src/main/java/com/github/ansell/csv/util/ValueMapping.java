@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
@@ -85,7 +86,7 @@ public class ValueMapping {
 		private final String defaultMapping;
 
 		ValueMappingLanguage(String defaultMapping) {
-			this.defaultMapping = defaultMapping;
+			this.defaultMapping = defaultMapping.intern();
 		}
 
 		public String getDefaultMapping() {
@@ -133,11 +134,13 @@ public class ValueMapping {
 
 	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,
 			List<String> previousMappedLine, List<ValueMapping> map, JDefaultDict<String, Set<String>> primaryKeys,
-			int lineNumber, int filteredLineNumber, BiConsumer<List<String>, List<String>> mapLineConsumer)
+			JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts, int lineNumber,
+			int filteredLineNumber, BiConsumer<List<String>, List<String>> mapLineConsumer)
 			throws LineFilteredException {
 
-		return mapLine(new ValueMappingContext(inputHeaders, line, previousLine, previousMappedLine, map, primaryKeys, lineNumber,
-				filteredLineNumber, mapLineConsumer, getOutputFieldsFromList(map), getDefaultValuesFromList(map), Optional.empty()));
+		return mapLine(new ValueMappingContext(inputHeaders, line, previousLine, previousMappedLine, map, primaryKeys,
+				valueCounts, lineNumber, filteredLineNumber, mapLineConsumer, getOutputFieldsFromList(map),
+				getDefaultValuesFromList(map), Optional.empty()));
 	}
 
 	public static Map<String, String> getDefaultValuesFromList(List<ValueMapping> map) {
@@ -153,24 +156,11 @@ public class ValueMapping {
 		return map.stream().filter(k -> k.getShown()).map(ValueMapping::getInputField).collect(Collectors.toList());
 	}
 
-	/**
-	 * @deprecated Use {@link #mapLine(ValueMappingContext)} instead.
-	 */
-	@Deprecated
-	public static List<String> mapLine(List<String> inputHeaders, List<String> line, List<String> previousLine,
-			List<String> previousMappedLine, List<ValueMapping> map, JDefaultDict<String, Set<String>> primaryKeys,
-			int lineNumber, int filteredLineNumber, BiConsumer<List<String>, List<String>> mapLineConsumer,
-			List<String> outputHeaders, Map<String, String> defaultValues) throws LineFilteredException {
-		ValueMappingContext context = new ValueMappingContext(inputHeaders, line, previousLine, previousMappedLine, map, primaryKeys, lineNumber,
-				filteredLineNumber, mapLineConsumer, outputHeaders, defaultValues, Optional.empty());
-		return mapLine(context);
-	}
-
 	public static List<String> mapLine(ValueMappingContext context) throws LineFilteredException {
 		HashMap<String, String> outputValues = new HashMap<>(context.getMappings().size(), 0.75f);
 
 		context.getMappings().forEach(nextMapping -> {
-			String mappedValue = nextMapping.apply(context,	outputValues);
+			String mappedValue = nextMapping.apply(context, outputValues);
 			outputValues.put(nextMapping.getOutputField(), mappedValue);
 		});
 
@@ -271,15 +261,17 @@ public class ValueMapping {
 
 		if (this.language == ValueMappingLanguage.JAVASCRIPT || this.language == ValueMappingLanguage.GROOVY
 				|| this.language == ValueMappingLanguage.LUA) {
-			Object nodeToUse = context.getJsonNode().isPresent() ? context.getJsonNode().get() : "No JSON Node for this mapping context";
+			Object nodeToUse = context.getJsonNode().isPresent() ? context.getJsonNode().get()
+					: "No JSON Node for this mapping context";
 			try {
 				if (scriptEngine instanceof Invocable) {
 					// evaluate script code and access the variable that results
 					// from the mapping
 					return (String) ((Invocable) scriptEngine).invokeFunction("mapFunction", context.getInputHeaders(),
-							this.getInputField(), nextInputValue, context.getOutputHeaders(), this.getOutputField(), context.getLine(),
-							mappedLine, context.getPreviousLine(), context.getPreviousMappedLine(), context.getPrimaryKeys(), context.getLineNumber(), context.getFilteredLineNumber(),
-							context.getMapLineConsumer(), theDefault, nodeToUse);
+							this.getInputField(), nextInputValue, context.getOutputHeaders(), this.getOutputField(),
+							context.getLine(), mappedLine, context.getPreviousLine(), context.getPreviousMappedLine(),
+							context.getPrimaryKeys(), context.getLineNumber(), context.getFilteredLineNumber(),
+							context.getMapLineConsumer(), theDefault, nodeToUse, context.getValueCounts());
 				} else if (compiledScript != null) {
 					Bindings bindings = scriptEngine.createBindings();
 					// inputHeaders, inputField, inputValue, outputField, line
@@ -298,6 +290,7 @@ public class ValueMapping {
 					bindings.put("mapLineConsumer", context.getMapLineConsumer());
 					bindings.put("defaultValue", theDefault);
 					bindings.put("jsonNode", nodeToUse);
+					bindings.put("valueCounts", context.getValueCounts());
 					return (String) compiledScript.eval(bindings);
 				} else {
 					throw new UnsupportedOperationException(
@@ -412,11 +405,15 @@ public class ValueMapping {
 				javascriptFunction.append(
 						"var columnFunctionMap = function(searchHeader, mapLine) { return mapLine.get(searchHeader); };\n");
 				javascriptFunction.append(
-						"var mapFunction = function(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer, defaultValue, jsonNode) { ");
+						"var mapFunction = function(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer, defaultValue, jsonNode, valueCounts) { ");
 				javascriptFunction.append(
 						"    var primaryKeyBoolean = function(nextPrimaryKey, primaryKeyField) { \n if(!primaryKeyField) { primaryKeyField = \"Primary\"; } \n return primaryKeys.get(primaryKeyField).add(nextPrimaryKey); }; \n ");
 				javascriptFunction.append(
 						"    var primaryKeyFilter = function(nextPrimaryKey, primaryKeyField) { \n if(!primaryKeyField) { primaryKeyField = \"Primary\"; } \n return primaryKeys.get(primaryKeyField).add(nextPrimaryKey) ? nextPrimaryKey : filter(); }; \n ");
+				javascriptFunction.append(
+						"    var incrementCount = function(nextField, nextValue) { \n return valueCounts.get(nextField).get(nextValue).incrementAndGet(); }; \n ");
+				javascriptFunction.append(
+						"    var getCount = function(nextField, nextValue) { \n return valueCounts.get(nextField).get(nextValue).get() }; \n ");
 				javascriptFunction.append(
 						"    var col = function(searchHeader) { \n return columnFunction(searchHeader, inputHeaders, line); }; \n ");
 				javascriptFunction.append(
@@ -433,7 +430,7 @@ public class ValueMapping {
 				scriptEngine = SCRIPT_MANAGER.getEngineByName("groovy");
 
 				scriptEngine.eval(
-						"def mapFunction(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer, defaultValue, jsonNode) {  "
+						"def mapFunction(inputHeaders, inputField, inputValue, outputHeaders, outputField, line, mapLine, previousLine, previousMappedLine, primaryKeys, lineNumber, filteredLineNumber, mapLineConsumer, defaultValue, jsonNode, valueCounts) {  "
 								+ this.mapping + " }");
 			} catch (ScriptException e) {
 				throw new RuntimeException(e);

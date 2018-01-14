@@ -242,6 +242,8 @@ public final class CSVMapper {
 			final List<String> previousLine = new ArrayList<>();
 			final List<String> previousMappedLine = new ArrayList<>();
 			final JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
+			final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts = new JDefaultDict<>(
+					k -> new JDefaultDict<>(v -> new AtomicInteger(0)));
 			final AtomicInteger lineNumber = new AtomicInteger(0);
 			final AtomicInteger filteredLineNumber = new AtomicInteger(0);
 			final long startTime = System.currentTimeMillis();
@@ -262,7 +264,7 @@ public final class CSVMapper {
 				final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
 					List<String> mapLine = ValueMapping.mapLine(new ValueMappingContext(inputHeaders, l, previousLine,
-							previousMappedLine, map, primaryKeys, nextLineNumber, nextFilteredLineNumber,
+							previousMappedLine, map, primaryKeys, valueCounts, nextLineNumber, nextFilteredLineNumber,
 							mapLineConsumer, outputHeaders, defaultValues, Optional.empty()));
 					mapLineConsumer.accept(l, mapLine);
 				} catch (final LineFilteredException e) {

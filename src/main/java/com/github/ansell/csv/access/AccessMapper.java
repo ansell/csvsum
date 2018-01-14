@@ -51,6 +51,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -220,7 +221,7 @@ public class AccessMapper {
 
 		try {
 			Files.copy(readerDB, tempDBPath, StandardCopyOption.REPLACE_EXISTING);
-			
+
 			// Ordered mappings so that the first table in the mapping is the
 			// one to perform the base joins on
 			final JDefaultDict<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping = new JDefaultDict<>(
@@ -252,6 +253,8 @@ public class AccessMapper {
 					List<Database> dbCopies = new ArrayList<>(parallelism);
 					List<Path> dbCopiesPaths = new ArrayList<>(parallelism);
 					final JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
+					final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts = new JDefaultDict<>(
+							k -> new JDefaultDict<>(v -> new AtomicInteger(0)));
 
 					Queue<Map<String, Object>> originRowQueue = new ConcurrentLinkedQueue<>();
 					final Map<String, Object> originRowSentinel = new HashMap<String, Object>();
@@ -297,7 +300,7 @@ public class AccessMapper {
 									joinersForThread);
 							final Consumer<Map<String, Object>> originRowConsumer = Unchecked.consumer(r -> {
 								List<String> mappedRow = mapNextRow(map, foreignKeyMappingForThread, joinersForThread,
-										nextOriginTable, r, db, primaryKeys, (l, m) -> writerQueue.add(m));
+										nextOriginTable, r, db, primaryKeys, valueCounts, (l, m) -> writerQueue.add(m));
 								if (mappedRow != null) {
 									writerQueue.add(mappedRow);
 								}
@@ -393,6 +396,7 @@ public class AccessMapper {
 			ConcurrentMap<String, ConcurrentMap<ValueMapping, Tuple2<String, String>>> foreignKeyMapping,
 			ConcurrentMap<ValueMapping, Joiner> joiners, String originTable, Map<String, Object> nextRow,
 			Database database, JDefaultDict<String, Set<String>> primaryKeys,
+			JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts,
 			BiConsumer<List<String>, List<String>> mapLineConsumer) throws IOException {
 		// Rows, indexed by the table that they came from
 		ConcurrentMap<String, Map<String, Object>> componentRowsForThisRow = new ConcurrentHashMap<>();
@@ -455,7 +459,7 @@ public class AccessMapper {
 
 		try {
 			return ValueMapping.mapLine(inputHeaders, nextEmittedRow, Collections.emptyList(), Collections.emptyList(),
-					map, primaryKeys, -1, -1, mapLineConsumer);
+					map, primaryKeys, valueCounts, -1, -1, mapLineConsumer);
 		} catch (final LineFilteredException e) {
 			// Swallow line filtered exception and return null below to
 			// eliminate it
@@ -495,7 +499,7 @@ public class AccessMapper {
 			Map<String, Object> originRow = componentRowsForThisRow.get(origin);
 			if (originRow == null) {
 				System.out.println("Could not find row: Maybe the order of the mapping file needs changing: origin="
-				 + origin + " mapping=" + nextMapping);
+						+ origin + " mapping=" + nextMapping);
 				continue;
 			}
 
@@ -600,11 +604,13 @@ public class AccessMapper {
 		Files.copy(input, tempFile, StandardCopyOption.REPLACE_EXISTING);
 
 		try {
-			final CsvSchema schema = CSVStream.buildSchema(Arrays.asList("OldField", "NewField", "Language", "Mapping"));
+			final CsvSchema schema = CSVStream
+					.buildSchema(Arrays.asList("OldField", "NewField", "Language", "Mapping"));
 			try (final Database db = DatabaseBuilder.open(tempFile.toFile());
 					final Writer columnCsv = Files
 							.newBufferedWriter(outputDir.resolve(csvPrefix + "AutoMapping-Columns.csv"));
-					final SequenceWriter columnCsvWriter = CSVStream.newCSVWriter(new BufferedWriter(columnCsv), schema);) {
+					final SequenceWriter columnCsvWriter = CSVStream.newCSVWriter(new BufferedWriter(columnCsv),
+							schema);) {
 				for (String tableName : db.getTableNames()) {
 					Table table = db.getTable(tableName);
 
@@ -629,7 +635,8 @@ public class AccessMapper {
 
 					final CsvSchema fullFileSchema = CSVStream.buildSchema(Arrays.asList(tempArray));
 					try (final Writer fullFileCsv = Files.newBufferedWriter(csvPath);
-							final SequenceWriter fullFileCsvWriter = CSVStream.newCSVWriter(new BufferedWriter(fullFileCsv), fullFileSchema);) {
+							final SequenceWriter fullFileCsvWriter = CSVStream
+									.newCSVWriter(new BufferedWriter(fullFileCsv), fullFileSchema);) {
 						int rows = 0;
 						for (Row nextRow : table) {
 							int i = 0;

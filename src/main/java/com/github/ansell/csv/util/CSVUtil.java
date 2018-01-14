@@ -209,8 +209,8 @@ public final class CSVUtil {
 	 * @param map
 	 *            The mappings to apply and use to define the join fields
 	 * @param output
-	 *            The Writer which will receive the output CSV file containing
-	 *            the results of the join
+	 *            The Writer which will receive the output CSV file containing the
+	 *            results of the join
 	 * @param inputPrefix
 	 *            An optional prefix to apply to all of the fields in the input
 	 *            file, set to the empty string to disable it.
@@ -218,8 +218,7 @@ public final class CSVUtil {
 	 *            An optional prefix to apply to all of the fields in the other
 	 *            file, set to the empty string to disable it.
 	 * @param leftOuterJoin
-	 *            True to use a left outer join and false to use a full outer
-	 *            join.
+	 *            True to use a left outer join and false to use a full outer join.
 	 * @return The output headers for the joined file.
 	 * @throws ScriptException
 	 *             If there are issues mapping fields.
@@ -243,10 +242,11 @@ public final class CSVUtil {
 			otherFileBytes = IOUtils.copy(otherInput, tempOtherOutput);
 		}
 
-		if(inputFileBytes < otherFileBytes) {
-			// TODO: Swap source and destination so that in-memory set is the smaller of the two
+		if (inputFileBytes < otherFileBytes) {
+			// TODO: Swap source and destination so that in-memory set is the smaller of the
+			// two
 		}
-		
+
 		try {
 			final List<String> otherH = new ArrayList<>();
 			final List<List<String>> otherLines = new ArrayList<>();
@@ -288,6 +288,8 @@ public final class CSVUtil {
 
 			try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(writer, schema);) {
 				final JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
+				final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts = new JDefaultDict<>(
+						k -> new JDefaultDict<>(v -> new AtomicInteger(0)));
 				final Set<List<String>> matchedOtherLines = new LinkedHashSet<>();
 
 				final List<String> previousLine = new ArrayList<>();
@@ -309,68 +311,71 @@ public final class CSVUtil {
 				// HashMap<>(destFields.length, 0.75f);
 				// Map<String, Object> temporaryMatchMap = new
 				// LinkedHashMap<>(destFields.length, 0.75f);
-				//final Map<String, Object> temporaryMatchMap = new ConcurrentHashMap<>(destFields.length, 0.75f, 4);
+				// final Map<String, Object> temporaryMatchMap = new
+				// ConcurrentHashMap<>(destFields.length, 0.75f, 4);
 				final Map<String, Object> temporaryMatchMap = new HashMap<>(destFields.length, 0.75f);
-				
+
 				final List<String> inputHeaders = new ArrayList<>();
 				try (final BufferedReader inputTemp = Files.newBufferedReader(tempInputFile, StandardCharsets.UTF_8)) {
-					CSVStream.parse(inputTemp, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)), (h, l) -> {
-						final int nextLineNumber = lineNumber.incrementAndGet();
-						if(nextLineNumber % 1000 == 0) {
-							double secondsSinceStart = (System.currentTimeMillis() - startTime)/1000.0d;
-							System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n", nextLineNumber, secondsSinceStart, 
-									nextLineNumber/secondsSinceStart);
-						}
-						final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
-						try {
-							final List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
-							final List<String> nextMergedLine = new ArrayList<>(l);
+					CSVStream.parse(inputTemp, h -> h.forEach(nextH -> inputHeaders.add(inputPrefix + nextH)),
+							(h, l) -> {
+								final int nextLineNumber = lineNumber.incrementAndGet();
+								if (nextLineNumber % 1000 == 0) {
+									double secondsSinceStart = (System.currentTimeMillis() - startTime) / 1000.0d;
+									System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n",
+											nextLineNumber, secondsSinceStart, nextLineNumber / secondsSinceStart);
+								}
+								final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
+								try {
+									final List<String> mergedInputHeaders = new ArrayList<>(inputHeaders);
+									final List<String> nextMergedLine = new ArrayList<>(l);
 
-							final Map<String, Object> matchMap = buildMatchMap(m, mergedInputHeaders, nextMergedLine,
-									false, temporaryMatchMap, sourceFields, destFields);
-							final Predicate<List<String>> otherLinePredicate = otherL -> {
-								return !matchMap.entrySet().stream().filter(nextOtherFieldMatcher -> {
-									final String key = nextOtherFieldMatcher.getKey();
-									return !otherHSet.contains(key) || !otherL.get(otherH.indexOf(key))
-											.equals(nextOtherFieldMatcher.getValue());
-								}).findAny().isPresent();
-							};
-							final Consumer<List<String>> otherLineConsumer = otherL -> {
-								matchedOtherLines.add(otherL);
-								final Map<String, Object> leftOuterJoinMap = leftOuterJoin(m, mergedInputHeaders,
-										nextMergedLine, otherH, otherL, false);
-								nonMergeFieldsOrdered.stream().map(nextMapping -> nextMapping.getInputField())
-										.forEachOrdered(inputField -> {
-											if (leftOuterJoinMap.containsKey(inputField)
-													&& !mergedInputHeaders.contains(inputField)) {
-												mergedInputHeaders.add(inputField);
-												nextMergedLine.add((String) leftOuterJoinMap.get(inputField));
-											}
-										});
-							};
-							otherLines.parallelStream().filter(otherLinePredicate).findAny()
-									.ifPresent(otherLineConsumer);
+									final Map<String, Object> matchMap = buildMatchMap(m, mergedInputHeaders,
+											nextMergedLine, false, temporaryMatchMap, sourceFields, destFields);
+									final Predicate<List<String>> otherLinePredicate = otherL -> {
+										return !matchMap.entrySet().stream().filter(nextOtherFieldMatcher -> {
+											final String key = nextOtherFieldMatcher.getKey();
+											return !otherHSet.contains(key) || !otherL.get(otherH.indexOf(key))
+													.equals(nextOtherFieldMatcher.getValue());
+										}).findAny().isPresent();
+									};
+									final Consumer<List<String>> otherLineConsumer = otherL -> {
+										matchedOtherLines.add(otherL);
+										final Map<String, Object> leftOuterJoinMap = leftOuterJoin(m,
+												mergedInputHeaders, nextMergedLine, otherH, otherL, false);
+										nonMergeFieldsOrdered.stream().map(nextMapping -> nextMapping.getInputField())
+												.forEachOrdered(inputField -> {
+													if (leftOuterJoinMap.containsKey(inputField)
+															&& !mergedInputHeaders.contains(inputField)) {
+														mergedInputHeaders.add(inputField);
+														nextMergedLine.add((String) leftOuterJoinMap.get(inputField));
+													}
+												});
+									};
+									otherLines.parallelStream().filter(otherLinePredicate).findAny()
+											.ifPresent(otherLineConsumer);
 
-							final List<String> mapLine = ValueMapping.mapLine(new ValueMappingContext(mergedInputHeaders, nextMergedLine,
-									previousLine, previousMappedLine, map, primaryKeys, nextLineNumber,
-									nextFilteredLineNumber, mapLineConsumer, outputHeaders, defaultValues, Optional.empty()));
-							mapLineConsumer.accept(nextMergedLine, mapLine);
+									final List<String> mapLine = ValueMapping.mapLine(new ValueMappingContext(
+											mergedInputHeaders, nextMergedLine, previousLine, previousMappedLine, map,
+											primaryKeys, valueCounts, nextLineNumber, nextFilteredLineNumber, mapLineConsumer,
+											outputHeaders, defaultValues, Optional.empty()));
+									mapLineConsumer.accept(nextMergedLine, mapLine);
 
-						} catch (final LineFilteredException e) {
-							// Swallow line filtered exception and return
-							// null
-							// below to eliminate it
-							// We expect streamCSV to operate in sequential
-							// order, print a warning if it doesn't
-							final boolean success = filteredLineNumber.compareAndSet(nextFilteredLineNumber,
-									nextFilteredLineNumber - 1);
-							if (!success) {
-								System.out.println("Line numbers may not be consistent");
-							}
-						}
-						return null;
-					}, l -> {
-					});
+								} catch (final LineFilteredException e) {
+									// Swallow line filtered exception and return
+									// null
+									// below to eliminate it
+									// We expect streamCSV to operate in sequential
+									// order, print a warning if it doesn't
+									final boolean success = filteredLineNumber.compareAndSet(nextFilteredLineNumber,
+											nextFilteredLineNumber - 1);
+									if (!success) {
+										System.out.println("Line numbers may not be consistent");
+									}
+								}
+								return null;
+							}, l -> {
+							});
 				}
 				if (!leftOuterJoin) {
 					final Consumer<List<String>> fullOuterJoinConsumer = Unchecked.consumer(l -> {
@@ -387,9 +392,10 @@ public final class CSVUtil {
 										}
 									});
 
-							final List<String> mapLine = ValueMapping.mapLine(new ValueMappingContext(otherH, nextMergedLine, previousLine,
-									previousMappedLine, map, primaryKeys, nextLineNumber, nextFilteredLineNumber,
-									mapLineConsumer, outputHeaders, defaultValues, Optional.empty()));
+							final List<String> mapLine = ValueMapping.mapLine(
+									new ValueMappingContext(otherH, nextMergedLine, previousLine, previousMappedLine,
+											map, primaryKeys, valueCounts, nextLineNumber, nextFilteredLineNumber, mapLineConsumer,
+											outputHeaders, defaultValues, Optional.empty()));
 							mapLineConsumer.accept(nextMergedLine, mapLine);
 						} catch (final LineFilteredException e) {
 							// Swallow line filtered exception and return
@@ -403,7 +409,8 @@ public final class CSVUtil {
 							}
 						}
 					});
-					// Any line that nevermatched any join lines must, for left outer join, be emitted separately
+					// Any line that nevermatched any join lines must, for left outer join, be
+					// emitted separately
 					final Predicate<List<String>> fullOuterJoinPredicate = l -> !matchedOtherLines.contains(l);
 					otherLines.stream().filter(fullOuterJoinPredicate).forEach(fullOuterJoinConsumer);
 				}

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -54,11 +55,13 @@ public class ValueMappingContext {
 	private final List<String> outputHeaders;
 	private final Map<String, String> defaultValues;
 	private final Optional<JsonNode> jsonNode;
+	private final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts;
 
 	public ValueMappingContext(List<String> inputHeaders, List<String> line, List<String> previousLine,
 			List<String> previousMappedLine, List<ValueMapping> map, JDefaultDict<String, Set<String>> primaryKeys,
-			int lineNumber, int filteredLineNumber, BiConsumer<List<String>, List<String>> mapLineConsumer,
-			List<String> outputHeaders, Map<String, String> defaultValues, Optional<JsonNode> jsonNode) {
+			JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts, int lineNumber,
+			int filteredLineNumber, BiConsumer<List<String>, List<String>> mapLineConsumer, List<String> outputHeaders,
+			Map<String, String> defaultValues, Optional<JsonNode> jsonNode) {
 		this.inputHeaders = inputHeaders;
 		this.line = line;
 		this.previousLine = previousLine;
@@ -71,6 +74,7 @@ public class ValueMappingContext {
 		this.outputHeaders = outputHeaders;
 		this.defaultValues = defaultValues;
 		this.jsonNode = jsonNode;
+		this.valueCounts = valueCounts;
 	}
 
 	public List<String> getInputHeaders() {
@@ -95,6 +99,10 @@ public class ValueMappingContext {
 
 	public JDefaultDict<String, Set<String>> getPrimaryKeys() {
 		return primaryKeys;
+	}
+
+	public JDefaultDict<String, JDefaultDict<String, AtomicInteger>> getValueCounts() {
+		return valueCounts;
 	}
 
 	public int getLineNumber() {

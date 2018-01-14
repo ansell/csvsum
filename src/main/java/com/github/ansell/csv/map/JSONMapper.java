@@ -192,6 +192,8 @@ public final class JSONMapper {
 			final List<String> previousLine = new ArrayList<>();
 			final List<String> previousMappedLine = new ArrayList<>();
 			final JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
+			final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts = new JDefaultDict<>(
+					k -> new JDefaultDict<>(v -> new AtomicInteger(0)));
 			final AtomicInteger lineNumber = new AtomicInteger(0);
 			final AtomicInteger filteredLineNumber = new AtomicInteger(0);
 			final long startTime = System.currentTimeMillis();
@@ -202,7 +204,8 @@ public final class JSONMapper {
 				previousMappedLine.addAll(m);
 				csvWriter.write(m);
 			});
-			JSONStream.parse(input, h -> {}, (node, headers, line) -> {
+			JSONStream.parse(input, h -> {
+			}, (node, headers, line) -> {
 				final int nextLineNumber = lineNumber.incrementAndGet();
 				if (nextLineNumber % 1000 == 0) {
 					double secondsSinceStart = (System.currentTimeMillis() - startTime) / 1000.0d;
@@ -211,9 +214,9 @@ public final class JSONMapper {
 				}
 				final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
 				try {
-					List<String> mapLine = ValueMapping.mapLine(new ValueMappingContext(inputHeaders, line, previousLine, previousMappedLine, map,
-							primaryKeys, nextLineNumber, nextFilteredLineNumber, mapLineConsumer, outputHeaders,
-							defaultValues, Optional.of(node)));
+					List<String> mapLine = ValueMapping.mapLine(new ValueMappingContext(inputHeaders, line,
+							previousLine, previousMappedLine, map, primaryKeys, valueCounts, nextLineNumber,
+							nextFilteredLineNumber, mapLineConsumer, outputHeaders, defaultValues, Optional.of(node)));
 					mapLineConsumer.accept(line, mapLine);
 				} catch (final LineFilteredException e) {
 					// Swallow line filtered exception and return null below to

@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import org.junit.After;
 import org.junit.Before;
@@ -47,6 +48,7 @@ public class ValueMappingTest {
 	private ValueMapping testDateMatching;
 	private ValueMapping testDateMapping;
 	private JDefaultDict<String, Set<String>> testPrimaryKeys;
+	private JDefaultDict<String, JDefaultDict<String, AtomicInteger>> testValueCounts;
 
 	private static final BiConsumer<List<String>, List<String>> UNEXPECTED_LINE_CONSUMER = (l, m) -> {
 		fail("Not expecting mapLineConsumer to be called in this test.");
@@ -57,8 +59,8 @@ public class ValueMappingTest {
 		testDefaultMapping = ValueMapping.newMapping("Default", "anInput", "anotherField", "", "", "");
 		testDefaultMapping2 = ValueMapping.newMapping("Default", "anInput", "anotherField", "inputValue", "", "");
 		testDefaultMapping3 = ValueMapping.newMapping("Default", "anInput3", "anotherField3", "inputValue", "", "");
-		testDefaultMapping4 = ValueMapping.newMapping("Default", "anInput3", "anotherFieldNotShown", "inputValue",
-				"no", "");
+		testDefaultMapping4 = ValueMapping.newMapping("Default", "anInput3", "anotherFieldNotShown", "inputValue", "no",
+				"");
 		testJavascriptMapping = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField",
 				"return inputValue.substring(0, 1);", "", "");
 		testPreviousMapping = ValueMapping.newMapping("Javascript", "aDifferentInput", "aDifferentField2",
@@ -88,6 +90,7 @@ public class ValueMappingTest {
 				"return replaceLineEndingsWith(inputValue, \"\");", "", "");
 
 		testPrimaryKeys = new JDefaultDict<>(k -> new HashSet<>());
+		testValueCounts = new JDefaultDict<>(k -> new JDefaultDict<>(v -> new AtomicInteger(0)));
 	}
 
 	@After
@@ -145,10 +148,10 @@ public class ValueMappingTest {
 	@Test
 	public final void testMapLine() {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("anInput", "anInput3", "aDifferentInput", "anInput4"),
-				Arrays.asList("testValue1", "testValue2", "xyzabc", "defghi"),
-				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDefaultMapping, testDefaultMapping3,
-						testDefaultMapping4, testJavascriptMapping, testPreviousMapping),
-				testPrimaryKeys, 1, 1, UNEXPECTED_LINE_CONSUMER);
+				Arrays.asList("testValue1", "testValue2", "xyzabc", "defghi"), Collections.emptyList(),
+				Collections.emptyList(), Arrays.asList(testDefaultMapping, testDefaultMapping3, testDefaultMapping4,
+						testJavascriptMapping, testPreviousMapping),
+				testPrimaryKeys, testValueCounts, 1, 1, UNEXPECTED_LINE_CONSUMER);
 
 		assertEquals(4, mapLine.size());
 		assertEquals("testValue1", mapLine.get(0));
@@ -164,7 +167,7 @@ public class ValueMappingTest {
 				Arrays.asList("testValue1", "testValue2", "xyzabc", "defghi"),
 				Arrays.asList("testValue1", "testValue2", "x", "no-previous"), Arrays.asList(testDefaultMapping,
 						testDefaultMapping3, testDefaultMapping4, testJavascriptMapping, testPreviousMapping),
-				testPrimaryKeys, 1, 1, UNEXPECTED_LINE_CONSUMER);
+				testPrimaryKeys, testValueCounts, 1, 1, UNEXPECTED_LINE_CONSUMER);
 
 		assertEquals(4, mapLine.size());
 		assertEquals("testValue1A", mapLine.get(0));
@@ -177,8 +180,8 @@ public class ValueMappingTest {
 	public final void testMapLinePrimaryKey() {
 		List<String> mapLine1 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
 				Arrays.asList("testKey1", "testValue1"), Collections.emptyList(), Collections.emptyList(),
-				Arrays.asList(testJavascriptPrimaryKeyMapping, testDefaultMapping), testPrimaryKeys, 1, 1,
-				UNEXPECTED_LINE_CONSUMER);
+				Arrays.asList(testJavascriptPrimaryKeyMapping, testDefaultMapping), testPrimaryKeys, testValueCounts, 1,
+				1, UNEXPECTED_LINE_CONSUMER);
 
 		assertEquals(2, mapLine1.size());
 		assertEquals("testKey1", mapLine1.get(0));
@@ -186,8 +189,8 @@ public class ValueMappingTest {
 
 		List<String> mapLine2 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
 				Arrays.asList("testKey2", "testValue2"), Collections.emptyList(), Collections.emptyList(),
-				Arrays.asList(testJavascriptPrimaryKeyMapping, testDefaultMapping), testPrimaryKeys, 1, 1,
-				UNEXPECTED_LINE_CONSUMER);
+				Arrays.asList(testJavascriptPrimaryKeyMapping, testDefaultMapping), testPrimaryKeys, testValueCounts, 1,
+				1, UNEXPECTED_LINE_CONSUMER);
 
 		assertEquals(2, mapLine2.size());
 		assertEquals("testKey2", mapLine2.get(0));
@@ -197,16 +200,16 @@ public class ValueMappingTest {
 		thrown.expect(LineFilteredException.class);
 		ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"), Arrays.asList("testKey2", "testValue3"),
 				Collections.emptyList(), Collections.emptyList(),
-				Arrays.asList(testJavascriptPrimaryKeyMapping, testDefaultMapping), testPrimaryKeys, 1, 1,
-				UNEXPECTED_LINE_CONSUMER);
+				Arrays.asList(testJavascriptPrimaryKeyMapping, testDefaultMapping), testPrimaryKeys, testValueCounts, 1,
+				1, UNEXPECTED_LINE_CONSUMER);
 	}
 
 	@Test
 	public final void testMapLinePrimaryKeyFunction() {
 		List<String> mapLine1 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
 				Arrays.asList("testKey1", "testValue1"), Collections.emptyList(), Collections.emptyList(),
-				Arrays.asList(testJavascriptPrimaryKeyMappingFunction, testDefaultMapping), testPrimaryKeys, 1, 1,
-				UNEXPECTED_LINE_CONSUMER);
+				Arrays.asList(testJavascriptPrimaryKeyMappingFunction, testDefaultMapping), testPrimaryKeys,
+				testValueCounts, 1, 1, UNEXPECTED_LINE_CONSUMER);
 
 		assertEquals(2, mapLine1.size());
 		assertEquals("testKey1", mapLine1.get(0));
@@ -214,8 +217,8 @@ public class ValueMappingTest {
 
 		List<String> mapLine2 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
 				Arrays.asList("testKey2", "testValue2"), Collections.emptyList(), Collections.emptyList(),
-				Arrays.asList(testJavascriptPrimaryKeyMappingFunction, testDefaultMapping), testPrimaryKeys, 1, 1,
-				UNEXPECTED_LINE_CONSUMER);
+				Arrays.asList(testJavascriptPrimaryKeyMappingFunction, testDefaultMapping), testPrimaryKeys,
+				testValueCounts, 1, 1, UNEXPECTED_LINE_CONSUMER);
 
 		assertEquals(2, mapLine2.size());
 		assertEquals("testKey2", mapLine2.get(0));
@@ -225,15 +228,15 @@ public class ValueMappingTest {
 		thrown.expect(LineFilteredException.class);
 		ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"), Arrays.asList("testKey2", "testValue3"),
 				Collections.emptyList(), Collections.emptyList(),
-				Arrays.asList(testJavascriptPrimaryKeyMappingFunction, testDefaultMapping), testPrimaryKeys, 1, 1,
-				UNEXPECTED_LINE_CONSUMER);
+				Arrays.asList(testJavascriptPrimaryKeyMappingFunction, testDefaultMapping), testPrimaryKeys,
+				testValueCounts, 1, 1, UNEXPECTED_LINE_CONSUMER);
 	}
 
 	@Test
 	public final void testMapLineLineNumber() {
 		List<String> mapLine1 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
 				Arrays.asList("testKey1", "testValue1"), Collections.emptyList(), Collections.emptyList(),
-				Arrays.asList(testJavascriptLineNumber, testDefaultMapping), testPrimaryKeys, 123, 101,
+				Arrays.asList(testJavascriptLineNumber, testDefaultMapping), testPrimaryKeys, testValueCounts, 123, 101,
 				UNEXPECTED_LINE_CONSUMER);
 
 		assertEquals(2, mapLine1.size());
@@ -242,8 +245,8 @@ public class ValueMappingTest {
 
 		List<String> mapLine2 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
 				Arrays.asList("testKey2", "testValue2"), Collections.emptyList(), Collections.emptyList(),
-				Arrays.asList(testJavascriptFilteredLineNumber, testDefaultMapping), testPrimaryKeys, 123, 101,
-				UNEXPECTED_LINE_CONSUMER);
+				Arrays.asList(testJavascriptFilteredLineNumber, testDefaultMapping), testPrimaryKeys, testValueCounts,
+				123, 101, UNEXPECTED_LINE_CONSUMER);
 
 		assertEquals(2, mapLine2.size());
 		assertEquals("101", mapLine2.get(0));
@@ -253,8 +256,8 @@ public class ValueMappingTest {
 		thrown.expect(LineFilteredException.class);
 		ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"), Arrays.asList("testKey2", "testValue3"),
 				Collections.emptyList(), Collections.emptyList(),
-				Arrays.asList(testJavascriptFilteredLineNumber, testDefaultMapping), testPrimaryKeys, 124, 101,
-				UNEXPECTED_LINE_CONSUMER);
+				Arrays.asList(testJavascriptFilteredLineNumber, testDefaultMapping), testPrimaryKeys, testValueCounts,
+				124, 101, UNEXPECTED_LINE_CONSUMER);
 	}
 
 	@Test
@@ -265,8 +268,8 @@ public class ValueMappingTest {
 		};
 		List<String> mapLine1 = ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"),
 				Arrays.asList("testKey1", "testValue1"), Collections.emptyList(), Collections.emptyList(),
-				Arrays.asList(testJavascriptMapLineConsumerAndReturn, testDefaultMapping), testPrimaryKeys, 123, 101,
-				mapLineConsumer);
+				Arrays.asList(testJavascriptMapLineConsumerAndReturn, testDefaultMapping), testPrimaryKeys,
+				testValueCounts, 123, 101, mapLineConsumer);
 
 		assertEquals(2, mapLine1.size());
 		assertEquals("testKey1", mapLine1.get(0));
@@ -286,8 +289,8 @@ public class ValueMappingTest {
 		try {
 			ValueMapping.mapLine(Arrays.asList("aDifferentInput", "anInput"), Arrays.asList("testKey1", "testValue1"),
 					Collections.emptyList(), Collections.emptyList(),
-					Arrays.asList(testJavascriptMapLineConsumerFilter, testDefaultMapping), testPrimaryKeys, 123, 101,
-					mapLineConsumer);
+					Arrays.asList(testJavascriptMapLineConsumerFilter, testDefaultMapping), testPrimaryKeys,
+					testValueCounts, 123, 101, mapLineConsumer);
 			fail("Did not receive LineFilteredException");
 		} catch (LineFilteredException e) {
 			// Expected exception
@@ -302,8 +305,8 @@ public class ValueMappingTest {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("anInput"),
 				Arrays.asList("This is what \ryou get \nwhen you \r\nreplace new lines\n correctly\n!"),
 				Collections.emptyList(), Collections.emptyList(),
-				Arrays.asList(testJavascriptReplaceLineEndings, testDefaultMapping), testPrimaryKeys, 123, 101,
-				UNEXPECTED_LINE_CONSUMER);
+				Arrays.asList(testJavascriptReplaceLineEndings, testDefaultMapping), testPrimaryKeys, testValueCounts,
+				123, 101, UNEXPECTED_LINE_CONSUMER);
 
 		assertEquals(2, mapLine.size());
 		// Test with and without the mapping to verify it can be roundtripped
@@ -315,8 +318,8 @@ public class ValueMappingTest {
 	@Test
 	public final void testMapLineDateMatchInvalid() {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("dateInput"), Arrays.asList("testNotADate"),
-				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMatching), testPrimaryKeys, 1,
-				1, UNEXPECTED_LINE_CONSUMER);
+				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMatching), testPrimaryKeys,
+				testValueCounts, 1, 1, UNEXPECTED_LINE_CONSUMER);
 
 		assertEquals(1, mapLine.size());
 		assertEquals("fix-your-date-format", mapLine.get(0));
@@ -325,8 +328,8 @@ public class ValueMappingTest {
 	@Test
 	public final void testMapLineDateMatchValid() {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("dateInput"), Arrays.asList("2013-01-30"),
-				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMatching), testPrimaryKeys, 1,
-				1, UNEXPECTED_LINE_CONSUMER);
+				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMatching), testPrimaryKeys,
+				testValueCounts, 1, 1, UNEXPECTED_LINE_CONSUMER);
 
 		assertEquals(1, mapLine.size());
 		assertEquals("2013-01-30", mapLine.get(0));
@@ -335,8 +338,8 @@ public class ValueMappingTest {
 	@Test
 	public final void testMapLineDateMatchInvalidConvert() {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("dateInput"), Arrays.asList("testNotADate"),
-				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMapping), testPrimaryKeys, 1, 1,
-				UNEXPECTED_LINE_CONSUMER);
+				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMapping), testPrimaryKeys,
+				testValueCounts, 1, 1, UNEXPECTED_LINE_CONSUMER);
 
 		assertEquals(1, mapLine.size());
 		assertEquals("fix-your-date-format", mapLine.get(0));
@@ -345,8 +348,8 @@ public class ValueMappingTest {
 	@Test
 	public final void testMapLineDateMatchValidConvert() {
 		List<String> mapLine = ValueMapping.mapLine(Arrays.asList("dateInput"), Arrays.asList("2013-01-30"),
-				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMapping), testPrimaryKeys, 1, 1,
-				UNEXPECTED_LINE_CONSUMER);
+				Collections.emptyList(), Collections.emptyList(), Arrays.asList(testDateMapping), testPrimaryKeys,
+				testValueCounts, 1, 1, UNEXPECTED_LINE_CONSUMER);
 
 		assertEquals(1, mapLine.size());
 		assertEquals("2013-W05-3", mapLine.get(0));
