@@ -307,6 +307,10 @@
 							<mainClass>com.github.ansell.csv.access.AccessMapper</mainClass>
 							<id>accessmap</id>
 						</program>
+						<program>
+							<mainClass>com.github.ansell.csv.util.JSONPrettyPrinter</mainClass>
+							<id>jsonpretty</id>
+						</program>
 					</programs>
 				</configuration>
 			</plugin>
