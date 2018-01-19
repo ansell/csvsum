@@ -154,10 +154,17 @@ Run csvmap with a sample csv file:
     <dependency>
         <groupId>com.github.ansell.csv.sum</groupId>
         <artifactId>csvsum</artifactId>
-        <version>0.5.1</version>
+        <version>0.6.0</version>
     </dependency>
 
 # Changelog
+
+## 2018-01-19
+* Release 0.6.0
+* Add jsonpretty to pretty print JSON documents using a streaming converter
+* Add jsonmap
+* Add jsonsum
+* Cleanup CSVSorter API
 
 ## 2018-01-15
 * Add incrementCount and getCount functions to ValueMapping

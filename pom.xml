@@ -11,7 +11,7 @@
 
 	<groupId>com.github.ansell.csv.sum</groupId>
 	<artifactId>csvsum</artifactId>
-	<version>0.5.2-SNAPSHOT</version>
+	<version>0.6.0</version>
 	<name>CSVSum</name>
 	<description>CSV Summariser</description>
 	<packaging>jar</packaging>
@@ -227,7 +227,7 @@
 			<dependency>
 				<groupId>com.github.ansell.csv</groupId>
 				<artifactId>csvstream</artifactId>
-				<version>0.0.5-SNAPSHOT</version>
+				<version>0.0.5</version>
 			</dependency>
 			<dependency>
 				<groupId>com.fasterxml.util</groupId>

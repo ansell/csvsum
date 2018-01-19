@@ -394,7 +394,7 @@ public final class JSONSummariser {
 	 *            The start time reference, obtained using
 	 *            {@link System#currentTimeMillis()}, for the timing analysis.
 	 * @return A function which can be passed to
-	 *         {@link #parseForSummarise(Reader, CsvMapper, CsvSchema, List, int, List, BiFunction)}
+	 *         {@link #parseForSummarise(Reader, ObjectMapper, JDefaultDict, JDefaultDict, JDefaultDict, JDefaultDict, JDefaultDict, AtomicInteger, Map, JsonPointer, Map)}
 	 */
 	public static TriFunction<JsonNode, List<String>, List<String>, List<String>> getSummaryFunctionWithStartTime(
 			final JDefaultDict<String, AtomicInteger> emptyCounts,
@@ -465,9 +465,9 @@ public final class JSONSummariser {
 	 *             If there is a problem processing the CSV content
 	 */
 	private static List<String> parseForSummarise(final Reader input, final ObjectMapper inputMapper,
-			Map<String, String> defaultValues, TriFunction<JsonNode, List<String>, List<String>, List<String>> summariseFunction,
-			JsonPointer basePath, Map<String, Optional<JsonPointer>> fieldRelativePaths)
-			throws IOException, CSVStreamException {
+			Map<String, String> defaultValues,
+			TriFunction<JsonNode, List<String>, List<String>, List<String>> summariseFunction, JsonPointer basePath,
+			Map<String, Optional<JsonPointer>> fieldRelativePaths) throws IOException, CSVStreamException {
 		// This will be populated with whatever is recognised as the headers when the
 		// input is parsed, so we can return it from this function
 		final List<String> headers = new ArrayList<>();
