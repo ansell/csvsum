@@ -195,6 +195,7 @@ public class JSONUtil {
 		final CloseableHttpResponse response = httpClient.execute(request);
 		final int status = response.getStatusLine().getStatusCode();
 		if (status != 200 && status != 203) {
+			response.close();
 			throw new IOException("Can't retrieve " + url + ", status code: " + status);
 		}
 		return response.getEntity().getContent();
