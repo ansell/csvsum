@@ -161,9 +161,10 @@ public final class CSVSummariser {
 			writer = new BufferedWriter(new OutputStreamWriter(System.out));
 		}
 
-		int samplesToShowInt = samplesToShow.value(options);
-		int headerLineCountInt = headerLineCount.value(options);
-		boolean debugBoolean = debug.value(options);
+		final boolean showSampleCountsBoolean = showSampleCounts.value(options);
+		final int samplesToShowInt = samplesToShow.value(options);
+		final int headerLineCountInt = headerLineCount.value(options);
+		final boolean debugBoolean = debug.value(options);
 
 		// Defaults to null, with any strings in the file overriding that
 		AtomicReference<List<String>> overrideHeadersList = new AtomicReference<>();
@@ -209,7 +210,7 @@ public final class CSVSummariser {
 						? Files.newBufferedWriter(outputMappingPath)
 						: NullWriter.NULL_WRITER) {
 			runSummarise(newBufferedReader, inputMapper, inputSchema, writer, mappingWriter, samplesToShowInt,
-					showSampleCounts.value(options), debugBoolean, overrideHeadersList.get(), Collections.emptyList(),
+					showSampleCountsBoolean, debugBoolean, overrideHeadersList.get(), Collections.emptyList(),
 					headerLineCountInt);
 		}
 	}
