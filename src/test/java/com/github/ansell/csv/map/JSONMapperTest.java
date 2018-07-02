@@ -73,6 +73,10 @@ public class JSONMapperTest {
 
 	private Path testFile;
 
+	private Path testDifferentMapping;
+
+	private Path testDifferentFile;
+
 	@Before
 	public void setUp() throws Exception {
 		testMapping = tempDir.newFile("test-mapping-many-entries-json.csv").toPath();
@@ -81,6 +85,14 @@ public class JSONMapperTest {
 		testFile = tempDir.newFile("test-array-many-entries.json").toPath();
 		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-array-many-entries.json"),
 				testFile, StandardCopyOption.REPLACE_EXISTING);
+
+		testDifferentMapping = tempDir.newFile("test-mapping-array-single-json.csv").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-mapping-array-single-json.csv"),
+				testDifferentMapping, StandardCopyOption.REPLACE_EXISTING);
+		testDifferentFile = tempDir.newFile("test-array-single.json").toPath();
+		Files.copy(this.getClass().getResourceAsStream("/com/github/ansell/csvmap/test-array-single.json"),
+				testDifferentFile, StandardCopyOption.REPLACE_EXISTING);
+		
 	}
 
 	/**
@@ -136,6 +148,16 @@ public class JSONMapperTest {
 	public final void testMainComplete() throws Exception {
 		JSONMapper.main("--input", testFile.toAbsolutePath().toString(), "--mapping",
 				testMapping.toAbsolutePath().toString(), "--base-path", "/nodes");
+	}
+
+	/**
+	 * Test method for
+	 * {@link com.github.ansell.csv.map.JSONMapper#main(java.lang.String[])}.
+	 */
+	@Test
+	public final void testMainDifferent() throws Exception {
+		JSONMapper.main("--input", testDifferentFile.toAbsolutePath().toString(), "--mapping",
+				testDifferentMapping.toAbsolutePath().toString(), "--base-path", "/");
 	}
 
 }
