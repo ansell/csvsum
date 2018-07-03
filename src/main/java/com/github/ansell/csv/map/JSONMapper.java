@@ -231,7 +231,7 @@ public final class JSONMapper {
 				}
 				return null;
 			}, l -> {
-			}, basePath, fieldRelativePaths, defaultValues, jsonMapper);
+			}, basePath, fieldRelativePaths, defaultValues, jsonMapper, outputHeaders);
 		}
 	}
 

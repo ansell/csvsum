@@ -472,7 +472,7 @@ public final class JSONSummariser {
 		// input is parsed, so we can return it from this function
 		final List<String> headers = new ArrayList<>();
 		JSONStream.parse(input, h -> headers.addAll(h), summariseFunction, NULL_CONSUMER, basePath, fieldRelativePaths,
-				defaultValues, inputMapper);
+				defaultValues, inputMapper, headers);
 		return headers;
 	}
 
