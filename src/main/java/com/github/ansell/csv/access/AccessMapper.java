@@ -96,7 +96,7 @@ public class AccessMapper {
 		final OptionSpec<Void> help = parser.accepts("help").forHelp();
 		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
 				.describedAs("The input Access file to be mapped.");
-		final OptionSpec<File> mapping = parser.accepts("mapping").withRequiredArg().ofType(File.class).required()
+		final OptionSpec<File> mapping = parser.accepts("mapping").withRequiredArg().ofType(File.class)
 				.describedAs("The mapping file.");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class).required()
 				.describedAs("The directory to contain the mapped file.");
@@ -130,24 +130,27 @@ public class AccessMapper {
 			throw new FileNotFoundException("Could not find input Access file: " + inputPath.toString());
 		}
 
-		final Path mappingPath = mapping.value(options).toPath();
-		if (!Files.exists(mappingPath)) {
-			throw new FileNotFoundException("Could not find mapping CSV file: " + mappingPath.toString());
+		try (final InputStream readerDB = Files.newInputStream(inputPath);) {
+			dumpToCSVs(readerDB, output.value(options).toPath(), outputPrefix.value(options), debug.value(options),
+					tableNamePrefix.value(options));
 		}
 
-		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);) {
-			try (final InputStream readerDB = Files.newInputStream(inputPath);) {
-				dumpToCSVs(readerDB, output.value(options).toPath(), outputPrefix.value(options), debug.value(options),
-						tableNamePrefix.value(options));
+		if(options.has(mapping)) {
+			final Path mappingPath = mapping.value(options).toPath();
+			if (!Files.exists(mappingPath)) {
+				throw new FileNotFoundException("Could not find mapping CSV file: " + mappingPath.toString());
 			}
-			// Read the database again to map it to a single CSV
-			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
-
-			// Do sanity check on the access mappings
-			List<ValueMapping> accessMappings = checkAccessMappings(map);
-			try (final InputStream readerDB = Files.newInputStream(inputPath);) {
-				mapDBToSingleCSV(readerDB, map, output.value(options).toPath(), outputPrefix.value(options) + "Single-",
-						threads.value(options));
+	
+			try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);) {
+				// Read the database again to map it to a single CSV
+				List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
+	
+				// Do sanity check on the access mappings
+				List<ValueMapping> accessMappings = checkAccessMappings(map);
+				try (final InputStream readerDB = Files.newInputStream(inputPath);) {
+					mapDBToSingleCSV(readerDB, map, output.value(options).toPath(), outputPrefix.value(options) + "Single-",
+							threads.value(options));
+				}
 			}
 		}
 	}
