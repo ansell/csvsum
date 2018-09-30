@@ -72,7 +72,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.jooq</groupId>
-			<artifactId>jool</artifactId>
+			<artifactId>jool-java-8</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>com.github.jsonld-java</groupId>
@@ -201,7 +201,7 @@
 			</dependency>
 			<dependency>
 				<groupId>org.jooq</groupId>
-				<artifactId>jool</artifactId>
+				<artifactId>jool-java-8</artifactId>
 				<version>0.9.14</version>
 			</dependency>
 			<dependency>
