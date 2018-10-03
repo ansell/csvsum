@@ -39,9 +39,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.jooq.lambda.Unchecked;
@@ -77,11 +80,9 @@ public final class CSVSorter {
 				.describedAs("The input CSV file to be mapped.");
 		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class).required()
 				.describedAs("The output sorted CSV file.");
-		// TODO: Change this to a delimited string to allow ordered multiple
-		// indexes
-		final OptionSpec<Integer> idFieldIndex = parser.accepts("id-field-index").withRequiredArg()
-				.ofType(Integer.class).required()
-				.describedAs("The index of the column in the CSV file that is to be used for sorting");
+		final OptionSpec<String> idFieldIndex = parser.accepts("id-field-index").withRequiredArg().ofType(String.class)
+				.required()
+				.describedAs("An ordered comma-separated list of indexes for fields that are to be used for sorting");
 		final OptionSpec<Integer> ignoreHeaderLines = parser.accepts("ignore-header-line-count").withRequiredArg()
 				.ofType(Integer.class).defaultsTo(1).describedAs(
 						"The number of header lines to ignore, with the first representing the actual headers to use");
@@ -105,7 +106,8 @@ public final class CSVSorter {
 
 		final boolean debug = debugOption.value(options);
 
-		final int idFieldIndexInteger = idFieldIndex.value(options);
+		final List<Integer> idFieldIndexIntegers = Arrays.asList(idFieldIndex.value(options).split(",")).stream()
+				.filter(String::isEmpty).mapToInt(Integer::parseInt).boxed().collect(Collectors.toList());
 
 		final Path inputPath = input.value(options).toPath();
 		if (!Files.exists(inputPath)) {
@@ -124,7 +126,7 @@ public final class CSVSorter {
 		try (final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
 			runSorter(readerInput, outputPath, ignoreHeaderLines.value(options),
 					getCsvSchema(CSVStream.defaultSchema(), ignoreHeaderLines.value(options)),
-					getComparator(idFieldIndexInteger), debug);
+					getComparator(idFieldIndexIntegers), debug);
 		}
 	}
 
@@ -136,11 +138,12 @@ public final class CSVSorter {
 		}
 	}
 
-	public static Comparator<StringList> getComparator(int idFieldIndex, int... otherFieldIndexes) {
-		Comparator<StringList> result = Comparator.comparing(list -> list.get(idFieldIndex));
-		if (otherFieldIndexes != null) {
-			for (int nextOtherFieldIndex : otherFieldIndexes) {
-				result = result.thenComparing(list -> list.get(nextOtherFieldIndex));
+	public static Comparator<StringList> getComparator(List<Integer> idFieldIndexes) {
+		Comparator<StringList> result = Comparator.comparing(list -> list.get(idFieldIndexes.get(0)));
+		if (idFieldIndexes.size() > 1) {
+			for (int i = 1; i < idFieldIndexes.size(); i++) {
+				final Integer nextFieldIndex = idFieldIndexes.get(i);
+				result = result.thenComparing(list -> list.get(nextFieldIndex));
 			}
 		}
 		return result;
@@ -222,7 +225,7 @@ public final class CSVSorter {
 			}
 		}
 
-		SortConfig sortConfig = new SortConfig().withMaxMemoryUsage(20 * 1000 * 1000)
+		SortConfig sortConfig = new SortConfig().withMaxMemoryUsage(40 * 1024 * 1024)
 				.withTempFileProvider(() -> Files.createTempFile(tempDir, "temp-intermediate-", ".csv").toFile());
 
 		// Rewrite the header line to the output
