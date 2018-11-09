@@ -79,10 +79,6 @@
 			<artifactId>jsonld-java</artifactId>
 		</dependency>
 		<dependency>
-			<groupId>com.healthmarketscience.jackcess</groupId>
-			<artifactId>jackcess</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-simple</artifactId>
 		</dependency>
@@ -148,17 +144,6 @@
 				<groupId>net.sf.jopt-simple</groupId>
 				<artifactId>jopt-simple</artifactId>
 				<version>5.0.4</version>
-			</dependency>
-			<dependency>
-				<groupId>com.healthmarketscience.jackcess</groupId>
-				<artifactId>jackcess</artifactId>
-				<version>2.2.0</version>
-				<exclusions>
-					<exclusion>
-						<artifactId>commons-logging</artifactId>
-						<groupId>commons-logging</groupId>
-					</exclusion>
-				</exclusions>
 			</dependency>
 			<dependency>
 				<groupId>junit</groupId>
@@ -302,10 +287,6 @@
 						<program>
 							<mainClass>com.github.ansell.csv.sort.CSVSorter</mainClass>
 							<id>csvsort</id>
-						</program>
-						<program>
-							<mainClass>com.github.ansell.csv.access.AccessMapper</mainClass>
-							<id>accessmap</id>
 						</program>
 						<program>
 							<mainClass>com.github.ansell.csv.util.JSONPrettyPrinter</mainClass>

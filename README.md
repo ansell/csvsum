@@ -1,6 +1,6 @@
-# Summariser and Mapper for CSV and Access files
+# Summariser and Mapper for CSV and JSON files
 
-CSV summariser to quickly find out what you need to know about that random CSV file you were given, and a mapper to make the CSV file fit with what you need. It also provides a mapper for Access databases to create CSV files.
+CSV summariser to quickly find out what you need to know about that random CSV file you were given, and a mapper to make the CSV file fit with what you need. It also provides a mapper and summariser for JSON files.
 
 [![Build Status](https://travis-ci.org/ansell/csvsum.svg?branch=master)](https://travis-ci.org/ansell/csvsum) [![Coverage Status](https://coveralls.io/repos/ansell/csvsum/badge.svg?branch=master)](https://coveralls.io/r/ansell/csvsum?branch=master)
 
@@ -116,23 +116,6 @@ Run csvmap with a sample csv file:
 
     ./csvjoin --input src/test/resources/com/github/ansell/csvjoin/test-source.csv --other-input src/test/resources/com/github/ansell/csvjoin/test-source-other.csv --mapping src/test/resources/com/github/ansell/csvjoin/test-mapping.csv
 
-
-# Access Mapper
-
-Access Mapper inherits the functionality of CSV Mapper, so all of the functions and languages available to the CSV Mapper program are available here.
-
-In addition, it adds another supported language, Access. Primary and foreign keys are linked using rows in the mapping column that point from either 1-1 or Many-1 relationships. 1-Many relationships are not supported due to the way each output row is generated based on a single base row from the base table. The base table is chosen based on the table referenced in the first mapping row of the mapping CSV file. Tables are merged based on the Left Outer Join pattern.
-
-## Usage
-
-Run accessmap with --help to get usage details:
-
-    ./accessmap --help
-
-Run accessmap with a sample access file:
-
-    ./accessmap --input src/test/resources/com/github/ansell/csvaccess/test-source.accdb --mapping src/test/resources/com/github/ansell/csvaccess/test-mapping.csv --output target/ --debug true
-
 # CSV to SQL Uploader
 
 CSV to SQL Uploader uploads from a CSV file to a SQL Database, including dropping and creating the table as necessary.
@@ -158,6 +141,9 @@ Run csvmap with a sample csv file:
     </dependency>
 
 # Changelog
+
+## 2018-11-09
+* Move accessmap to a new repository to cleanup dependencies here
 
 ## 2018-01-19
 * Release 0.6.0
