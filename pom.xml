@@ -259,6 +259,12 @@
 					</execution>
 				</executions>
 				<configuration>
+					<environmentSetupFileName>environmentSetupFile.sh</environmentSetupFileName>
+					<jvmSettings>
+						<extraArguments>
+							<extraArgument>$CSVSUM_MEMORY_OPTS</extraArgument>
+						</extraArguments>
+					</jvmSettings>
 					<programs>
 						<program>
 							<mainClass>com.github.ansell.csv.sum.CSVSummariser</mainClass>
@@ -294,6 +300,29 @@
 						</program>
 					</programs>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+					<descriptorRefs>
+						<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+					<archive>
+						<manifest>
+							<mainClass>com.github.ansell.csv.sum.CSVSummariser</mainClass>
+						</manifest>
+					</archive>
+				</configuration>
+				<executions>
+					<execution>
+						<id>make-assembly</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
