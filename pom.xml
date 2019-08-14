@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>com.github.ansell</groupId>
 		<artifactId>parentpom</artifactId>
-		<version>12</version>
+		<version>13</version>
 	</parent>
 
 	<groupId>com.github.ansell.csv.sum</groupId>
