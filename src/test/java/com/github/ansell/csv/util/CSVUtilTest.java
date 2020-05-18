@@ -312,9 +312,9 @@ public class CSVUtilTest {
 		List<String> headers = Arrays.asList("TestHeader1");
 		StringWriter writer = new StringWriter();
 		final Writer writer1 = writer;
-		CSVStream.newCSVWriter(writer1, headers).writeAll(Arrays.asList(Arrays.asList("")));
+		CSVStream.newCSVWriter(writer1, headers).writeAll(Arrays.asList(Arrays.asList("Z")));
 		System.out.println(writer.toString());
-		assertEquals("TestHeader1\n\n", writer.toString());
+		assertEquals("TestHeader1\nZ\n", writer.toString());
 
 		AtomicBoolean headersGood = new AtomicBoolean(false);
 		AtomicBoolean lineGood = new AtomicBoolean(false);
@@ -323,7 +323,7 @@ public class CSVUtilTest {
 				headersGood.set(true);
 			}
 		}, (h, l) -> {
-			if (l.size() == 1 && l.contains("")) {
+			if (l.size() == 1 && l.get(0).equals("Z")) {
 				lineGood.set(true);
 			}
 			return l;
