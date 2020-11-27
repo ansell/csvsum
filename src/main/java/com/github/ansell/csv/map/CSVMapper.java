@@ -229,7 +229,7 @@ public final class CSVMapper {
 		}
 	}
 
-	private static void runMapper(Reader input, List<ValueMapping> map, Writer output, boolean writeHeaders,
+	public static void runMapper(Reader input, List<ValueMapping> map, Writer output, boolean writeHeaders,
 			List<String> outputHeaders, List<String> overrideHeaders, int headerLineCount, CsvMapper inputMapper,
 			CsvSchema inputSchema) throws ScriptException, IOException {
 

@@ -175,7 +175,7 @@ public final class JSONMapper {
 		}
 	}
 
-	private static void runMapper(Reader input, List<ValueMapping> map, Writer output, JsonPointer basePath,
+	public static void runMapper(Reader input, List<ValueMapping> map, Writer output, JsonPointer basePath,
 			ObjectMapper jsonMapper, boolean writeHeaders) throws ScriptException, IOException {
 
 		final List<String> inputHeaders = ValueMapping.getInputFieldsFromList(map);
