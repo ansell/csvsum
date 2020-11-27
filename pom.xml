@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>com.github.ansell</groupId>
 		<artifactId>parentpom</artifactId>
-		<version>14</version>
+		<version>15</version>
 	</parent>
 
 	<groupId>com.github.ansell.csv.sum</groupId>
@@ -36,8 +36,8 @@
 	</developers>
 
 	<properties>
-		<jackson.version>2.11.0</jackson.version>
-		<junit.version>4.13</junit.version>
+		<jackson.version>2.11.3</jackson.version>
+		<junit.version>4.13.1</junit.version>
 		<slf4j.version>1.7.30</slf4j.version>
 	</properties>
 
