@@ -1,9 +1,13 @@
 language: java
 jdk:
   - openjdk15
-notifications:
-  email:
-    - ansell.peter@gmail.com
+before_install:
+  - mkdir -p ~/.m2; wget -q -O ~/.m2/toolchains.xml https://raw.githubusercontent.com/ansell/ansell-parentpom/master/toolchains.xml.template
+  - cd $TRAVIS_BUILD_DIR
 after_success:
   - mvn clean test jacoco:report
   - bash <(curl -s https://codecov.io/bash)
+env:
+  global:
+    JDK_VERSION: "15"
+    JDK_VENDOR: "openjdk"
