@@ -1,17 +1,17 @@
 /*
  * Copyright (c) 2016, Peter Ansell
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * * Redistributions of source code must retain the above copyright notice, this
  *   list of conditions and the following disclaimer.
- * 
+ *
  * * Redistributions in binary form must reproduce the above copyright notice,
  *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -48,8 +48,6 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import javax.script.ScriptException;
 
@@ -72,216 +70,235 @@ import joptsimple.OptionSpec;
 
 /**
  * Maps from one CSV file to another based on the supplied mapping definitions.
- * 
+ *
  * @author Peter Ansell p_ansell@yahoo.com
  */
 public final class CSVMapper {
 
-	/**
-	 * Private constructor for static only class
-	 */
-	private CSVMapper() {
-	}
+    /**
+     * Private constructor for static only class
+     */
+    private CSVMapper() {
+    }
 
-	public static void main(String... args) throws Exception {
-		final OptionParser parser = new OptionParser();
+    public static void main(String... args) throws Exception {
+        final OptionParser parser = new OptionParser();
 
-		final OptionSpec<Void> help = parser.accepts("help").forHelp();
-		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
-				.describedAs("The input CSV file to be mapped.");
-		final OptionSpec<File> mapping = parser.accepts("mapping").withRequiredArg().ofType(File.class).required()
-				.describedAs("The mapping file.");
-		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
-				.describedAs("The mapped CSV file, or the console if not specified.");
-		final OptionSpec<File> overrideHeadersFile = parser.accepts("override-headers-file").withRequiredArg()
-				.ofType(File.class).describedAs(
-						"A file whose first line contains the headers to use, to override those found in the file.");
-		final OptionSpec<Integer> headerLineCount = parser.accepts("header-line-count").withRequiredArg()
-				.ofType(Integer.class)
-				.describedAs(
-						"The number of header lines present in the file. Can be used in conjunction with override-headers-file to substitute a different set of headers")
-				.defaultsTo(1);
-		final OptionSpec<Boolean> appendToExistingOption = parser.accepts("append-to-existing").withRequiredArg()
-				.ofType(Boolean.class).describedAs("Append to an existing file").defaultsTo(false);
-		final OptionSpec<Boolean> debug = parser.accepts("debug").withRequiredArg().ofType(Boolean.class)
-				.defaultsTo(Boolean.FALSE).describedAs("Set to true to debug.");
-		final OptionSpec<String> separatorCharacterOption = parser.accepts("separator-char").withRequiredArg()
-				.ofType(String.class).defaultsTo(",")
-				.describedAs("Overrides the default RFC4180 Section 2 column separator character");
-		final OptionSpec<String> quoteCharacterOption = parser.accepts("quote-char").withRequiredArg()
-				.ofType(String.class).defaultsTo("\"")
-				.describedAs("Overrides the default RFC4180 Section 2 quote character");
-		final OptionSpec<String> escapeCharacterOption = parser.accepts("escape-char").withRequiredArg()
-				.ofType(String.class).defaultsTo("").describedAs(
-						"RFC4180 Section 2 does not define escape characters, but some implementations use a different character to the quote character, so support for those can be enabled using this option");
+        final OptionSpec<Void> help = parser.accepts("help").forHelp();
+        final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class)
+                .required().describedAs("The input CSV file to be mapped.");
+        final OptionSpec<File> mapping = parser.accepts("mapping").withRequiredArg()
+                .ofType(File.class).required().describedAs("The mapping file.");
+        final OptionSpec<File> output = parser.accepts("output").withRequiredArg()
+                .ofType(File.class)
+                .describedAs("The mapped CSV file, or the console if not specified.");
+        final OptionSpec<File> overrideHeadersFile = parser.accepts("override-headers-file")
+                .withRequiredArg().ofType(File.class).describedAs(
+                        "A file whose first line contains the headers to use, to override those found in the file.");
+        final OptionSpec<Integer> headerLineCount = parser.accepts("header-line-count")
+                .withRequiredArg().ofType(Integer.class)
+                .describedAs(
+                        "The number of header lines present in the file. Can be used in conjunction with override-headers-file to substitute a different set of headers")
+                .defaultsTo(1);
+        final OptionSpec<Boolean> appendToExistingOption = parser.accepts("append-to-existing")
+                .withRequiredArg().ofType(Boolean.class).describedAs("Append to an existing file")
+                .defaultsTo(false);
+        final OptionSpec<Boolean> debug = parser.accepts("debug").withRequiredArg()
+                .ofType(Boolean.class).defaultsTo(Boolean.FALSE)
+                .describedAs("Set to true to debug.");
+        final OptionSpec<String> separatorCharacterOption = parser.accepts("separator-char")
+                .withRequiredArg().ofType(String.class).defaultsTo(",")
+                .describedAs("Overrides the default RFC4180 Section 2 column separator character");
+        final OptionSpec<String> quoteCharacterOption = parser.accepts("quote-char")
+                .withRequiredArg().ofType(String.class).defaultsTo("\"")
+                .describedAs("Overrides the default RFC4180 Section 2 quote character");
+        final OptionSpec<String> escapeCharacterOption = parser.accepts("escape-char")
+                .withRequiredArg().ofType(String.class).defaultsTo("").describedAs(
+                        "RFC4180 Section 2 does not define escape characters, but some implementations use a different character to the quote character, so support for those can be enabled using this option");
 
-		OptionSet options = null;
+        OptionSet options = null;
 
-		try {
-			options = parser.parse(args);
-		} catch (final OptionException e) {
-			System.out.println(e.getMessage());
-			parser.printHelpOn(System.out);
-			throw e;
-		}
+        try {
+            options = parser.parse(args);
+        } catch (final OptionException e) {
+            System.out.println(e.getMessage());
+            parser.printHelpOn(System.out);
+            throw e;
+        }
 
-		if (options.has(help)) {
-			parser.printHelpOn(System.out);
-			return;
-		}
+        if (options.has(help)) {
+            parser.printHelpOn(System.out);
+            return;
+        }
 
-		final Path inputPath = input.value(options).toPath();
-		if (!Files.exists(inputPath)) {
-			throw new FileNotFoundException("Could not find input CSV file: " + inputPath.toString());
-		}
+        final Path inputPath = input.value(options).toPath();
+        if (!Files.exists(inputPath)) {
+            throw new FileNotFoundException(
+                    "Could not find input CSV file: " + inputPath.toString());
+        }
 
-		final Path mappingPath = mapping.value(options).toPath();
-		if (!Files.exists(mappingPath)) {
-			throw new FileNotFoundException("Could not find mapping CSV file: " + mappingPath.toString());
-		}
+        final Path mappingPath = mapping.value(options).toPath();
+        if (!Files.exists(mappingPath)) {
+            throw new FileNotFoundException(
+                    "Could not find mapping CSV file: " + mappingPath.toString());
+        }
 
-		boolean debugBoolean = debug.value(options);
+        final boolean debugBoolean = debug.value(options);
 
-		int headerLineCountInt = headerLineCount.value(options);
+        final int headerLineCountInt = headerLineCount.value(options);
 
-		// Defaults to null, with any strings in the file overriding that
-		AtomicReference<List<String>> overrideHeadersList = new AtomicReference<>();
-		if (options.has(overrideHeadersFile)) {
-			CSVSummariser.parseOverrideHeaders(overrideHeadersFile, options, overrideHeadersList);
-		}
+        // Defaults to null, with any strings in the file overriding that
+        final AtomicReference<List<String>> overrideHeadersList = new AtomicReference<>();
+        if (options.has(overrideHeadersFile)) {
+            CSVSummariser.parseOverrideHeaders(overrideHeadersFile, options, overrideHeadersList);
+        }
 
-		CsvMapper inputMapper = CSVStream.defaultMapper();
-		final CsvSchema inputSchema;
-		if (!options.has(separatorCharacterOption) && !options.has(quoteCharacterOption)
-				&& !options.has(escapeCharacterOption)) {
-			inputSchema = CSVStream.defaultSchema();
-		} else {
-			CsvSchema customSchema = CSVStream.defaultSchema()
-					.withColumnSeparator(separatorCharacterOption.value(options).charAt(0));
-			if (!quoteCharacterOption.value(options).isEmpty()) {
-				char quoteCharChosen = quoteCharacterOption.value(options).charAt(0);
-				if (debugBoolean) {
-					System.out.println("Setting quote char to: " + quoteCharChosen);
-				}
-				customSchema = customSchema.withQuoteChar(quoteCharChosen);
-			} else {
-				customSchema = customSchema.withoutQuoteChar();
-			}
-			if (!escapeCharacterOption.value(options).isEmpty()) {
-				char escapeCharChosen = escapeCharacterOption.value(options).charAt(0);
-				if (debugBoolean) {
-					System.out.println("Setting escape char to: " + escapeCharChosen);
-				}
-				customSchema = customSchema.withEscapeChar(escapeCharChosen);
-			} else {
-				customSchema = customSchema.withoutEscapeChar();
-			}
-			inputSchema = customSchema;
-		}
+        final CsvMapper inputMapper = CSVStream.defaultMapper();
+        final CsvSchema inputSchema;
+        if (!options.has(separatorCharacterOption) && !options.has(quoteCharacterOption)
+                && !options.has(escapeCharacterOption)) {
+            inputSchema = CSVStream.defaultSchema();
+        } else {
+            CsvSchema customSchema = CSVStream.defaultSchema()
+                    .withColumnSeparator(separatorCharacterOption.value(options).charAt(0));
+            if (!quoteCharacterOption.value(options).isEmpty()) {
+                final char quoteCharChosen = quoteCharacterOption.value(options).charAt(0);
+                if (debugBoolean) {
+                    System.out.println("Setting quote char to: " + quoteCharChosen);
+                }
+                customSchema = customSchema.withQuoteChar(quoteCharChosen);
+            } else {
+                customSchema = customSchema.withoutQuoteChar();
+            }
+            if (!escapeCharacterOption.value(options).isEmpty()) {
+                final char escapeCharChosen = escapeCharacterOption.value(options).charAt(0);
+                if (debugBoolean) {
+                    System.out.println("Setting escape char to: " + escapeCharChosen);
+                }
+                customSchema = customSchema.withEscapeChar(escapeCharChosen);
+            } else {
+                customSchema = customSchema.withoutEscapeChar();
+            }
+            inputSchema = customSchema;
+        }
 
-		// Double up for now on the append option, as we always want to write headers,
-		// except when we are appending to an existing file, in which case we check that
-		// the headers already exist
-		boolean writeHeaders = !appendToExistingOption.value(options);
+        // Double up for now on the append option, as we always want to write
+        // headers,
+        // except when we are appending to an existing file, in which case we
+        // check that
+        // the headers already exist
+        final boolean writeHeaders = !appendToExistingOption.value(options);
 
-		OpenOption[] writeOptions = new OpenOption[1];
-		// Append if needed, otherwise verify that the file is created from scratch
-		writeOptions[0] = writeHeaders ? StandardOpenOption.CREATE_NEW : StandardOpenOption.APPEND;
+        final OpenOption[] writeOptions = new OpenOption[1];
+        // Append if needed, otherwise verify that the file is created from
+        // scratch
+        writeOptions[0] = writeHeaders ? StandardOpenOption.CREATE_NEW : StandardOpenOption.APPEND;
 
-		try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);
-				final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
-			List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
-			final List<String> outputHeaders = ValueMapping.getOutputFieldsFromList(map);
+        try (final BufferedReader readerMapping = Files.newBufferedReader(mappingPath);
+                final BufferedReader readerInput = Files.newBufferedReader(inputPath);) {
+            final List<ValueMapping> map = ValueMapping.extractMappings(readerMapping);
+            final List<String> outputHeaders = ValueMapping.getOutputFieldsFromList(map);
 
-			Writer writer = null;
-			List<String> defaultValues = Collections.emptyList();
-			List<String> overrideHeaders = overrideHeadersList.get();
-			try {
-				if (options.has(output)) {
-					// If we aren't planning on writing headers, we parse just the header line
-					if (!writeHeaders) {
-						CSVStream.parse(Files.newBufferedReader(output.value(options).toPath(), StandardCharsets.UTF_8),
-								h -> {
-									// Headers must match exactly with those we are planning to write out
-									if (!outputHeaders.equals(h)) {
-										throw new IllegalArgumentException(
-												"Could not append to file as its existing headers did not match: existing=["
-														+ h + "] new=[" + outputHeaders + "]");
-									}
-								}, (h, l) -> l, l -> {
-								}, overrideHeaders, defaultValues, headerLineCountInt, inputMapper, inputSchema);
+            Writer writer = null;
+            final List<String> defaultValues = Collections.emptyList();
+            final List<String> overrideHeaders = overrideHeadersList.get();
+            try {
+                if (options.has(output)) {
+                    // If we aren't planning on writing headers, we parse just
+                    // the header line
+                    if (!writeHeaders) {
+                        CSVStream.parse(
+                                Files.newBufferedReader(output.value(options).toPath(),
+                                        StandardCharsets.UTF_8),
+                                h -> {
+                                    // Headers must match exactly with those we
+                                    // are planning to write out
+                                    if (!outputHeaders.equals(h)) {
+                                        throw new IllegalArgumentException(
+                                                "Could not append to file as its existing headers did not match: existing=["
+                                                        + h + "] new=[" + outputHeaders + "]");
+                                    }
+                                }, (h, l) -> l, l -> {
+                                }, overrideHeaders, defaultValues, headerLineCountInt, inputMapper,
+                                inputSchema);
 
-					}
+                    }
 
-					writer = Files.newBufferedWriter(output.value(options).toPath(), StandardCharsets.UTF_8,
-							writeOptions);
-				} else {
-					writer = new BufferedWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
-				}
+                    writer = Files.newBufferedWriter(output.value(options).toPath(),
+                            StandardCharsets.UTF_8, writeOptions);
+                } else {
+                    writer = new BufferedWriter(
+                            new OutputStreamWriter(System.out, StandardCharsets.UTF_8));
+                }
 
-				runMapper(readerInput, map, writer, writeHeaders, outputHeaders, overrideHeaders, headerLineCountInt,
-						inputMapper, inputSchema);
-			} finally {
-				if (writer != null) {
-					writer.close();
-				}
-			}
-		}
-	}
+                runMapper(readerInput, map, writer, writeHeaders, outputHeaders, overrideHeaders,
+                        headerLineCountInt, inputMapper, inputSchema);
+            } finally {
+                if (writer != null) {
+                    writer.close();
+                }
+            }
+        }
+    }
 
-	public static void runMapper(Reader input, List<ValueMapping> map, Writer output, boolean writeHeaders,
-			List<String> outputHeaders, List<String> overrideHeaders, int headerLineCount, CsvMapper inputMapper,
-			CsvSchema inputSchema) throws ScriptException, IOException {
+    public static void runMapper(Reader input, List<ValueMapping> map, Writer output,
+            boolean writeHeaders, List<String> outputHeaders, List<String> overrideHeaders,
+            int headerLineCount, CsvMapper inputMapper, CsvSchema inputSchema)
+            throws ScriptException, IOException {
 
-		final Map<String, String> defaultValues = ValueMapping.getDefaultValuesFromList(map);
-		final CsvSchema schema = CSVStream.buildSchema(outputHeaders, writeHeaders);
-		final Writer writer = output;
+        final Map<String, String> defaultValues = ValueMapping.getDefaultValuesFromList(map);
+        final CsvSchema schema = CSVStream.buildSchema(outputHeaders, writeHeaders);
+        final Writer writer = output;
 
-		try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(writer, schema);) {
-			final List<String> inputHeaders = new ArrayList<>();
-			final List<String> previousLine = new ArrayList<>();
-			final List<String> previousMappedLine = new ArrayList<>();
-			final JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(k -> new HashSet<>());
-			final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts = new JDefaultDict<>(
-					k -> new JDefaultDict<>(v -> new AtomicInteger(0)));
-			final AtomicInteger lineNumber = new AtomicInteger(0);
-			final AtomicInteger filteredLineNumber = new AtomicInteger(0);
-			final long startTime = System.currentTimeMillis();
-			final BiConsumer<List<String>, List<String>> mapLineConsumer = Unchecked.biConsumer((l, m) -> {
-				previousLine.clear();
-				previousLine.addAll(l);
-				previousMappedLine.clear();
-				previousMappedLine.addAll(m);
-				csvWriter.write(m);
-			});
-			CSVStream.parse(input, h -> inputHeaders.addAll(h), (h, l) -> {
-				final int nextLineNumber = lineNumber.incrementAndGet();
-				if (nextLineNumber % 1000 == 0) {
-					double secondsSinceStart = (System.currentTimeMillis() - startTime) / 1000.0d;
-					System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n", nextLineNumber,
-							secondsSinceStart, nextLineNumber / secondsSinceStart);
-				}
-				final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
-				try {
-					List<String> mapLine = ValueMapping.mapLine(new ValueMappingContext(inputHeaders, l, previousLine,
-							previousMappedLine, map, primaryKeys, valueCounts, nextLineNumber, nextFilteredLineNumber,
-							mapLineConsumer, outputHeaders, defaultValues, Optional.empty()));
-					mapLineConsumer.accept(l, mapLine);
-				} catch (final LineFilteredException e) {
-					// Swallow line filtered exception and return null below to
-					// eliminate it
-					// We expect streamCSV to operate in sequential order, print
-					// a warning if it doesn't
-					boolean success = filteredLineNumber.compareAndSet(nextFilteredLineNumber,
-							nextFilteredLineNumber - 1);
-					if (!success) {
-						System.out.println("Line numbers may not be consistent");
-					}
-				}
-				return null;
-			}, l -> {
-			}, overrideHeaders, Collections.emptyList(), headerLineCount, inputMapper, inputSchema);
-		}
-	}
+        try (final SequenceWriter csvWriter = CSVStream.newCSVWriter(writer, schema);) {
+            final List<String> inputHeaders = new ArrayList<>();
+            final List<String> previousLine = new ArrayList<>();
+            final List<String> previousMappedLine = new ArrayList<>();
+            final JDefaultDict<String, Set<String>> primaryKeys = new JDefaultDict<>(
+                    k -> new HashSet<>());
+            final JDefaultDict<String, JDefaultDict<String, AtomicInteger>> valueCounts = new JDefaultDict<>(
+                    k -> new JDefaultDict<>(v -> new AtomicInteger(0)));
+            final AtomicInteger lineNumber = new AtomicInteger(0);
+            final AtomicInteger filteredLineNumber = new AtomicInteger(0);
+            final long startTime = System.currentTimeMillis();
+            final BiConsumer<List<String>, List<String>> mapLineConsumer = Unchecked
+                    .biConsumer((l, m) -> {
+                        previousLine.clear();
+                        previousLine.addAll(l);
+                        previousMappedLine.clear();
+                        previousMappedLine.addAll(m);
+                        csvWriter.write(m);
+                    });
+            CSVStream.parse(input, h -> inputHeaders.addAll(h), (h, l) -> {
+                final int nextLineNumber = lineNumber.incrementAndGet();
+                if (nextLineNumber % 1000 == 0) {
+                    final double secondsSinceStart = (System.currentTimeMillis() - startTime)
+                            / 1000.0d;
+                    System.out.printf("%d\tSeconds since start: %f\tRecords per second: %f%n",
+                            nextLineNumber, secondsSinceStart, nextLineNumber / secondsSinceStart);
+                }
+                final int nextFilteredLineNumber = filteredLineNumber.incrementAndGet();
+                try {
+                    final List<String> mapLine = ValueMapping.mapLine(new ValueMappingContext(
+                            inputHeaders, l, previousLine, previousMappedLine, map, primaryKeys,
+                            valueCounts, nextLineNumber, nextFilteredLineNumber, mapLineConsumer,
+                            outputHeaders, defaultValues, Optional.empty()));
+                    mapLineConsumer.accept(l, mapLine);
+                } catch (final LineFilteredException e) {
+                    // Swallow line filtered exception and return null below to
+                    // eliminate it
+                    // We expect streamCSV to operate in sequential order, print
+                    // a warning if it doesn't
+                    final boolean success = filteredLineNumber.compareAndSet(nextFilteredLineNumber,
+                            nextFilteredLineNumber - 1);
+                    if (!success) {
+                        System.out.println("Line numbers may not be consistent");
+                    }
+                }
+                return null;
+            }, l -> {
+            }, overrideHeaders, Collections.emptyList(), headerLineCount, inputMapper, inputSchema);
+        }
+    }
 
 }

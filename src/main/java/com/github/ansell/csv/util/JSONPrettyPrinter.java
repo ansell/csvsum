@@ -1,17 +1,17 @@
 /*
  * Copyright (c) 2016, Peter Ansell
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * * Redistributions of source code must retain the above copyright notice, this
  *   list of conditions and the following disclaimer.
- * 
+ *
  * * Redistributions in binary form must reproduce the above copyright notice,
  *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -29,44 +29,14 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.Reader;
 import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Consumer;
-import java.util.stream.Stream;
-
-import org.apache.commons.io.output.NullWriter;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonPointer;
-import com.fasterxml.jackson.core.JsonToken;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SequenceWriter;
-import com.fasterxml.jackson.dataformat.csv.CsvMapper;
-import com.fasterxml.jackson.dataformat.csv.CsvSchema;
-import com.github.ansell.csv.stream.CSVStream;
-import com.github.ansell.csv.stream.CSVStreamException;
-import com.github.ansell.csv.stream.JSONStream;
-import com.github.ansell.csv.stream.TriFunction;
-import com.github.ansell.csv.util.ValueMapping;
-import com.github.ansell.jdefaultdict.JDefaultDict;
 
 import joptsimple.OptionException;
 import joptsimple.OptionParser;
@@ -75,68 +45,72 @@ import joptsimple.OptionSpec;
 
 /**
  * Parses JSON documents and prints them using a pretty-printer
- * 
+ *
  * @author Peter Ansell p_ansell@yahoo.com
  */
 public final class JSONPrettyPrinter {
 
-	/**
-	 * Private constructor for static only class
-	 */
-	private JSONPrettyPrinter() {
-	}
+    /**
+     * Private constructor for static only class
+     */
+    private JSONPrettyPrinter() {
+    }
 
-	public static void main(String... args) throws Exception {
-		final OptionParser parser = new OptionParser();
+    public static void main(String... args) throws Exception {
+        final OptionParser parser = new OptionParser();
 
-		final OptionSpec<Void> help = parser.accepts("help").forHelp();
-		final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class).required()
-				.describedAs("The input JSON file to be summarised.");
-		final OptionSpec<File> output = parser.accepts("output").withRequiredArg().ofType(File.class)
-				.describedAs("The output file, or the console if not specified.");
-		final OptionSpec<Boolean> debug = parser.accepts("debug").withRequiredArg().ofType(Boolean.class)
-				.defaultsTo(Boolean.FALSE).describedAs("Set to true to debug.");
+        final OptionSpec<Void> help = parser.accepts("help").forHelp();
+        final OptionSpec<File> input = parser.accepts("input").withRequiredArg().ofType(File.class)
+                .required().describedAs("The input JSON file to be summarised.");
+        final OptionSpec<File> output = parser.accepts("output").withRequiredArg()
+                .ofType(File.class)
+                .describedAs("The output file, or the console if not specified.");
+        final OptionSpec<Boolean> debug = parser.accepts("debug").withRequiredArg()
+                .ofType(Boolean.class).defaultsTo(Boolean.FALSE)
+                .describedAs("Set to true to debug.");
 
-		OptionSet options = null;
+        OptionSet options = null;
 
-		try {
-			options = parser.parse(args);
-		} catch (final OptionException e) {
-			System.out.println(e.getMessage());
-			parser.printHelpOn(System.out);
-			throw e;
-		}
+        try {
+            options = parser.parse(args);
+        } catch (final OptionException e) {
+            System.out.println(e.getMessage());
+            parser.printHelpOn(System.out);
+            throw e;
+        }
 
-		if (options.has(help)) {
-			parser.printHelpOn(System.out);
-			return;
-		}
+        if (options.has(help)) {
+            parser.printHelpOn(System.out);
+            return;
+        }
 
-		final Path inputPath = input.value(options).toPath();
-		if (!Files.exists(inputPath)) {
-			throw new FileNotFoundException("Could not find input CSV file: " + inputPath.toString());
-		}
+        final Path inputPath = input.value(options).toPath();
+        if (!Files.exists(inputPath)) {
+            throw new FileNotFoundException(
+                    "Could not find input CSV file: " + inputPath.toString());
+        }
 
-		final Writer writer;
-		if (options.has(output)) {
-			writer = Files.newBufferedWriter(output.value(options).toPath());
-		} else {
-			writer = new BufferedWriter(new OutputStreamWriter(System.out));
-		}
+        final Writer writer;
+        if (options.has(output)) {
+            writer = Files.newBufferedWriter(output.value(options).toPath());
+        } else {
+            writer = new BufferedWriter(new OutputStreamWriter(System.out));
+        }
 
-		boolean debugBoolean = debug.value(options);
+        final boolean debugBoolean = debug.value(options);
 
-		ObjectMapper inputMapper = new ObjectMapper();
+        final ObjectMapper inputMapper = new ObjectMapper();
 
-		try (final BufferedReader newBufferedReader = Files.newBufferedReader(inputPath);
-				JsonParser baseParser = inputMapper.getFactory().createParser(newBufferedReader);
-				JsonGenerator generator = inputMapper.getFactory().createGenerator(writer).useDefaultPrettyPrinter();) {
-			while (baseParser.nextToken() != null) {
-				generator.copyCurrentEvent(baseParser);
-			}
-		} finally {
-			writer.close();
-		}
-	}
+        try (final BufferedReader newBufferedReader = Files.newBufferedReader(inputPath);
+                JsonParser baseParser = inputMapper.getFactory().createParser(newBufferedReader);
+                JsonGenerator generator = inputMapper.getFactory().createGenerator(writer)
+                        .useDefaultPrettyPrinter();) {
+            while (baseParser.nextToken() != null) {
+                generator.copyCurrentEvent(baseParser);
+            }
+        } finally {
+            writer.close();
+        }
+    }
 
 }

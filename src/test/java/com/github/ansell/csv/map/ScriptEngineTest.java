@@ -1,17 +1,17 @@
 /*
  * Copyright (c) 2016, Peter Ansell
  * All rights reserved.
- * 
+ *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- * 
+ *
  * * Redistributions of source code must retain the above copyright notice, this
  *   list of conditions and the following disclaimer.
- * 
+ *
  * * Redistributions in binary form must reproduce the above copyright notice,
  *   this list of conditions and the following disclaimer in the documentation
  *   and/or other materials provided with the distribution.
- * 
+ *
  * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
  * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
@@ -25,7 +25,7 @@
  */
 package com.github.ansell.csv.map;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -45,53 +45,55 @@ import org.junit.Test;
 
 public class ScriptEngineTest {
 
-	private static final ScriptEngineManager SCRIPT_MANAGER = new ScriptEngineManager();
+    private static final ScriptEngineManager SCRIPT_MANAGER = new ScriptEngineManager();
 
-	// Uncomment the following to debug which script engines are available on
-	// the classpath
-	static {
-		List<ScriptEngineFactory> factories = SCRIPT_MANAGER.getEngineFactories();
+    // Uncomment the following to debug which script engines are available on
+    // the classpath
+    static {
+        final List<ScriptEngineFactory> factories = SCRIPT_MANAGER.getEngineFactories();
 
-		System.out.println("Installed script engines:");
+        System.out.println("Installed script engines:");
 
-		for (ScriptEngineFactory nextFactory : factories) {
-			System.out.println(nextFactory.getEngineName());
-		}
-	}
+        for (final ScriptEngineFactory nextFactory : factories) {
+            System.out.println(nextFactory.getEngineName());
+        }
+    }
 
-	private ScriptEngine scriptEngine;
+    private ScriptEngine scriptEngine;
 
-	@Before
-	public void setUp() throws Exception {
-		scriptEngine = SCRIPT_MANAGER.getEngineByName("lua");
-	}
+    @Before
+    public void setUp() throws Exception {
+        scriptEngine = SCRIPT_MANAGER.getEngineByName("lua");
+    }
 
-	@After
-	public void tearDown() throws Exception {
-	}
+    @After
+    public void tearDown() throws Exception {
+    }
 
-	@Test
-	public final void test() throws Exception {
-		String csvMapperScript = "mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) return inputValue end";
-		String simpleScript = "return inputValue";
-		CompiledScript compiledScript = (CompiledScript) ((Compilable) scriptEngine).compile(simpleScript);
-		Bindings bindings = scriptEngine.createBindings();
-		// inputHeaders, inputField, inputValue, outputField, line
-		bindings.put("inputHeaders", "");
-		bindings.put("inputField", "");
-		bindings.put("inputValue", "testreturnvalue");
-		bindings.put("outputField", "");
-		bindings.put("line", "");
-		String result = (String) compiledScript.eval(bindings);
-		System.out.println(result);
-		assertEquals("testreturnvalue", result);
-	}
+    @Test
+    public final void test() throws Exception {
+        final String csvMapperScript = "mapFunction = function(inputHeaders, inputField, inputValue, outputField, line) return inputValue end";
+        final String simpleScript = "return inputValue";
+        final CompiledScript compiledScript = ((Compilable) scriptEngine).compile(simpleScript);
+        final Bindings bindings = scriptEngine.createBindings();
+        // inputHeaders, inputField, inputValue, outputField, line
+        bindings.put("inputHeaders", "");
+        bindings.put("inputField", "");
+        bindings.put("inputValue", "testreturnvalue");
+        bindings.put("outputField", "");
+        bindings.put("line", "");
+        final String result = (String) compiledScript.eval(bindings);
+        System.out.println(result);
+        assertEquals("testreturnvalue", result);
+    }
 
-	@Test
-	public final void testDate() throws Exception {
-		LocalDate parseDate1 = LocalDate.parse("21-Sep-14", DateTimeFormatter.ofPattern("d-MMM-yy").withLocale(Locale.US));
-		LocalDate parsedDate = LocalDate.parse("2-Apr-14", DateTimeFormatter.ofPattern("d-MMM-yy").withLocale(Locale.US));
-		System.out.println(parsedDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
-	}
-	
+    @Test
+    public final void testDate() throws Exception {
+        final LocalDate parseDate1 = LocalDate.parse("21-Sep-14",
+                DateTimeFormatter.ofPattern("d-MMM-yy").withLocale(Locale.US));
+        final LocalDate parsedDate = LocalDate.parse("2-Apr-14",
+                DateTimeFormatter.ofPattern("d-MMM-yy").withLocale(Locale.US));
+        System.out.println(parsedDate.format(DateTimeFormatter.ISO_LOCAL_DATE));
+    }
+
 }
