@@ -6,7 +6,6 @@ before_install:
   - cd $TRAVIS_BUILD_DIR
 after_success:
   - mvn clean test jacoco:report
-  - bash <(curl -s https://codecov.io/bash)
 env:
   global:
     JDK_VERSION: "15"
