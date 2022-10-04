@@ -37,7 +37,7 @@
 	</developers>
 
 	<properties>
-		<jackson.version>2.12.0</jackson.version>
+		<jackson.version>2.12.6.1</jackson.version>
 		<junit.version>4.13.1</junit.version>
 		<slf4j.version>1.7.30</slf4j.version>
 		<jdkLevel>15</jdkLevel>
